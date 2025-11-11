@@ -1,0 +1,61 @@
+export type GameStatus = 'waiting' | 'in-progress' | 'finished'
+
+export interface Player {
+  uid: string
+  name: string
+  team: string
+  ready: boolean
+  joinedAt: number
+}
+
+export interface AIGuess {
+  turn: number
+  guess: string
+  confidence: number
+  timestamp: number
+}
+
+export interface GameRoom {
+  roomId: string
+  status: GameStatus
+  theme: string
+  targetWord: string
+  currentTurn: string
+  turnOrder: string[]
+  currentTurnIndex: number
+  maxTurns: number
+  turnCount: number
+  startTime: number
+  endTime?: number
+  players: Record<string, Player>
+  aiGuesses: AIGuess[]
+}
+
+export interface LiveDrawing {
+  roomId: string
+  canvasState: string // Fabric.js JSON (stringified)
+  lastUpdatedBy: string
+  lastUpdatedAt: number
+}
+
+export interface ChatMessage {
+  id: string
+  roomId: string
+  uid: string
+  displayName: string
+  text: string
+  timestamp: number
+}
+
+export interface GameLog {
+  logId: string
+  roomId: string
+  theme: string
+  targetWord: string
+  finalTurnCount: number
+  finalTime: number
+  winningTeam: string
+  finalImageUri: string
+  aiGuessList: AIGuess[]
+  completedAt: number
+}
