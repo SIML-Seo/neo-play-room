@@ -3,6 +3,8 @@ export type GameStatus = 'waiting' | 'in-progress' | 'finished'
 export interface Player {
   uid: string
   name: string
+  displayName?: string | null
+  photoURL?: string | null
   team: string
   ready: boolean
   joinedAt: number
@@ -26,9 +28,11 @@ export interface GameRoom {
   maxTurns: number
   turnCount: number
   startTime: number
+  turnStartTime?: number
   endTime?: number
   players: Record<string, Player>
   aiGuesses: AIGuess[]
+  canvasData?: string
 }
 
 export interface LiveDrawing {
