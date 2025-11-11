@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useGameRoom } from '@/hooks/useGameRoom'
-import { useEffect, useState } from 'react'
-import Canvas from '@/components/game/Canvas'
+import { useEffect, useState, useRef } from 'react'
+import Canvas, { type CanvasHandle } from '@/components/game/Canvas'
+import { submitDrawingToAI } from '@/services/ai'
 
 export default function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -18,7 +19,10 @@ export default function GameRoom() {
     getRemainingTime,
   } = useGameRoom(roomId)
   const navigate = useNavigate()
+  const canvasRef = useRef<CanvasHandle>(null)
   const [remainingTime, setRemainingTime] = useState(60)
+  const [isSubmittingToAI, setIsSubmittingToAI] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
 
   // 로그인하지 않은 경우 홈으로 리다이렉트
   useEffect(() => {
@@ -42,6 +46,41 @@ export default function GameRoom() {
       handleNextTurn()
     }
   }, [remainingTime, gameRoom?.status, handleNextTurn])
+
+  // AI에게 그림 제출
+  const handleSubmitToAI = async () => {
+    if (!roomId || !canvasRef.current) return
+
+    try {
+      setIsSubmittingToAI(true)
+      setAiError(null)
+
+      const imageBase64 = canvasRef.current.getCanvasAsBase64()
+      if (!imageBase64) {
+        throw new Error('캔버스 이미지를 가져올 수 없습니다.')
+      }
+
+      const result = await submitDrawingToAI(roomId, imageBase64)
+
+      console.log('AI 판단 결과:', result)
+
+      // 게임이 종료되었으면 결과 페이지로 이동
+      if (result.gameStatus === 'finished') {
+        if (result.isCorrect) {
+          alert(`🎉 정답입니다! AI가 "${result.guess}"라고 추론했습니다!`)
+        } else {
+          alert(`❌ 게임 종료! AI의 최종 추론: "${result.guess}"`)
+        }
+      }
+    } catch (err) {
+      console.error('AI 제출 실패:', err)
+      const errorMessage =
+        err instanceof Error ? err.message : 'AI에게 제출하는 중 오류가 발생했습니다.'
+      setAiError(errorMessage)
+    } finally {
+      setIsSubmittingToAI(false)
+    }
+  }
 
   if (authLoading || roomLoading || !user) {
     return (
@@ -148,19 +187,35 @@ export default function GameRoom() {
             )}
 
             <Canvas
+              ref={canvasRef}
               width={800}
               height={600}
               isDrawingEnabled={isDrawing && gameRoom.status === 'in-progress'}
               onCanvasChange={handleCanvasChange}
             />
 
+            {/* AI 에러 표시 */}
+            {aiError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                {aiError}
+              </div>
+            )}
+
             {isDrawing && gameRoom.status === 'in-progress' && (
-              <div className="mt-4">
+              <div className="mt-4 space-y-3">
+                <button
+                  onClick={handleSubmitToAI}
+                  disabled={isSubmittingToAI}
+                  className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  {isSubmittingToAI ? '🤖 AI가 판단 중...' : '🎨 AI에게 제출하기'}
+                </button>
                 <button
                   onClick={handleNextTurn}
-                  className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                  disabled={isSubmittingToAI}
+                  className="w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
                 >
-                  다음 차례로 넘기기
+                  다음 차례로 넘기기 (AI 제출 안 함)
                 </button>
               </div>
             )}
