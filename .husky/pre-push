@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+
+echo "🧪 Running pre-push tests..."
+
+# Frontend 디렉토리로 이동
+cd games/project-da-vinci/frontend || exit 1
+
+# 1. 전체 단위 테스트 실행
+echo "📦 Running unit tests..."
+npm run test:run
+
+if [ $? -ne 0 ]; then
+  echo "❌ Unit tests failed. Push aborted."
+  exit 1
+fi
+
+# 2. 빌드 테스트
+echo "🏗️ Testing build..."
+npm run build
+
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed. Push aborted."
+  exit 1
+fi
+
+echo "✅ All pre-push checks passed! Pushing to remote..."
