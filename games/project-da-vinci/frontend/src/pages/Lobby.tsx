@@ -1,9 +1,17 @@
 import { useAuth } from '@/hooks/useAuth'
+import { useMatchmaking } from '@/hooks/useMatchmaking'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 
 export default function Lobby() {
   const { user, loading, signOut, isAuthenticated } = useAuth()
+  const {
+    waitingPlayers,
+    isJoining,
+    error: matchError,
+    joinWaitingRoom,
+    isInWaitingRoom,
+  } = useMatchmaking()
   const navigate = useNavigate()
 
   // 로그인하지 않은 경우 홈으로 리다이렉트
@@ -12,6 +20,13 @@ export default function Lobby() {
       navigate('/')
     }
   }, [isAuthenticated, loading, navigate])
+
+  // 로그인 완료되면 자동으로 대기실 입장
+  useEffect(() => {
+    if (user && !isInWaitingRoom && !isJoining) {
+      joinWaitingRoom()
+    }
+  }, [user, isInWaitingRoom, isJoining, joinWaitingRoom])
 
   const handleSignOut = async () => {
     try {
@@ -29,6 +44,9 @@ export default function Lobby() {
       </div>
     )
   }
+
+  // 빈 슬롯 개수 계산
+  const emptySlots = Math.max(0, 5 - waitingPlayers.length)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -68,6 +86,13 @@ export default function Lobby() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {/* 매칭 에러 표시 */}
+        {matchError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            {matchError}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* 대기 중인 플레이어 */}
           <div className="lg:col-span-2">
@@ -75,28 +100,46 @@ export default function Lobby() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">대기 중인 플레이어</h2>
               <p className="text-gray-500 text-sm mb-6">5명이 모이면 자동으로 게임이 시작됩니다</p>
 
-              {/* 플레이어 목록 - 추후 실시간 데이터로 교체 */}
+              {/* 플레이어 목록 */}
               <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg border-2 border-indigo-200">
-                  {user.photoURL && (
-                    <img
-                      src={user.photoURL}
-                      alt={user.displayName || ''}
-                      className="w-10 h-10 rounded-full"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">
-                      {user.displayName} <span className="text-indigo-600">(나)</span>
+                {waitingPlayers.map((player) => {
+                  const isMe = player.uid === user.uid
+
+                  return (
+                    <div
+                      key={player.uid}
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 ${
+                        isMe ? 'bg-indigo-50 border-indigo-200' : 'bg-green-50 border-green-200'
+                      }`}
+                    >
+                      {player.photoURL ? (
+                        <img
+                          src={player.photoURL}
+                          alt={player.displayName || ''}
+                          className="w-10 h-10 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                          <span className="text-gray-600 text-sm font-bold">
+                            {player.displayName?.[0] || '?'}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">
+                          {player.displayName || '익명'}
+                          {isMe && <span className="text-indigo-600 ml-2">(나)</span>}
+                        </div>
+                        <div className="text-sm text-gray-500">{player.email}</div>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
-                  </div>
-                </div>
+                  )
+                })}
 
                 {/* 빈 슬롯 */}
-                {[1, 2, 3, 4].map((slot) => (
+                {Array.from({ length: emptySlots }).map((_, idx) => (
                   <div
-                    key={slot}
+                    key={`empty-${idx}`}
                     className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300"
                   >
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -108,6 +151,14 @@ export default function Lobby() {
                   </div>
                 ))}
               </div>
+
+              {/* 대기실 입장 중 표시 */}
+              {isJoining && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm flex items-center gap-2">
+                  <span className="animate-spin">⏳</span>
+                  <span>대기실에 입장 중...</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -122,7 +173,7 @@ export default function Lobby() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">현재 대기</span>
-                  <span className="font-medium text-indigo-600">1명</span>
+                  <span className="font-medium text-indigo-600">{waitingPlayers.length}명</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">최대 턴</span>
@@ -131,6 +182,20 @@ export default function Lobby() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">턴당 시간</span>
                   <span className="font-medium text-gray-900">60초</span>
+                </div>
+              </div>
+
+              {/* 진행 바 */}
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>매칭 진행</span>
+                  <span>{waitingPlayers.length}/5</span>
+                </div>
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-indigo-600 transition-all duration-500"
+                    style={{ width: `${(waitingPlayers.length / 5) * 100}%` }}
+                  />
                 </div>
               </div>
             </div>
