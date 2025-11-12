@@ -1,8 +1,9 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useMatchmaking } from '@/hooks/useMatchmaking'
 import { useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ENV } from '@/config/env'
+import { createGameRoom } from '@/services/matchmaking'
 
 export default function Lobby() {
   const { user, loading, signOut, isAuthenticated } = useAuth()
@@ -13,6 +14,7 @@ export default function Lobby() {
     joinWaitingRoom,
     isInWaitingRoom,
   } = useMatchmaking()
+  const [isStarting, setIsStarting] = useState(false)
   const navigate = useNavigate()
 
   // 로그인하지 않은 경우 홈으로 리다이렉트
@@ -35,6 +37,19 @@ export default function Lobby() {
       navigate('/')
     } catch (error) {
       console.error('로그아웃 실패:', error)
+    }
+  }
+
+  const handleStartGame = async () => {
+    if (waitingPlayers.length < ENV.game.maxPlayers) return
+
+    try {
+      setIsStarting(true)
+      const roomId = await createGameRoom(waitingPlayers)
+      navigate(`/game/${roomId}`)
+    } catch (error) {
+      console.error('게임 시작 실패:', error)
+      setIsStarting(false)
     }
   }
 
@@ -111,8 +126,10 @@ export default function Lobby() {
                   return (
                     <div
                       key={player.uid}
-                      className={`flex items-center gap-3 p-3 rounded-lg border-2 ${
-                        isMe ? 'bg-indigo-50 border-indigo-200' : 'bg-green-50 border-green-200'
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all duration-300 animate-fadeIn ${
+                        isMe
+                          ? 'bg-indigo-50 border-indigo-200 shadow-md'
+                          : 'bg-green-50 border-green-200'
                       }`}
                     >
                       {player.photoURL ? (
@@ -143,10 +160,10 @@ export default function Lobby() {
                 {Array.from({ length: emptySlots }).map((_, idx) => (
                   <div
                     key={`empty-${idx}`}
-                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300"
+                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 animate-pulse"
                   >
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-400 text-lg">?</span>
+                      <span className="text-gray-400 text-lg animate-bounce">?</span>
                     </div>
                     <div className="flex-1">
                       <div className="text-sm text-gray-400">대기 중...</div>
@@ -160,6 +177,42 @@ export default function Lobby() {
                 <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm flex items-center gap-2">
                   <span className="animate-spin">⏳</span>
                   <span>대기실에 입장 중...</span>
+                </div>
+              )}
+
+              {/* 게임 시작 버튼 */}
+              {waitingPlayers.length === ENV.game.maxPlayers && (
+                <div className="mt-6 animate-scaleIn">
+                  <button
+                    onClick={handleStartGame}
+                    disabled={isStarting}
+                    className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                  >
+                    {isStarting ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        <span>게임 시작 중...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-2xl">🎮</span>
+                        <span>게임 시작하기!</span>
+                      </>
+                    )}
+                  </button>
+                  <p className="mt-2 text-center text-sm text-gray-500">
+                    모든 플레이어가 모였습니다. 게임을 시작해주세요!
+                  </p>
+                </div>
+              )}
+
+              {/* 대기 중 메시지 */}
+              {waitingPlayers.length < ENV.game.maxPlayers && waitingPlayers.length > 0 && (
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm text-center">
+                  <span className="font-medium">
+                    {ENV.game.maxPlayers - waitingPlayers.length}명
+                  </span>
+                  의 플레이어를 더 기다리고 있습니다...
                 </div>
               )}
             </div>
@@ -196,11 +249,14 @@ export default function Lobby() {
                     {waitingPlayers.length}/{ENV.game.maxPlayers}
                   </span>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden relative">
                   <div
-                    className="h-full bg-indigo-600 transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-500 ease-out relative"
                     style={{ width: `${(waitingPlayers.length / ENV.game.maxPlayers) * 100}%` }}
-                  />
+                  >
+                    {/* Shimmer effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                  </div>
                 </div>
               </div>
             </div>
