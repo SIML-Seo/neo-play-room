@@ -17,9 +17,7 @@ export default function Chat({ roomId, user }: ChatProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
+  const submitMessage = async () => {
     if (!inputText.trim() || isSending) return
 
     try {
@@ -30,10 +28,15 @@ export default function Chat({ roomId, user }: ChatProps) {
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await submitMessage()
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e as any)
+      void submitMessage()
     }
   }
 

@@ -59,6 +59,18 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
       throw new HttpsError('failed-precondition', '게임이 진행 중이 아닙니다.')
     }
 
+    const playerUid = request.auth.uid
+    if (gameRoom.currentTurn !== playerUid) {
+      throw new HttpsError('permission-denied', '현재 턴이 아닌 플레이어는 AI를 호출할 수 없습니다.')
+    }
+
+    // 정답 단어 조회 (roomSecrets)
+    const targetWordSnapshot = await db.ref(`/roomSecrets/${roomId}/targetWord`).once('value')
+    if (!targetWordSnapshot.exists()) {
+      throw new HttpsError('failed-precondition', '정답 단어를 찾을 수 없습니다.')
+    }
+    const targetWord: string = targetWordSnapshot.val()
+
     // 2. 프롬프트 생성
     const prompt = buildEnhancedPrompt(gameRoom.theme)
     logger.info(`프롬프트 생성 완료 (테마: ${gameRoom.theme})`)
@@ -123,15 +135,20 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
       logger.info(`AI 추론: ${guess} (신뢰도: ${confidence})`)
 
       // 5. 정답 확인
-      const isCorrect = guess.trim() === gameRoom.targetWord.trim()
+      const normalizedGuess = guess.trim()
+      const normalizedTarget = targetWord.trim()
+      const isCorrect = normalizedGuess === normalizedTarget
       const newTurnCount = gameRoom.turnCount + 1
 
-      const aiGuess = {
-        turn: newTurnCount,
-        guess,
-        confidence,
-        timestamp: Date.now(),
-      }
+      const updatedGuesses = [
+        ...(gameRoom.aiGuesses || []),
+        {
+          turn: newTurnCount,
+          guess,
+          confidence,
+          timestamp: Date.now(),
+        },
+      ]
 
       // 6. 게임 상태 업데이트
       let gameStatus: 'in-progress' | 'finished' = 'in-progress'
@@ -143,7 +160,11 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
           status: 'finished',
           endTime: Date.now(),
           turnCount: newTurnCount,
-          aiGuesses: [...(gameRoom.aiGuesses || []), aiGuess],
+          result: 'success',
+          failReason: null,
+          lastGuess: guess,
+          targetWordReveal: targetWord,
+          aiGuesses: updatedGuesses,
         })
 
         logger.info(`🎉 정답! 룸: ${roomId}, 답: ${guess}`)
@@ -154,7 +175,11 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
           status: 'finished',
           endTime: Date.now(),
           turnCount: newTurnCount,
-          aiGuesses: [...(gameRoom.aiGuesses || []), aiGuess],
+          result: 'failure',
+          failReason: 'turnLimitExceeded',
+          lastGuess: guess,
+          targetWordReveal: targetWord,
+          aiGuesses: updatedGuesses,
         })
 
         logger.warn(`❌ 최대 턴 초과! 룸: ${roomId}`)
@@ -168,7 +193,8 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
           turnCount: newTurnCount,
           turnStartTime: Date.now(),
           canvasData: '', // 캔버스 초기화
-          aiGuesses: [...(gameRoom.aiGuesses || []), aiGuess],
+          lastGuess: guess,
+          aiGuesses: updatedGuesses,
         })
 
         logger.info(`➡️ 다음 턴: ${gameRoom.turnOrder[nextTurnIndex]}`)

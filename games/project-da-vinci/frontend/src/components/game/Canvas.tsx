@@ -51,6 +51,8 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       return () => {
         canvas.dispose()
       }
+      // width/height 변경시에만 재생성하고 싶으므로 다른 의존성은 제외
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [width, height])
 
     // 그리기 모드 토글

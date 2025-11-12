@@ -6,6 +6,7 @@ import Canvas, { type CanvasHandle } from '@/components/game/Canvas'
 import Chat from '@/components/game/Chat'
 import { submitDrawingToAI } from '@/services/ai'
 import { ENV } from '@/config/env'
+import { subscribeToRoomSecret } from '@/services/roomSecrets'
 
 export default function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -25,6 +26,7 @@ export default function GameRoom() {
   const [remainingTime, setRemainingTime] = useState(ENV.game.turnTimeLimit)
   const [isSubmittingToAI, setIsSubmittingToAI] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
+  const [targetWord, setTargetWord] = useState<string | null>(null)
 
   // 로그인하지 않은 경우 홈으로 리다이렉트
   useEffect(() => {
@@ -42,12 +44,46 @@ export default function GameRoom() {
     return () => clearInterval(interval)
   }, [getRemainingTime])
 
+  // 현재 턴인 경우 정답 단어 구독
+  useEffect(() => {
+    if (!roomId) {
+      setTargetWord(null)
+      return
+    }
+
+    if (!user || !isMyTurn(user.uid)) {
+      setTargetWord(null)
+      return
+    }
+
+    const unsubscribe = subscribeToRoomSecret(roomId, (secret) => {
+      setTargetWord(secret?.targetWord ?? null)
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [roomId, user, isMyTurn])
+
   // 시간 초과 시 자동으로 다음 턴
   useEffect(() => {
     if (remainingTime === 0 && gameRoom?.status === 'in-progress') {
       handleNextTurn()
     }
   }, [remainingTime, gameRoom?.status, handleNextTurn])
+
+  // 관전자/다른 플레이어는 최신 캔버스를 불러오기
+  useEffect(() => {
+    if (!canvasRef.current || !gameRoom?.canvasData) {
+      return
+    }
+
+    if (!user || isMyTurn(user.uid)) {
+      return
+    }
+
+    canvasRef.current.loadCanvasData(gameRoom.canvasData)
+  }, [gameRoom?.canvasData, isMyTurn, user])
 
   // AI에게 그림 제출
   const handleSubmitToAI = async () => {
@@ -113,6 +149,7 @@ export default function GameRoom() {
   if (gameRoom.status === 'finished') {
     const isSuccess = gameRoom.result === 'success'
     const isTurnLimitExceeded = gameRoom.failReason === 'turnLimitExceeded'
+    const revealedWord = gameRoom.targetWordReveal || '비공개'
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -143,23 +180,29 @@ export default function GameRoom() {
 
           <div className="bg-gray-50 rounded-lg p-6 mb-6">
             <h3 className="font-semibold text-gray-900 mb-4">게임 결과</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">목표 단어</span>
-                <span className="font-medium text-gray-900">{gameRoom.targetWord}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">소요 턴</span>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">목표 단어</span>
+                  <span className="font-medium text-gray-900">{revealedWord}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">소요 턴</span>
                 <span className="font-medium text-gray-900">
                   {gameRoom.turnCount} / {gameRoom.maxTurns}턴
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">AI 추론 횟수</span>
-                <span className="font-medium text-gray-900">{gameRoom.aiGuesses?.length || 0}회</span>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">AI 추론 횟수</span>
+                  <span className="font-medium text-gray-900">{gameRoom.aiGuesses?.length || 0}회</span>
+                </div>
+                {gameRoom.lastGuess && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">마지막 추론</span>
+                    <span className="font-medium text-gray-900">{gameRoom.lastGuess}</span>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
 
           <button
             onClick={() => navigate('/lobby')}
@@ -175,6 +218,11 @@ export default function GameRoom() {
   const isDrawing = isMyTurn(user.uid)
   const currentPlayer = gameRoom.players[gameRoom.currentTurn]
   const allPlayers = Object.values(gameRoom.players)
+  const wordDisplay = targetWord ? (
+    <strong>{targetWord}</strong>
+  ) : (
+    <span className="text-sm text-gray-500">정답 단어를 불러오는 중...</span>
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -240,7 +288,7 @@ export default function GameRoom() {
             {isDrawing ? (
               <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                 <p className="text-indigo-900 font-medium">
-                  🎨 당신의 차례입니다! 주제: <strong>{gameRoom.targetWord}</strong>
+                  🎨 당신의 차례입니다! 주제: {wordDisplay}
                 </p>
               </div>
             ) : (

@@ -21,7 +21,6 @@ export interface GameRoom {
   roomId: string
   status: GameStatus
   theme: string
-  targetWord: string
   currentTurn: string
   turnOrder: string[]
   currentTurnIndex: number
@@ -30,6 +29,10 @@ export interface GameRoom {
   startTime: number
   turnStartTime?: number
   endTime?: number
+  result?: 'success' | 'failure'
+  failReason?: 'turnLimitExceeded' | 'aiFailure'
+  lastGuess?: string
+  targetWordReveal?: string
   players: Record<string, Player>
   aiGuesses: AIGuess[]
   canvasData?: string

@@ -2,6 +2,7 @@ import { ref, onValue, set, remove, push, serverTimestamp } from 'firebase/datab
 import { database } from '@/firebase'
 import type { User } from 'firebase/auth'
 import { ENV } from '@/config/env'
+import { setRoomSecret } from '@/services/roomSecrets'
 
 export interface WaitingPlayer {
   uid: string
@@ -87,7 +88,6 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
     roomId,
     status: 'waiting', // waiting, in-progress, completed
     theme: ENV.isDevelopment ? '테스트' : '동물', // 개발: 단순한 테마, 상용: 랜덤 선택
-    targetWord: ENV.isDevelopment ? '집' : '고양이', // 개발: 단순한 단어, 상용: 랜덤 선택
     currentTurn: turnOrder[0],
     turnOrder,
     currentTurnIndex: 0,
@@ -109,6 +109,10 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
     ),
     aiGuesses: [],
   })
+
+  // 비공개 정답 단어 저장
+  const targetWord = ENV.isDevelopment ? '집' : '고양이'
+  await setRoomSecret(roomId, targetWord)
 
   // 대기열에서 플레이어들 제거
   await Promise.all(players.map((p) => leaveLobby(p.uid)))
