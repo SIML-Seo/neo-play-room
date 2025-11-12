@@ -313,7 +313,8 @@ database.ref(`/liveDrawings/${roomId}/canvasState`).on('value', (snapshot) => {
     - guess == targetWord?
         - Yes: gameRooms/{roomId}/status = 'finished'
         - No: currentTurnIndex++, turnCount++
-    - aiGuesses 배열에 결과 추가
+    - Cloud Storage 업로드 (rooms/{roomId}/turn-${newTurn}.jpg)
+    - aiGuesses 배열에 `{ guess, confidence, storagePath }` 결과 추가
     ↓
 [Client]
     - gameRooms/{roomId} 구독 중 → status 변화 감지
@@ -326,14 +327,20 @@ database.ref(`/liveDrawings/${roomId}/canvasState`).on('value', (snapshot) => {
 [Database Trigger: onUpdate('/gameRooms/{roomId}/status')]
     ↓
 [Cloud Function: finalizeGame]
-    - 최종 캔버스 이미지 생성 (서버 사이드 렌더링 또는 클라이언트 업로드)
-    - Cloud Storage에 저장: /drawings/{roomId}-final.png
-    - /gameLogs/{logId} 생성 (결과 아카이빙)
+    - judgeDrawing이 방금 저장한 Storage 경로 조회 (rooms/{roomId}/turn-${turn}.jpg)
+    - 최종 이미지 메타데이터와 AI 추론 결과를 gameLogs/{logId}에 복사
     - 전체 팀 순위 계산 (turnCount, finalTime 기준)
     ↓
 [Client: /results 페이지]
-    - gameLogs 읽기 → 리더보드 표시
+    - gameLogs 읽기 → 리더보드 및 Storage 이미지 URL 표시
     - 우승팀 축하 애니메이션
+
+### 비용 최적화를 위한 이미지/로그 파이프라인
+
+1. **단일 업로드 지점**: 클라이언트는 이미지를 Storage에 직접 올리지 않습니다. `judgeDrawing` 함수가 이미지를 Base64로 전달받으므로, 함수 내부에서 `Buffer.from(base64, 'base64')` → Cloud Storage(`drawings/rooms/{roomId}/turn-${turnCount}.jpg`) 업로드를 수행합니다. AI 호출과 같은 함수 실행 안에서 처리하므로 추가 네트워크 비용이 없습니다.
+2. **메타데이터 서명**: 함수는 업로드 직후 SHA-256 해시를 계산해 `aiGuesses` 항목에 `{ storagePath, hash, guess, confidence }`를 함께 저장합니다. 이후 로그가 변경되면 해시 비교로 위변조 여부를 즉시 판단할 수 있습니다.
+3. **최종 결과**: 게임이 종료되면(정답 맞힘 또는 최대 턴), `finalizeGame` 트리거가 `aiGuesses`에서 마지막 이미지를 찾아 `gameLogs/{logId}`에 복사하고, Public URL을 생성해 `/results` 페이지가 바로 사용할 수 있게 합니다. 실패 시에는 Cloud Functions 재시도 로직을 활용하며, 3회 실패 시 Slack 알림(향후 추가)을 받도록 설계합니다.
+4. **보관 정책**: `drawings/rooms/*` 이미지는 30일 후 자동 삭제, `drawings/finals/*`는 아카이브용으로 유지합니다. 스케줄러 Function이 매주 만료 이미지를 정리해 Storage 비용을 상수로 유지합니다.
 ```
 
 ---

@@ -8,14 +8,14 @@
 
 | 항목 | 기술 | 버전 |
 |-----|------|------|
-| **빌드 도구** | Vite | 5.x |
-| **프레임워크** | React | 18.x |
-| **언어** | TypeScript | 5.x |
-| **캔버스** | Fabric.js | 5.x |
-| **상태 관리** | Zustand | 4.x |
-| **라우팅** | React Router | 6.x |
-| **스타일링** | Tailwind CSS | 3.x |
-| **Firebase SDK** | Firebase JS SDK | 10.x |
+| **빌드 도구** | Vite | 7.x |
+| **프레임워크** | React | 19.x |
+| **언어** | TypeScript | 5.9.x |
+| **캔버스** | Fabric.js | 6.x |
+| **상태 관리** | Zustand | 5.x |
+| **라우팅** | React Router | 7.x |
+| **스타일링** | Tailwind CSS | 4.x |
+| **Firebase SDK** | Firebase JS SDK | 12.x |
 | **UI 컴포넌트** | Headless UI, Heroicons | - |
 
 ---

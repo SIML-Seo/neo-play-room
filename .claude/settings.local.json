@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(cat:*)",
+      "Bash(\"C:\\Users\\Neolab-WON\\Desktop\\another\\neo-play-room\\games\\project-da-vinci\\frontend\\.env.example\")",
+      "Bash(\"C:\\Users\\Neolab-WON\\Desktop\\another\\neo-play-room\\games\\project-da-vinci\\functions\\.env.example\")",
+      "Bash(\"C:\\Users\\Neolab-WON\\Desktop\\another\\neo-play-room\\games\\project-da-vinci\\docs\\SETUP.md\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

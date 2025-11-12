@@ -162,6 +162,8 @@ export interface AIGuess {
   guess: string;
   confidence: number;
   timestamp: number;
+  storagePath: string;
+  sha256: string;
 }
 
 export interface LiveDrawing {
@@ -189,6 +191,7 @@ export interface GameLog {
   finalTime: number;  // ms
   winningTeam: string;
   finalImageUri: string;  // GCS URI
+  finalImageHash?: string;
   aiGuessList: AIGuess[];
   completedAt: number;
 }
@@ -342,8 +345,10 @@ export const matchPlayers = onSchedule({
 // functions/src/ai/judge.flow.ts
 import { onCall } from 'firebase-functions/v2/https';
 import { getDatabase } from 'firebase-admin/database';
+import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createHash } from 'crypto';
 
 interface JudgeRequest {
   roomId: string;
@@ -362,6 +367,7 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>({
 }, async (request) => {
   const { roomId, imageBase64 } = request.data;
   const db = getDatabase();
+  const storage = getStorage().bucket();
 
   // 1. 게임 룸 정보 가져오기
   const roomSnapshot = await db.ref(`/gameRooms/${roomId}`).once('value');
@@ -396,14 +402,10 @@ Examples:
 DO NOT explain your reasoning. ONLY return the JSON.`;
 
   try {
+    const base64Payload = imageBase64.split(',')[1]; // "data:image/jpeg;base64," 제거
     const result = await model.generateContent([
       prompt,
-      {
-        inlineData: {
-          data: imageBase64.split(',')[1],  // "data:image/jpeg;base64," 제거
-          mimeType: 'image/jpeg',
-        },
-      },
+      { inlineData: { data: base64Payload, mimeType: 'image/jpeg' } },
     ]);
 
     const responseText = result.response.text();
@@ -414,16 +416,26 @@ DO NOT explain your reasoning. ONLY return the JSON.`;
     const guess = parsed.guess;
     const confidence = parsed.confidence || 0.5;
 
-    // 3. 정답 확인
+    // 3. Storage 업로드 (turn-$n.jpg)
+    const buffer = Buffer.from(base64Payload, 'base64');
+    const turnNumber = gameRoom.turnCount + 1;
+    const storagePath = `drawings/rooms/${roomId}/turn-${turnNumber}.jpg`;
+    await storage.file(storagePath).save(buffer, { contentType: 'image/jpeg', resumable: false });
+
+    const hash = createHash('sha256').update(buffer).digest('hex');
+
+    // 4. 정답 확인
     const isCorrect = guess === gameRoom.targetWord;
 
-    // 4. 게임 룸 업데이트
+    // 5. 게임 룸 업데이트
     const newTurnCount = gameRoom.turnCount + 1;
     const aiGuess: AIGuess = {
       turn: newTurnCount,
       guess,
       confidence,
       timestamp: Date.now(),
+      storagePath,
+      sha256: hash,
     };
 
     if (isCorrect) {
@@ -496,19 +508,22 @@ export const finalizeGame = onValueUpdated({
   }
 
   const db = getDatabase();
-  const storage = getStorage();
+  const bucket = getStorage().bucket();
 
   // 1. 게임 룸 데이터 가져오기
   const roomSnapshot = await db.ref(`/gameRooms/${roomId}`).once('value');
   const gameRoom: GameRoom = roomSnapshot.val();
 
-  // 2. 최종 캔버스 이미지 가져오기 (클라이언트가 미리 업로드했다고 가정)
-  const canvasSnapshot = await db.ref(`/liveDrawings/${roomId}/canvasState`).once('value');
-  const canvasState = canvasSnapshot.val();
+  // 2. judgeDrawing이 남긴 마지막 이미지 메타데이터 사용
+  const latestGuess = gameRoom.aiGuesses?.[gameRoom.aiGuesses.length - 1];
+  if (!latestGuess) {
+    logger.error(`최종 이미지 메타데이터 누락: ${roomId}`);
+    return;
+  }
 
-  // 3. Cloud Storage에 이미지 저장 (선택 사항)
-  // 실제로는 클라이언트에서 toDataURL() 후 Storage에 직접 업로드하는 것이 효율적
-  const finalImageUri = `gs://${process.env.PROJECT_ID}.appspot.com/drawings/${roomId}-final.png`;
+  // 3. finals/ 경로로 복사 (장기 보관)
+  const finalPath = `drawings/finals/${roomId}.jpg`;
+  await bucket.file(latestGuess.storagePath).copy(bucket.file(finalPath));
 
   // 4. 게임 로그 생성
   const gameLog: GameLog = {
@@ -519,7 +534,8 @@ export const finalizeGame = onValueUpdated({
     finalTurnCount: gameRoom.turnCount,
     finalTime: (gameRoom.endTime || Date.now()) - gameRoom.startTime,
     winningTeam: roomId,  // 추후 리더보드 구현 시 순위 계산
-    finalImageUri,
+    finalImageUri: finalPath,
+    finalImageHash: latestGuess.sha256,
     aiGuessList: gameRoom.aiGuesses,
     completedAt: Date.now(),
   };
@@ -527,8 +543,7 @@ export const finalizeGame = onValueUpdated({
   await db.ref(`/gameLogs/${gameLog.logId}`).set(gameLog);
   logger.info(`게임 로그 저장: ${gameLog.logId}`);
 
-  // 5. (선택 사항) 게임 룸 데이터 압축 또는 삭제
-  // await db.ref(`/gameRooms/${roomId}`).remove();
+  // 5. (선택 사항) rooms/ 이미지는 30일 후 스케줄러가 정리
 });
 ```
 
@@ -557,34 +572,27 @@ export const auth = admin.auth();
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // 인증된 사용자만 업로드
-    match /drawings/{roomId} {
-      allow write: if request.auth != null;
+    // rooms/* 은 Cloud Functions(Admin)만 쓰기, 사용자는 읽기만 허용
+    match /drawings/rooms/{roomId}/{fileName} {
       allow read: if request.auth != null;
+      allow write: if false;
     }
 
-    // 게임 로그는 모두 읽기 가능
-    match /logs/{logId} {
+    // finals/* 는 리더보드 노출 용도 → 인증 사용자 읽기 허용
+    match /drawings/finals/{roomId}.jpg {
       allow read: if request.auth != null;
-      allow write: if false;  // Cloud Function만 쓰기
+      allow write: if false;
     }
   }
 }
 ```
 
-### 클라이언트에서 이미지 업로드
+### Cloud Function 업로드 흐름
 
-```typescript
-// frontend/src/services/storage.service.ts
-import { ref, uploadString } from 'firebase/storage';
-import { storage } from '@/firebase';
-
-export async function uploadFinalImage(roomId: string, imageDataUrl: string): Promise<string> {
-  const storageRef = ref(storage, `drawings/${roomId}-final.png`);
-  const snapshot = await uploadString(storageRef, imageDataUrl, 'data_url');
-  return snapshot.ref.fullPath;
-}
-```
+- `judgeDrawing`이 Base64 이미지를 입력으로 받으므로, 추가 네트워크 호출 없이 Admin SDK로 Storage에 저장한다.
+- 각 턴 이미지는 `drawings/rooms/{roomId}/turn-${turn}.jpg`에 저장되고, SHA-256 해시가 `aiGuesses[].sha256`으로 함께 기록된다.
+- `finalizeGame`은 마지막 이미지를 `drawings/finals/{roomId}.jpg`로 복사해 장기 보관하며, `gameLogs`에 URI와 해시를 남긴다.
+- 주간 스케줄러(Function)에서 `drawings/rooms/*`를 30일마다 정리해 Storage 비용을 예측 가능하게 유지한다.
 
 ---
 
