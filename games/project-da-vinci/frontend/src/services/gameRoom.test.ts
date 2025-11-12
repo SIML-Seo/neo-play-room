@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { nextTurn, updateCanvasData, endGameByTurnLimit } from './gameRoom'
+import {
+  nextTurn,
+  updateCanvasData,
+  endGameByTurnLimit,
+  updatePlayerReady,
+  updateDifficulty,
+} from './gameRoom'
 
 // Mock Firebase
 const { mockRef, mockUpdate, mockOnValue, mockGet } = vi.hoisted(() => ({
@@ -19,6 +25,17 @@ vi.mock('firebase/database', () => ({
 
 vi.mock('@/firebase', () => ({
   database: {},
+}))
+
+vi.mock('@/utils/difficulty', () => ({
+  getDifficultyConfig: vi.fn((difficulty: string) => {
+    const configs = {
+      easy: { turnTimeLimit: 90, maxTurns: 15 },
+      normal: { turnTimeLimit: 60, maxTurns: 10 },
+      hard: { turnTimeLimit: 30, maxTurns: 7 },
+    }
+    return configs[difficulty as keyof typeof configs]
+  }),
 }))
 
 describe('gameRoom services', () => {
@@ -78,6 +95,77 @@ describe('gameRoom services', () => {
           result: 'failed',
           failReason: 'turnLimitExceeded',
           finishedAt: expect.any(Number),
+        })
+      )
+    })
+  })
+
+  describe('updatePlayerReady', () => {
+    it('플레이어 준비 상태를 true로 업데이트', async () => {
+      mockUpdate.mockResolvedValue(undefined)
+
+      await updatePlayerReady('room-123', 'user-1', true)
+
+      expect(mockRef).toHaveBeenCalledWith({}, 'gameRooms/room-123/players/user-1')
+      expect(mockUpdate).toHaveBeenCalledWith('mock-ref', {
+        ready: true,
+      })
+    })
+
+    it('플레이어 준비 상태를 false로 업데이트', async () => {
+      mockUpdate.mockResolvedValue(undefined)
+
+      await updatePlayerReady('room-123', 'user-2', false)
+
+      expect(mockRef).toHaveBeenCalledWith({}, 'gameRooms/room-123/players/user-2')
+      expect(mockUpdate).toHaveBeenCalledWith('mock-ref', {
+        ready: false,
+      })
+    })
+  })
+
+  describe('updateDifficulty', () => {
+    it('쉬움 난이도로 변경', async () => {
+      mockUpdate.mockResolvedValue(undefined)
+
+      await updateDifficulty('room-123', 'easy')
+
+      expect(mockUpdate).toHaveBeenCalledWith(
+        'mock-ref',
+        expect.objectContaining({
+          difficulty: 'easy',
+          maxTurns: 15,
+          turnTimeLimit: 90,
+        })
+      )
+    })
+
+    it('보통 난이도로 변경', async () => {
+      mockUpdate.mockResolvedValue(undefined)
+
+      await updateDifficulty('room-123', 'normal')
+
+      expect(mockUpdate).toHaveBeenCalledWith(
+        'mock-ref',
+        expect.objectContaining({
+          difficulty: 'normal',
+          maxTurns: 10,
+          turnTimeLimit: 60,
+        })
+      )
+    })
+
+    it('어려움 난이도로 변경', async () => {
+      mockUpdate.mockResolvedValue(undefined)
+
+      await updateDifficulty('room-123', 'hard')
+
+      expect(mockUpdate).toHaveBeenCalledWith(
+        'mock-ref',
+        expect.objectContaining({
+          difficulty: 'hard',
+          maxTurns: 7,
+          turnTimeLimit: 30,
         })
       )
     })

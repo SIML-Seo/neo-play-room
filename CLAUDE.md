@@ -179,8 +179,11 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 [클라이언트] canvas.toDataURL('image/jpeg', 0.8) → Base64
     ↓
 [Cloud Function: judgeDrawing]
-    - RTDB에서 GameRoom 조회 (theme, targetWord)
-    - 프롬프트 생성 (buildEnhancedPrompt(theme))
+    - RTDB에서 GameRoom 조회 (theme, targetWord, difficulty)
+    - 난이도별 프롬프트 생성 (buildPromptByDifficulty(theme, difficulty))
+      - easy: Few-shot 프롬프트 (AI 정확도 높음)
+      - normal: Enhanced 프롬프트 (AI 정확도 중간)
+      - hard: Basic 프롬프트 (AI 정확도 낮음)
     - Gemini 1.5 Flash 호출 (이미지 + 프롬프트)
     - JSON 파싱 { guess: "백설공주", confidence: 0.85 }
     - 정답 확인 (guess === targetWord)
@@ -190,6 +193,31 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
     ↓
 [클라이언트] UI 업데이트 (AI 추론 결과 표시)
 ```
+
+### 6. 협의 기반 게임 시작 플로우
+```
+[Lobby: 5명 매칭 완료]
+    ↓
+[GameRoom 생성 (status: waiting, difficulty: normal)]
+    ↓
+[대기실 UI]
+    - 난이도 선택 (모든 참가자가 실시간 수정 가능)
+    - 채팅으로 난이도 협의
+    - 각 플레이어 "준비 완료" 버튼 클릭
+    ↓
+[모든 플레이어 ready: true]
+    ↓
+[게임 시작 버튼 활성화]
+    ↓
+[클릭 시 status: in-progress]
+    ↓
+[게임 진행 (Canvas + AI 추론)]
+```
+
+**협동 게임 철학:**
+- 난이도는 한 사람이 아닌 **모두가 협의**하여 결정
+- 준비 완료 시스템으로 **모든 플레이어가 동의** 후 시작
+- 대기실 채팅을 통한 **원활한 소통**
 
 ---
 
@@ -238,15 +266,15 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 | 파일 | 경로 | 기능 |
 |-----|------|------|
 | **Home.tsx** | `/` | Google SSO 로그인 페이지 |
-| **Lobby.tsx** | `/lobby` | 팀원 대기실 (5명 매칭 후 게임 시작) |
-| **GameRoom.tsx** | `/game/:roomId` | 메인 게임 화면 (Canvas + Chat + AI 추론) |
+| **Lobby.tsx** | `/lobby` | 5명 매칭 대기실 (매칭 완료 시 GameRoom 생성) |
+| **GameRoom.tsx** | `/game/:roomId` | **waiting**: 난이도 협의 + 채팅 + 준비 완료 대기실<br>**in-progress**: 메인 게임 (Canvas + Chat + AI 추론) |
 | **Results.tsx** | `/results` | 게임 종료 후 결과 화면 (리더보드) |
 
 #### 커스텀 훅 (src/hooks/)
 | 훅 | 기능 | 반환값 |
 |----|------|--------|
 | **useAuth()** | Firebase Auth 상태 관리 | `{ user, loading, signIn, signOut }` + @neolab.net 검증 |
-| **useGameRoom(roomId)** | 게임 룸 실시간 구독 | `{ gameRoom, canvasState, loading }` |
+| **useGameRoom(roomId)** | 게임 룸 실시간 구독 + 상태 관리 | `{ gameRoom, handleCanvasChange, handlePlayerReady, handleDifficultyChange, handleStartGame, isMyTurn, getRemainingTime }` |
 | **useCanvas()** | Fabric.js Canvas 제어 | `{ canvas, initCanvas, syncCanvas, exportImage }` |
 | **useAIJudge()** | AI 추론 Cloud Function 호출 | `{ judge(roomId, imageBase64), loading, error }` |
 | **useMatchmaking()** | Lobby 플레이어 매칭 | `{ players, joinLobby, leaveLobby, startGame }` |
@@ -265,9 +293,16 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 | 파일 | 역할 |
 |-----|------|
 | **auth.ts** | Firebase Auth 래퍼 (`signInWithPopup`, `signOut`) |
-| **gameRoom.ts** | 게임 룸 CRUD (`subscribeToGameRoom`, `updateGameRoom`, `endTurn`) |
-| **matchmaking.ts** | Lobby 로직 (`joinLobby`, `createGameRoom`) |
+| **gameRoom.ts** | 게임 룸 CRUD (`subscribeToGameRoom`, `updateCanvasData`, `updatePlayerReady`, `updateDifficulty`, `startGame`, `endTurn`) |
+| **matchmaking.ts** | Lobby 로직 (`joinLobby`, `createGameRoom(players, difficulty)`) |
 | **ai.ts** | Cloud Function 호출 (`judgeDrawing` httpsCallable) |
+
+#### 유틸리티 (src/utils/)
+| 파일 | 역할 |
+|-----|------|
+| **difficulty.ts** | 난이도 설정 관리 (`DIFFICULTY_CONFIG`, `getDifficultyConfig`, `getDifficultyLabel`) |
+| **timeFormatter.ts** | 시간 포맷팅 유틸리티 |
+| **sanitizer.ts** | XSS 방지 (DOMPurify 래퍼) |
 
 ### Cloud Functions 주요 파일
 
