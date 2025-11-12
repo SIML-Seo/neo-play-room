@@ -7,6 +7,7 @@ import Chat from '@/components/game/Chat'
 import { submitDrawingToAI } from '@/services/ai'
 import { ENV } from '@/config/env'
 import { subscribeToRoomSecret } from '@/services/roomSecrets'
+import { getDifficultyConfig } from '@/utils/difficulty'
 
 export default function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -23,7 +24,7 @@ export default function GameRoom() {
   } = useGameRoom(roomId)
   const navigate = useNavigate()
   const canvasRef = useRef<CanvasHandle>(null)
-  const [remainingTime, setRemainingTime] = useState(ENV.game.turnTimeLimit)
+  const [remainingTime, setRemainingTime] = useState(gameRoom?.turnTimeLimit || ENV.game.turnTimeLimit)
   const [isSubmittingToAI, setIsSubmittingToAI] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [targetWord, setTargetWord] = useState<string | null>(null)
@@ -181,6 +182,17 @@ export default function GameRoom() {
               <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
                 {gameRoom.theme}
               </span>
+              {/* 난이도 배지 */}
+              {gameRoom.difficulty && (
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                    getDifficultyConfig(gameRoom.difficulty).bgColor
+                  } ${getDifficultyConfig(gameRoom.difficulty).color}`}
+                >
+                  <span>{getDifficultyConfig(gameRoom.difficulty).icon}</span>
+                  <span>{getDifficultyConfig(gameRoom.difficulty).label}</span>
+                </span>
+              )}
               {gameRoom.status === 'waiting' && (
                 <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
                   대기 중
@@ -312,7 +324,7 @@ export default function GameRoom() {
                           : 'bg-indigo-600'
                     }`}
                     style={{
-                      width: `${(remainingTime / ENV.game.turnTimeLimit) * 100}%`,
+                      width: `${(remainingTime / (gameRoom.turnTimeLimit || ENV.game.turnTimeLimit)) * 100}%`,
                     }}
                   />
                 </div>

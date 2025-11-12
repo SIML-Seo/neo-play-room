@@ -6,7 +6,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getDatabase } from 'firebase-admin/database'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { buildEnhancedPrompt } from './prompts'
+import { buildPromptByDifficulty, AIDifficulty } from './prompts'
 import { logger } from 'firebase-functions'
 
 interface JudgeRequest {
@@ -71,9 +71,10 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
     }
     const targetWord: string = targetWordSnapshot.val()
 
-    // 2. 프롬프트 생성
-    const prompt = buildEnhancedPrompt(gameRoom.theme)
-    logger.info(`프롬프트 생성 완료 (테마: ${gameRoom.theme})`)
+    // 2. 프롬프트 생성 (난이도 적용)
+    const difficulty = (gameRoom.difficulty as AIDifficulty) || AIDifficulty.NORMAL
+    const prompt = buildPromptByDifficulty(gameRoom.theme, difficulty)
+    logger.info(`프롬프트 생성 완료 (테마: ${gameRoom.theme}, 난이도: ${difficulty})`)
 
     // 3. Gemini API 호출
     const apiKey = process.env.GEMINI_API_KEY

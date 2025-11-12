@@ -49,11 +49,13 @@ describe('useGameRoom', () => {
     roomId: 'room-123',
     status: 'in-progress',
     theme: '동화',
+    difficulty: 'normal',
     currentTurn: 'user-1',
     turnOrder: ['user-1', 'user-2', 'user-3', 'user-4', 'user-5'],
     currentTurnIndex: 0,
     maxTurns: 10,
     turnCount: 3,
+    turnTimeLimit: 60,
     startTime: Date.now(),
     turnStartTime: Date.now() - 10000, // 10초 전
     players: {

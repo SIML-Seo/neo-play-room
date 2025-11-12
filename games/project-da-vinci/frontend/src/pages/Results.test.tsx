@@ -51,11 +51,13 @@ describe('Results 페이지', () => {
     status: 'finished',
     result: 'success',
     theme: '동화',
+    difficulty: 'normal',
     currentTurn: 'user-1',
     turnOrder: ['user-1', 'user-2'],
     currentTurnIndex: 0,
     maxTurns: 10,
     turnCount: 5,
+    turnTimeLimit: 60,
     startTime: Date.now() - 180000, // 3분 전
     endTime: Date.now(),
     targetWordReveal: '백설공주',
