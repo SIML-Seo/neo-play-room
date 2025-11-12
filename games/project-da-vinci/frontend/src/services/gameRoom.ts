@@ -86,6 +86,7 @@ export async function startGame(roomId: string): Promise<void> {
   await update(ref(database, `gameRooms/${roomId}`), {
     status: 'in-progress',
     turnStartTime: Date.now(),
+    canvasData: '', // 빈 캔버스로 시작
   })
 }
 

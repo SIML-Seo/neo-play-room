@@ -94,6 +94,7 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
     maxTurns: ENV.game.maxTurns,
     turnCount: 0,
     startTime: serverTimestamp(),
+    canvasData: '', // 초기 빈 캔버스
     players: players.reduce(
       (acc, player) => {
         acc[player.uid] = {

@@ -84,6 +84,14 @@ export default function GameRoom() {
       return
     }
 
+    // 빈 캔버스 데이터면 항상 초기화 (턴이 넘어갈 때)
+    if (gameRoom.canvasData === '') {
+      console.log('[GameRoom] 빈 캔버스로 초기화')
+      canvasRef.current.clearCanvas()
+      return
+    }
+
+    // 내 차례가 아닐 때만 다른 사람의 그림 로드
     if (!user || isMyTurn(user.uid)) {
       console.log('[GameRoom] 내 차례라서 캔버스 로드 스킵')
       return
