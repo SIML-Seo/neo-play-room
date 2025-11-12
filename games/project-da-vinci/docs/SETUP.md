@@ -433,4 +433,4 @@ auth/unauthorized-domain: This domain is not authorized
 - **Firebase 문서**: https://firebase.google.com/docs
 - **Gemini API 문서**: https://ai.google.dev/gemini-api/docs
 - **프로젝트 이슈**: GitHub Issues에 질문 등록
-- **사내 채널**: #소통위원회 (Slack)
+- **사내 채널**: #네오톡톡
