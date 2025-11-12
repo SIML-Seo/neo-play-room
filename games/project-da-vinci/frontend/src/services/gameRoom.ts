@@ -32,10 +32,19 @@ export async function getGameRoom(roomId: string): Promise<GameRoom | null> {
  * 캔버스 데이터 업데이트
  */
 export async function updateCanvasData(roomId: string, canvasData: string): Promise<void> {
-  await update(ref(database, `gameRooms/${roomId}`), {
-    canvasData,
-    lastUpdated: Date.now(),
-  })
+  console.log('[gameRoom.ts] updateCanvasData 호출', { roomId, dataLength: canvasData.length })
+
+  try {
+    const roomRef = ref(database, `gameRooms/${roomId}`)
+    await update(roomRef, {
+      canvasData,
+      lastUpdated: Date.now(),
+    })
+    console.log('[gameRoom.ts] Firebase update 성공')
+  } catch (error) {
+    console.error('[gameRoom.ts] Firebase update 실패:', error)
+    throw error
+  }
 }
 
 /**

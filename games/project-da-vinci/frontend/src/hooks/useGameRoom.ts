@@ -23,6 +23,12 @@ export function useGameRoom(roomId: string | undefined) {
     }
 
     const unsubscribe = subscribeToGameRoom(roomId, (room) => {
+      console.log('[useGameRoom] 게임 룸 데이터 수신:', {
+        hasRoom: !!room,
+        status: room?.status,
+        hasCanvasData: !!room?.canvasData,
+        canvasDataLength: room?.canvasData?.length || 0,
+      })
       setGameRoom(room)
       setLoading(false)
 
@@ -56,7 +62,9 @@ export function useGameRoom(roomId: string | undefined) {
       if (!roomId) return
 
       try {
+        console.log('[useGameRoom] 캔버스 데이터 업데이트 중...', canvasData.substring(0, 50))
         await updateCanvasData(roomId, canvasData)
+        console.log('[useGameRoom] 캔버스 데이터 업데이트 완료')
       } catch (err) {
         console.error('Failed to update canvas:', err)
         const errorMessage = err instanceof Error ? err.message : '캔버스 업데이트에 실패했습니다.'

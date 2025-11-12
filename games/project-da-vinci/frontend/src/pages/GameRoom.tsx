@@ -74,14 +74,22 @@ export default function GameRoom() {
 
   // 관전자/다른 플레이어는 최신 캔버스를 불러오기
   useEffect(() => {
-    if (!canvasRef.current || !gameRoom?.canvasData) {
+    console.log('[GameRoom] 캔버스 데이터 변경 감지', {
+      hasCanvasRef: !!canvasRef.current,
+      canvasData: gameRoom?.canvasData,
+      isMyTurn: user ? isMyTurn(user.uid) : false,
+    })
+
+    if (!canvasRef.current || gameRoom?.canvasData === undefined) {
       return
     }
 
     if (!user || isMyTurn(user.uid)) {
+      console.log('[GameRoom] 내 차례라서 캔버스 로드 스킵')
       return
     }
 
+    console.log('[GameRoom] 다른 플레이어의 캔버스 로드', gameRoom.canvasData.substring(0, 50))
     canvasRef.current.loadCanvasData(gameRoom.canvasData)
   }, [gameRoom?.canvasData, isMyTurn, user])
 

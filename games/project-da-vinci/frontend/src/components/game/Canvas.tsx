@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
-import { Canvas as FabricCanvas } from 'fabric'
+import * as fabric from 'fabric'
 
 interface CanvasProps {
   width?: number
@@ -11,12 +11,13 @@ interface CanvasProps {
 export interface CanvasHandle {
   getCanvasAsBase64: () => string | null
   loadCanvasData: (canvasData: string) => void
+  clearCanvas: () => void
 }
 
 const Canvas = forwardRef<CanvasHandle, CanvasProps>(
   ({ width = 800, height = 600, isDrawingEnabled = true, onCanvasChange }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
-    const fabricCanvasRef = useRef<FabricCanvas | null>(null)
+    const fabricCanvasRef = useRef<fabric.Canvas | null>(null)
     const [currentColor, setCurrentColor] = useState('#000000')
     const [brushWidth, setBrushWidth] = useState(5)
     const [isEraser, setIsEraser] = useState(false)
@@ -25,23 +26,40 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
     useEffect(() => {
       if (!canvasRef.current) return
 
-      const canvas = new FabricCanvas(canvasRef.current, {
+      console.log('[Canvas] 초기화 중...', { width, height, isDrawingEnabled })
+
+      const canvas = new fabric.Canvas(canvasRef.current, {
         width,
         height,
         backgroundColor: '#ffffff',
-        isDrawingMode: isDrawingEnabled,
       })
 
       fabricCanvasRef.current = canvas
 
-      // 브러시 설정
+      // 드로잉 모드를 항상 활성화 (렌더링 문제 방지)
+      canvas.isDrawingMode = true
+
+      // 브러시 명시적 생성 및 설정
       if (canvas.freeDrawingBrush) {
         canvas.freeDrawingBrush.color = currentColor
         canvas.freeDrawingBrush.width = brushWidth
+        console.log('[Canvas] 브러시 설정 완료', { color: currentColor, width: brushWidth })
+      } else {
+        // 브러시가 없으면 PencilBrush 직접 생성
+        console.warn('[Canvas] freeDrawingBrush가 없어서 PencilBrush 생성')
+        canvas.freeDrawingBrush = new fabric.PencilBrush(canvas)
+        canvas.freeDrawingBrush.color = currentColor
+        canvas.freeDrawingBrush.width = brushWidth
+        console.log('[Canvas] PencilBrush 생성 및 설정 완료')
       }
+
+      // 실제 드로잉 모드 설정
+      canvas.isDrawingMode = isDrawingEnabled
+      console.log('[Canvas] 최종 드로잉 모드:', isDrawingEnabled)
 
       // 캔버스 변경 이벤트
       canvas.on('path:created', () => {
+        console.log('[Canvas] path:created 이벤트 발생')
         if (onCanvasChange) {
           const canvasData = JSON.stringify(canvas.toJSON())
           onCanvasChange(canvasData)
@@ -55,25 +73,49 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [width, height])
 
-    // 그리기 모드 토글
+    // 그리기 모드 토글 (항상 true로 유지하되, selection을 비활성화)
     useEffect(() => {
       if (fabricCanvasRef.current) {
-        fabricCanvasRef.current.isDrawingMode = isDrawingEnabled
+        console.log('[Canvas] 드로잉 활성화 상태 변경:', isDrawingEnabled)
+
+        if (isDrawingEnabled) {
+          // 그리기 가능
+          fabricCanvasRef.current.isDrawingMode = true
+          fabricCanvasRef.current.selection = false
+        } else {
+          // 그리기 불가능 (보기만 가능)
+          fabricCanvasRef.current.isDrawingMode = false
+          fabricCanvasRef.current.selection = false
+          // 모든 objects를 선택 불가능하게 설정
+          fabricCanvasRef.current.getObjects().forEach((obj) => {
+            obj.selectable = false
+            obj.evented = false
+          })
+          fabricCanvasRef.current.renderAll()
+        }
       }
     }, [isDrawingEnabled])
 
     // 브러시 색상 변경
     useEffect(() => {
-      if (fabricCanvasRef.current?.freeDrawingBrush) {
-        fabricCanvasRef.current.freeDrawingBrush.color = isEraser ? '#ffffff' : currentColor
+      const canvas = fabricCanvasRef.current
+      if (!canvas) return
+
+      if (!canvas.freeDrawingBrush) {
+        canvas.freeDrawingBrush = new fabric.PencilBrush(canvas)
       }
+      canvas.freeDrawingBrush.color = isEraser ? '#ffffff' : currentColor
     }, [currentColor, isEraser])
 
     // 브러시 두께 변경
     useEffect(() => {
-      if (fabricCanvasRef.current?.freeDrawingBrush) {
-        fabricCanvasRef.current.freeDrawingBrush.width = brushWidth
+      const canvas = fabricCanvasRef.current
+      if (!canvas) return
+
+      if (!canvas.freeDrawingBrush) {
+        canvas.freeDrawingBrush = new fabric.PencilBrush(canvas)
       }
+      canvas.freeDrawingBrush.width = brushWidth
     }, [brushWidth])
 
     // 부모 컴포넌트에서 접근 가능한 메서드 노출
@@ -91,16 +133,56 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       },
       // 캔버스 데이터 로드
       loadCanvasData: (canvasData: string) => {
-        if (fabricCanvasRef.current) {
-          try {
-            const data = JSON.parse(canvasData)
-            fabricCanvasRef.current.loadFromJSON(data, () => {
-              fabricCanvasRef.current?.renderAll()
-            })
-          } catch (error) {
-            console.error('Failed to load canvas data:', error)
-          }
+        console.log('[Canvas] loadCanvasData 호출됨', {
+          hasCanvas: !!fabricCanvasRef.current,
+          dataLength: canvasData?.length || 0
+        })
+
+        if (!fabricCanvasRef.current) {
+          console.warn('[Canvas] fabricCanvasRef가 없습니다!')
+          return
         }
+
+        const canvas = fabricCanvasRef.current
+
+        try {
+          if (!canvasData) {
+            // 빈 문자열이면 캔버스 초기화
+            console.log('[Canvas] 빈 데이터, 캔버스 초기화')
+            clearCanvas()
+            return
+          }
+
+          const data = JSON.parse(canvasData)
+          console.log('[Canvas] JSON 파싱 성공, objects 개수:', data.objects?.length || 0)
+
+          // 기존 objects 모두 제거
+          canvas.clear()
+          canvas.backgroundColor = '#ffffff'
+
+          // 새로운 objects 추가
+          if (data.objects && data.objects.length > 0) {
+            canvas.loadFromJSON(data, () => {
+              console.log('[Canvas] loadFromJSON 완료, renderAll 호출')
+              canvas.renderAll()
+
+              // 한 번 더 렌더링 (드로잉 모드가 false일 때 렌더링 문제 해결)
+              setTimeout(() => {
+                canvas.renderAll()
+                console.log('[Canvas] 재렌더링 완료, objects 개수:', canvas.getObjects().length)
+              }, 0)
+            })
+          } else {
+            console.log('[Canvas] objects가 없어서 빈 캔버스')
+            canvas.renderAll()
+          }
+        } catch (error) {
+          console.error('[Canvas] loadCanvasData 실패:', error)
+        }
+      },
+      // 캔버스 초기화
+      clearCanvas: () => {
+        clearCanvas()
       },
     }))
 
@@ -195,7 +277,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
         )}
 
         {/* 캔버스 */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
           <canvas ref={canvasRef} />
         </div>
       </div>
