@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useGameRoom } from '@/hooks/useGameRoom'
 import { useEffect, useState, useRef } from 'react'
 import Canvas, { type CanvasHandle } from '@/components/game/Canvas'
+import Chat from '@/components/game/Chat'
 import { submitDrawingToAI } from '@/services/ai'
 import { ENV } from '@/config/env'
 
@@ -382,6 +383,11 @@ export default function GameRoom() {
                   )
                 })}
               </div>
+            </div>
+
+            {/* 채팅 */}
+            <div className="h-96">
+              <Chat roomId={roomId!} user={user} />
             </div>
           </div>
         </div>
