@@ -10,3 +10,6 @@ admin.initializeApp()
 
 // AI Judge Function Export
 export { judgeDrawing } from './ai/judge.flow'
+
+// Game Finalize Trigger Export
+export { finalizeGame } from './game/finalize'
