@@ -126,3 +126,34 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
 export function checkAndStartGame(players: WaitingPlayer[]): boolean {
   return players.length >= MAX_PLAYERS
 }
+
+/**
+ * 플레이어가 속한 게임 룸 찾기 (대기열에서 제거된 후 사용)
+ */
+export async function findMyGameRoom(uid: string): Promise<string | null> {
+  const { ref: dbRef, get } = await import('firebase/database')
+
+  const roomsRef = dbRef(database, 'gameRooms')
+  const snapshot = await get(roomsRef)
+
+  if (!snapshot.exists()) {
+    return null
+  }
+
+  // 가장 최근에 생성된 방 중에서 내가 속한 방 찾기
+  let foundRoomId: string | null = null
+  let latestStartTime = 0
+
+  snapshot.forEach((child) => {
+    const roomData = child.val()
+    if (roomData.players && roomData.players[uid]) {
+      const startTime = roomData.startTime || 0
+      if (startTime > latestStartTime) {
+        latestStartTime = startTime
+        foundRoomId = child.key
+      }
+    }
+  })
+
+  return foundRoomId
+}
