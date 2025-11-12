@@ -81,6 +81,18 @@ export async function startGame(roomId: string): Promise<void> {
 }
 
 /**
+ * 게임 종료 (턴 초과 시)
+ */
+export async function endGameByTurnLimit(roomId: string): Promise<void> {
+  await update(ref(database, `gameRooms/${roomId}`), {
+    status: 'finished',
+    result: 'failed',
+    failReason: 'turnLimitExceeded',
+    finishedAt: Date.now(),
+  })
+}
+
+/**
  * 게임 종료
  */
 export async function endGame(roomId: string): Promise<void> {

@@ -1,6 +1,7 @@
 import { ref, onValue, set, remove, push, serverTimestamp } from 'firebase/database'
 import { database } from '@/firebase'
 import type { User } from 'firebase/auth'
+import { ENV } from '@/config/env'
 
 export interface WaitingPlayer {
   uid: string
@@ -19,7 +20,7 @@ interface GameRoomPlayer {
 }
 
 const LOBBY_PATH = 'lobby/waitingPlayers'
-const MAX_PLAYERS = 5
+const MAX_PLAYERS = ENV.game.maxPlayers
 
 /**
  * 대기실에 플레이어 추가
@@ -85,21 +86,21 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
   await set(newRoomRef, {
     roomId,
     status: 'waiting', // waiting, in-progress, completed
-    theme: '동물', // 추후 랜덤 선택
-    targetWord: '고양이', // 추후 랜덤 선택
+    theme: ENV.isDevelopment ? '테스트' : '동물', // 개발: 단순한 테마, 상용: 랜덤 선택
+    targetWord: ENV.isDevelopment ? '집' : '고양이', // 개발: 단순한 단어, 상용: 랜덤 선택
     currentTurn: turnOrder[0],
     turnOrder,
     currentTurnIndex: 0,
-    maxTurns: 10,
+    maxTurns: ENV.game.maxTurns,
     turnCount: 0,
     startTime: serverTimestamp(),
     players: players.reduce(
       (acc, player) => {
         acc[player.uid] = {
           uid: player.uid,
-          displayName: player.displayName,
-          email: player.email,
-          photoURL: player.photoURL,
+          displayName: player.displayName || null,
+          email: player.email || null,
+          photoURL: player.photoURL || null,
           ready: false,
         }
         return acc

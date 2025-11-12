@@ -5,8 +5,10 @@ import {
   nextTurn,
   updatePlayerReady,
   startGame,
+  endGameByTurnLimit,
 } from '@/services/gameRoom'
 import type { GameRoom } from '@/types/game.types'
+import { ENV } from '@/config/env'
 
 export function useGameRoom(roomId: string | undefined) {
   const [gameRoom, setGameRoom] = useState<GameRoom | null>(null)
@@ -33,6 +35,20 @@ export function useGameRoom(roomId: string | undefined) {
       unsubscribe()
     }
   }, [roomId])
+
+  // 턴 수 초과 시 자동 게임 종료
+  useEffect(() => {
+    if (!gameRoom || !roomId) return
+    if (gameRoom.status !== 'in-progress') return
+
+    // turnCount가 maxTurns를 초과하면 게임 종료
+    if (gameRoom.turnCount >= gameRoom.maxTurns) {
+      console.log('⚠️ 최대 턴 수 초과! 게임을 종료합니다.')
+      endGameByTurnLimit(roomId).catch((err) => {
+        console.error('Failed to end game:', err)
+      })
+    }
+  }, [gameRoom, roomId])
 
   // 캔버스 업데이트
   const handleCanvasChange = useCallback(
@@ -99,12 +115,12 @@ export function useGameRoom(roomId: string | undefined) {
     [gameRoom]
   )
 
-  // 남은 시간 계산 (60초)
+  // 남은 시간 계산
   const getRemainingTime = useCallback(() => {
-    if (!gameRoom?.turnStartTime) return 60
+    if (!gameRoom?.turnStartTime) return ENV.game.turnTimeLimit
 
     const elapsed = Math.floor((Date.now() - gameRoom.turnStartTime) / 1000)
-    const remaining = Math.max(0, 60 - elapsed)
+    const remaining = Math.max(0, ENV.game.turnTimeLimit - elapsed)
     return remaining
   }, [gameRoom])
 

@@ -2,6 +2,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useMatchmaking } from '@/hooks/useMatchmaking'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
+import { ENV } from '@/config/env'
 
 export default function Lobby() {
   const { user, loading, signOut, isAuthenticated } = useAuth()
@@ -46,7 +47,7 @@ export default function Lobby() {
   }
 
   // 빈 슬롯 개수 계산
-  const emptySlots = Math.max(0, 5 - waitingPlayers.length)
+  const emptySlots = Math.max(0, ENV.game.maxPlayers - waitingPlayers.length)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -98,7 +99,9 @@ export default function Lobby() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">대기 중인 플레이어</h2>
-              <p className="text-gray-500 text-sm mb-6">5명이 모이면 자동으로 게임이 시작됩니다</p>
+              <p className="text-gray-500 text-sm mb-6">
+                {ENV.game.maxPlayers}명이 모이면 자동으로 게임이 시작됩니다
+              </p>
 
               {/* 플레이어 목록 */}
               <div className="space-y-3">
@@ -169,7 +172,7 @@ export default function Lobby() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">필요 인원</span>
-                  <span className="font-medium text-gray-900">5명</span>
+                  <span className="font-medium text-gray-900">{ENV.game.maxPlayers}명</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">현재 대기</span>
@@ -177,11 +180,11 @@ export default function Lobby() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">최대 턴</span>
-                  <span className="font-medium text-gray-900">10턴</span>
+                  <span className="font-medium text-gray-900">{ENV.game.maxTurns}턴</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">턴당 시간</span>
-                  <span className="font-medium text-gray-900">60초</span>
+                  <span className="font-medium text-gray-900">{ENV.game.turnTimeLimit}초</span>
                 </div>
               </div>
 
@@ -189,12 +192,14 @@ export default function Lobby() {
               <div className="mt-4">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
                   <span>매칭 진행</span>
-                  <span>{waitingPlayers.length}/5</span>
+                  <span>
+                    {waitingPlayers.length}/{ENV.game.maxPlayers}
+                  </span>
                 </div>
                 <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-indigo-600 transition-all duration-500"
-                    style={{ width: `${(waitingPlayers.length / 5) * 100}%` }}
+                    style={{ width: `${(waitingPlayers.length / ENV.game.maxPlayers) * 100}%` }}
                   />
                 </div>
               </div>

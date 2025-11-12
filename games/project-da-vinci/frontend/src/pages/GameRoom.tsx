@@ -4,6 +4,7 @@ import { useGameRoom } from '@/hooks/useGameRoom'
 import { useEffect, useState, useRef } from 'react'
 import Canvas, { type CanvasHandle } from '@/components/game/Canvas'
 import { submitDrawingToAI } from '@/services/ai'
+import { ENV } from '@/config/env'
 
 export default function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -20,7 +21,7 @@ export default function GameRoom() {
   } = useGameRoom(roomId)
   const navigate = useNavigate()
   const canvasRef = useRef<CanvasHandle>(null)
-  const [remainingTime, setRemainingTime] = useState(60)
+  const [remainingTime, setRemainingTime] = useState(ENV.game.turnTimeLimit)
   const [isSubmittingToAI, setIsSubmittingToAI] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
 
@@ -99,6 +100,69 @@ export default function GameRoom() {
           <button
             onClick={() => navigate('/lobby')}
             className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            로비로 돌아가기
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // 게임 종료 상태 확인
+  if (gameRoom.status === 'finished') {
+    const isSuccess = gameRoom.result === 'success'
+    const isTurnLimitExceeded = gameRoom.failReason === 'turnLimitExceeded'
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-2xl w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          <div className="text-center mb-6">
+            {isSuccess ? (
+              <>
+                <div className="text-6xl mb-4">🎉</div>
+                <h2 className="text-3xl font-bold text-green-600 mb-2">성공!</h2>
+                <p className="text-gray-600">AI가 정답을 맞혔습니다!</p>
+              </>
+            ) : isTurnLimitExceeded ? (
+              <>
+                <div className="text-6xl mb-4">⏱️</div>
+                <h2 className="text-3xl font-bold text-orange-600 mb-2">시간 초과</h2>
+                <p className="text-gray-600">
+                  최대 {gameRoom.maxTurns}턴을 초과했습니다. 다음에 다시 도전하세요!
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-6xl mb-4">😢</div>
+                <h2 className="text-3xl font-bold text-red-600 mb-2">실패</h2>
+                <p className="text-gray-600">게임이 종료되었습니다.</p>
+              </>
+            )}
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+            <h3 className="font-semibold text-gray-900 mb-4">게임 결과</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">목표 단어</span>
+                <span className="font-medium text-gray-900">{gameRoom.targetWord}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">소요 턴</span>
+                <span className="font-medium text-gray-900">
+                  {gameRoom.turnCount} / {gameRoom.maxTurns}턴
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">AI 추론 횟수</span>
+                <span className="font-medium text-gray-900">{gameRoom.aiGuesses?.length || 0}회</span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/lobby')}
+            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
           >
             로비로 돌아가기
           </button>
