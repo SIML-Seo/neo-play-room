@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { ENV } from '@/config/env'
 import { createGameRoom } from '@/services/matchmaking'
-import { DIFFICULTY_CONFIG, type GameDifficulty } from '@/utils/difficulty'
 
 export default function Lobby() {
   const { user, loading, signOut, isAuthenticated } = useAuth()
@@ -16,7 +15,6 @@ export default function Lobby() {
     isInWaitingRoom,
   } = useMatchmaking()
   const [isStarting, setIsStarting] = useState(false)
-  const [selectedDifficulty, setSelectedDifficulty] = useState<GameDifficulty>('normal')
   const navigate = useNavigate()
 
   // 로그인하지 않은 경우 홈으로 리다이렉트
@@ -47,7 +45,8 @@ export default function Lobby() {
 
     try {
       setIsStarting(true)
-      const roomId = await createGameRoom(waitingPlayers, selectedDifficulty)
+      // 기본 난이도 'normal'로 게임룸 생성, 대기실에서 난이도 협의
+      const roomId = await createGameRoom(waitingPlayers, 'normal')
       navigate(`/game/${roomId}`)
     } catch (error) {
       console.error('게임 시작 실패:', error)
@@ -222,48 +221,8 @@ export default function Lobby() {
 
           {/* 게임 정보 */}
           <div className="space-y-6">
-            {/* 난이도 선택 */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">난이도 선택</h3>
-              <div className="space-y-3">
-                {(Object.keys(DIFFICULTY_CONFIG) as GameDifficulty[]).map((difficulty) => {
-                  const config = DIFFICULTY_CONFIG[difficulty]
-                  const isSelected = selectedDifficulty === difficulty
-
-                  return (
-                    <button
-                      key={difficulty}
-                      onClick={() => setSelectedDifficulty(difficulty)}
-                      className={`w-full p-4 rounded-lg border-2 transition-all duration-300 text-left ${
-                        isSelected
-                          ? `${config.bgColor} border-current shadow-md scale-105`
-                          : 'bg-gray-50 border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{config.icon}</span>
-                          <span className={`font-bold text-lg ${isSelected ? config.color : 'text-gray-700'}`}>
-                            {config.label}
-                          </span>
-                        </div>
-                        {isSelected && (
-                          <span className="text-2xl animate-scaleIn">✓</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">{config.description}</p>
-                      <div className="flex gap-4 text-xs text-gray-500">
-                        <span>⏱️ {config.turnTimeLimit}초</span>
-                        <span>🔄 {config.maxTurns}턴</span>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">게임 정보</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">매칭 상태</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">필요 인원</span>
@@ -272,20 +231,6 @@ export default function Lobby() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">현재 대기</span>
                   <span className="font-medium text-indigo-600">{waitingPlayers.length}명</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">선택된 난이도</span>
-                  <span className={`font-medium ${DIFFICULTY_CONFIG[selectedDifficulty].color}`}>
-                    {DIFFICULTY_CONFIG[selectedDifficulty].icon} {DIFFICULTY_CONFIG[selectedDifficulty].label}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">최대 턴</span>
-                  <span className="font-medium text-gray-900">{DIFFICULTY_CONFIG[selectedDifficulty].maxTurns}턴</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">턴당 시간</span>
-                  <span className="font-medium text-gray-900">{DIFFICULTY_CONFIG[selectedDifficulty].turnTimeLimit}초</span>
                 </div>
               </div>
 

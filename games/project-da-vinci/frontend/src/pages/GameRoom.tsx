@@ -7,7 +7,7 @@ import Chat from '@/components/game/Chat'
 import { submitDrawingToAI } from '@/services/ai'
 import { ENV } from '@/config/env'
 import { subscribeToRoomSecret } from '@/services/roomSecrets'
-import { getDifficultyConfig } from '@/utils/difficulty'
+import { getDifficultyConfig, DIFFICULTY_CONFIG, type GameDifficulty } from '@/utils/difficulty'
 
 export default function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -18,6 +18,8 @@ export default function GameRoom() {
     error: roomError,
     handleCanvasChange,
     handleNextTurn,
+    handlePlayerReady,
+    handleDifficultyChange,
     handleStartGame,
     isMyTurn,
     getRemainingTime,
@@ -218,24 +220,155 @@ export default function GameRoom() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* 게임 대기 중 */}
+        {/* 게임 대기 중 - 대기실 UI */}
         {gameRoom.status === 'waiting' && (
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-yellow-900">게임 시작 대기 중</h3>
-                <p className="text-sm text-yellow-700">
-                  모든 플레이어가 준비되면 게임이 시작됩니다.
-                </p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* 왼쪽: 플레이어 목록 & 난이도 선택 */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* 난이도 선택 */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  🎯 난이도 선택 (모두 수정 가능)
+                </h3>
+                <div className="space-y-3">
+                  {(Object.keys(DIFFICULTY_CONFIG) as GameDifficulty[]).map((difficulty) => {
+                    const config = DIFFICULTY_CONFIG[difficulty]
+                    const isSelected = gameRoom.difficulty === difficulty
+
+                    return (
+                      <button
+                        key={difficulty}
+                        onClick={() => handleDifficultyChange(difficulty)}
+                        className={`w-full p-4 rounded-lg border-2 transition-all duration-300 text-left ${
+                          isSelected
+                            ? `${config.bgColor} border-current shadow-md scale-105`
+                            : 'bg-gray-50 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{config.icon}</span>
+                            <span
+                              className={`font-bold text-lg ${isSelected ? config.color : 'text-gray-700'}`}
+                            >
+                              {config.label}
+                            </span>
+                          </div>
+                          {isSelected && <span className="text-2xl animate-scaleIn">✓</span>}
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{config.description}</p>
+                        <div className="flex gap-4 text-xs text-gray-500">
+                          <span>⏱️ {config.turnTimeLimit}초</span>
+                          <span>🔄 {config.maxTurns}턴</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-              {allPlayers[0]?.uid === user.uid && (
-                <button
-                  onClick={handleStartGame}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  게임 시작
-                </button>
-              )}
+
+              {/* 플레이어 목록 */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">👥 참가자 ({allPlayers.length}명)</h3>
+                <div className="space-y-3">
+                  {allPlayers.map((player) => {
+                    const isMe = player.uid === user.uid
+                    const isReady = player.ready
+
+                    return (
+                      <div
+                        key={player.uid}
+                        className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all duration-300 ${
+                          isMe
+                            ? 'bg-indigo-50 border-indigo-200'
+                            : isReady
+                              ? 'bg-green-50 border-green-200'
+                              : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {player.photoURL && (
+                            <img
+                              src={player.photoURL}
+                              alt={player.displayName || ''}
+                              className="w-10 h-10 rounded-full"
+                            />
+                          )}
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {player.displayName}
+                              {isMe && <span className="text-xs text-indigo-600 ml-2">(나)</span>}
+                            </div>
+                            <div className="text-xs text-gray-500">{player.email}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isReady ? (
+                            <span className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded-full">
+                              ✓ 준비 완료
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 bg-gray-300 text-gray-600 text-xs font-medium rounded-full">
+                              대기 중
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* 준비 버튼 & 게임 시작 */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="space-y-4">
+                  {/* 내 준비 상태 토글 */}
+                  <button
+                    onClick={() => {
+                      const myPlayer = allPlayers.find((p) => p.uid === user.uid)
+                      handlePlayerReady(user.uid, !myPlayer?.ready)
+                    }}
+                    className={`w-full px-6 py-3 rounded-lg font-medium transition-all ${
+                      allPlayers.find((p) => p.uid === user.uid)?.ready
+                        ? 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    {allPlayers.find((p) => p.uid === user.uid)?.ready ? '준비 취소' : '준비 완료'}
+                  </button>
+
+                  {/* 모두 준비 완료 시 게임 시작 버튼 */}
+                  {allPlayers.every((p) => p.ready) && (
+                    <button
+                      onClick={handleStartGame}
+                      className="w-full px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all animate-pulse"
+                    >
+                      🚀 게임 시작하기
+                    </button>
+                  )}
+
+                  {/* 준비 상태 안내 */}
+                  <div className="text-center text-sm text-gray-600">
+                    {allPlayers.every((p) => p.ready) ? (
+                      <span className="text-green-600 font-medium">모든 플레이어가 준비 완료! 🎉</span>
+                    ) : (
+                      <span>
+                        {allPlayers.filter((p) => p.ready).length}/{allPlayers.length}명 준비 완료
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 오른쪽: 채팅 */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-[calc(100vh-200px)] flex flex-col">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">💬 채팅</h3>
+                <div className="flex-1 overflow-hidden">
+                  <Chat roomId={roomId!} />
+                </div>
+              </div>
             </div>
           </div>
         )}

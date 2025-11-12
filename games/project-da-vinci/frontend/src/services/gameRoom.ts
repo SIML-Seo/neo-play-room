@@ -1,6 +1,7 @@
 import { ref, onValue, update, get } from 'firebase/database'
 import { database } from '@/firebase'
-import type { GameRoom } from '@/types/game.types'
+import type { GameRoom, GameDifficulty } from '@/types/game.types'
+import { getDifficultyConfig } from '@/utils/difficulty'
 
 /**
  * 게임 룸 데이터 실시간 구독
@@ -76,6 +77,19 @@ export async function updatePlayerReady(
 ): Promise<void> {
   await update(ref(database, `gameRooms/${roomId}/players/${playerId}`), {
     ready,
+  })
+}
+
+/**
+ * 난이도 변경 (모든 참가자가 변경 가능)
+ */
+export async function updateDifficulty(roomId: string, difficulty: GameDifficulty): Promise<void> {
+  const difficultyConfig = getDifficultyConfig(difficulty)
+
+  await update(ref(database, `gameRooms/${roomId}`), {
+    difficulty,
+    maxTurns: difficultyConfig.maxTurns,
+    turnTimeLimit: difficultyConfig.turnTimeLimit,
   })
 }
 
