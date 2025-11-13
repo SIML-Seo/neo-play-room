@@ -392,16 +392,14 @@ export default function GameRoom() {
               </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-center">
-                <Canvas
-                  ref={canvasRef}
-                  width={600}
-                  height={450}
-                  isDrawingEnabled={isDrawing && gameRoom.status === 'in-progress'}
-                  onCanvasChange={handleCanvasChange}
-                />
-              </div>
+            <div className="flex items-center justify-center">
+              <Canvas
+                ref={canvasRef}
+                width={600}
+                height={450}
+                isDrawingEnabled={isDrawing && gameRoom.status === 'in-progress'}
+                onCanvasChange={handleCanvasChange}
+              />
             </div>
 
             {/* AI 에러 표시 */}
@@ -606,7 +604,7 @@ export default function GameRoom() {
             </div>
 
             {/* 채팅 */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col" style={{ height: 'calc(100vh - 400px)', minHeight: '400px' }}>
+            <div className="flex flex-col" style={{ height: 'calc(100vh - 400px)', minHeight: '400px' }}>
               <Chat roomId={roomId!} user={user} />
             </div>
           </div>
