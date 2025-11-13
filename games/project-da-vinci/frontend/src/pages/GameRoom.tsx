@@ -373,9 +373,11 @@ export default function GameRoom() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* 캔버스 영역 */}
-          <div className="lg:col-span-3">
+        {/* 게임 진행 중 - 캔버스 & 게임 UI */}
+        {gameRoom.status === 'in-progress' && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* 캔버스 영역 */}
+            <div className="lg:col-span-3">
             {isDrawing ? (
               <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                 <p className="text-indigo-900 font-medium">
@@ -602,6 +604,7 @@ export default function GameRoom() {
             </div>
           </div>
         </div>
+        )}
       </main>
     </div>
   )
