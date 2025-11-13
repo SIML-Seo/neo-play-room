@@ -122,19 +122,56 @@ export function groupGameLogsBySession(logs: GameLog[]): Map<string, GameLog[]> 
 }
 
 /**
- * 게임 로그를 순위별로 정렬
+ * 난이도별 가중치 반환
+ * @param difficulty 난이도 (easy, normal, hard)
+ * @returns 점수 보정 가중치
+ */
+function getDifficultyMultiplier(difficulty: string): number {
+  switch (difficulty) {
+    case 'easy':
+      return 1.0 // 기준
+    case 'normal':
+      return 1.3 // 30% 보정
+    case 'hard':
+      return 1.6 // 60% 보정
+    default:
+      return 1.0
+  }
+}
+
+/**
+ * 난이도 보정 점수 계산
+ * 점수 = (턴 수 / 난이도 가중치) * 1000 + (시간 / 1000)
+ * 낮을수록 높은 순위
+ *
+ * @param log 게임 로그
+ * @returns 보정 점수
+ */
+export function calculateScore(log: GameLog): number {
+  const multiplier = getDifficultyMultiplier(log.difficulty)
+
+  // 턴 점수: 난이도 보정 적용 (가중치로 나누면 어려운 난이도일수록 점수가 낮아짐)
+  const turnScore = (log.finalTurnCount / multiplier) * 1000
+
+  // 시간 점수: 초 단위로 변환
+  const timeScore = log.finalTime / 1000
+
+  return turnScore + timeScore
+}
+
+/**
+ * 게임 로그를 순위별로 정렬 (난이도 보정 점수 기반)
  * @param logs 게임 로그 배열
- * @returns 순위별로 정렬된 게임 로그 배열 (턴 수 적은 순 > 시간 짧은 순)
+ * @returns 순위별로 정렬된 게임 로그 배열 (보정 점수 낮은 순)
  */
 export function sortGameLogsByRanking(logs: GameLog[]): GameLog[] {
   // 성공한 게임만 필터링
   const successfulGames = logs.filter((log) => log.result === 'success')
 
-  // 턴 수가 적을수록, 시간이 짧을수록 높은 순위
+  // 보정 점수로 정렬 (낮을수록 높은 순위)
   return successfulGames.sort((a, b) => {
-    if (a.finalTurnCount !== b.finalTurnCount) {
-      return a.finalTurnCount - b.finalTurnCount
-    }
-    return a.finalTime - b.finalTime
+    const scoreA = calculateScore(a)
+    const scoreB = calculateScore(b)
+    return scoreA - scoreB
   })
 }

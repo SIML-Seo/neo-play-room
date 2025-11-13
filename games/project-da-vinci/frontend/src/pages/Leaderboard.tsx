@@ -11,6 +11,7 @@ import {
   getRecentGameLogs,
   groupGameLogsBySession,
   sortGameLogsByRanking,
+  calculateScore,
 } from '@/services/gameLog'
 import type { GameLog } from '@/types/game.types'
 
@@ -298,6 +299,9 @@ export default function Leaderboard() {
                               </div>
                               <div className="text-sm text-gray-600">
                                 {(log.finalTime / 1000).toFixed(1)}초
+                              </div>
+                              <div className="text-xs text-purple-600 font-semibold mt-1">
+                                점수: {calculateScore(log).toFixed(0)}점
                               </div>
                             </div>
                           </div>

@@ -94,12 +94,41 @@ Now, make your guess for the current drawing.`
 }
 
 /**
+ * Hard 난이도 프롬프트 (매우 어려움 - 힌트 최소)
+ */
+export function buildHardPrompt(theme: string): string {
+  return `You are an AI judge in a Pictionary game.
+Look at this drawing and make your best guess.
+
+**Category**: ${theme}
+
+**Important Rules**:
+- You do NOT know the correct answer
+- Be very strict and literal in your interpretation
+- Only guess if you see clear, recognizable shapes
+- Do NOT make creative assumptions
+- If the drawing is unclear or abstract, make a simple literal guess
+
+**Response Format** (JSON only):
+{
+  "guess": "your guess in Korean",
+  "confidence": 0.5
+}
+
+**Examples**:
+- If you see a circle: {"guess": "원", "confidence": 0.4}
+- If you see stick figures: {"guess": "사람", "confidence": 0.3}
+
+Make your guess now based ONLY on what you clearly see.`
+}
+
+/**
  * AI 난이도 레벨
  */
 export enum AIDifficulty {
-  EASY = 'easy', // 정답률 80% (Few-shot 프롬프트)
-  NORMAL = 'normal', // 정답률 60% (Enhanced 프롬프트)
-  HARD = 'hard', // 정답률 40% (Basic 프롬프트)
+  EASY = 'easy', // 정답률 80% (Few-shot 프롬프트 - 힌트 많음)
+  NORMAL = 'normal', // 정답률 60% (Enhanced 프롬프트 - 힌트 보통)
+  HARD = 'hard', // 정답률 30-40% (Hard 프롬프트 - 힌트 최소)
 }
 
 /**
@@ -111,10 +140,10 @@ export function buildPromptByDifficulty(
 ): string {
   switch (difficulty) {
     case AIDifficulty.EASY:
-      return buildFewShotPrompt(theme)
+      return buildFewShotPrompt(theme) // 많은 힌트 + 예시
     case AIDifficulty.NORMAL:
-      return buildEnhancedPrompt(theme)
+      return buildEnhancedPrompt(theme) // 테마 힌트
     case AIDifficulty.HARD:
-      return buildJudgePrompt(theme)
+      return buildHardPrompt(theme) // 힌트 최소, 엄격한 판단
   }
 }
