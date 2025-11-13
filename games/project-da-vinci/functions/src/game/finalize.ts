@@ -48,6 +48,8 @@ export async function processGameFinalization(roomId: string): Promise<void> {
       const gameLog = {
         roomId,
         theme: gameRoom.theme || '알 수 없음',
+        // 난이도 기본값: 'normal' (이전 게임과의 호환성 보장)
+        // 점수 계산 시 multiplier: easy=1.0, normal=1.3, hard=1.6
         difficulty: gameRoom.difficulty || 'normal',
         targetWord,
         finalTurnCount: gameRoom.turnCount || 0,
