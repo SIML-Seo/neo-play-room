@@ -6,7 +6,9 @@
       "Bash(\"C:\\Users\\Neolab-WON\\Desktop\\another\\neo-play-room\\games\\project-da-vinci\\frontend\\.env.example\")",
       "Bash(\"C:\\Users\\Neolab-WON\\Desktop\\another\\neo-play-room\\games\\project-da-vinci\\functions\\.env.example\")",
       "Bash(\"C:\\Users\\Neolab-WON\\Desktop\\another\\neo-play-room\\games\\project-da-vinci\\docs\\SETUP.md\")",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
