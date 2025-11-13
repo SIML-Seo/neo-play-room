@@ -125,6 +125,10 @@ export function groupGameLogsBySession(logs: GameLog[]): Map<string, GameLog[]> 
  * 난이도별 가중치 반환
  * @param difficulty 난이도 (easy, normal, hard)
  * @returns 점수 보정 가중치
+ *
+ * 호환성 참고:
+ * - finalize.ts에서 난이도 미지정 시 'normal'로 저장
+ * - 만약 난이도가 누락된 경우 1.0 반환 (easy와 동일하게 처리)
  */
 function getDifficultyMultiplier(difficulty: string): number {
   switch (difficulty) {
@@ -135,7 +139,7 @@ function getDifficultyMultiplier(difficulty: string): number {
     case 'hard':
       return 1.6 // 60% 보정
     default:
-      return 1.0
+      return 1.0 // 알 수 없는 난이도는 easy와 동일하게 처리
   }
 }
 

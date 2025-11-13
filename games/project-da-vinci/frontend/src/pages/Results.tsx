@@ -3,12 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ref, get } from 'firebase/database'
 import { database } from '@/firebase'
 import { useAuth } from '@/hooks/useAuth'
+import { calculateScore } from '@/services/gameLog'
 import type { GameRoom } from '@/types/game.types'
 
 interface GameLog {
   logId: string
   roomId: string
   theme: string
+  difficulty: string
   targetWord: string
   finalTurnCount: number
   finalTime: number
@@ -177,7 +179,7 @@ export default function Results() {
           </div>
 
           {/* 게임 통계 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-indigo-50 rounded-xl p-6 text-center">
               <div className="text-3xl font-bold text-indigo-600 mb-2">{revealedWord}</div>
               <div className="text-sm text-gray-600">목표 단어</div>
@@ -196,6 +198,14 @@ export default function Results() {
               </div>
               <div className="text-sm text-gray-600">소요 시간</div>
             </div>
+            {isSuccess && gameLog && (
+              <div className="bg-blue-50 rounded-xl p-6 text-center">
+                <div className="text-3xl font-bold text-blue-600 mb-2">
+                  {calculateScore(gameLog).toFixed(0)}
+                </div>
+                <div className="text-sm text-gray-600">보정 점수</div>
+              </div>
+            )}
           </div>
 
           {/* 마지막 추론 */}
