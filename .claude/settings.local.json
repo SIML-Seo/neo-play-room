@@ -20,7 +20,10 @@
       "mcp__serena__get_symbols_overview",
       "Bash(Select-String -Pattern \"error TS\")",
       "Bash(Select-Object -First 10)",
-      "mcp__serena__find_symbol"
+      "mcp__serena__find_symbol",
+      "Bash(firebase emulators:exec:*)",
+      "Bash(Select-String -Pattern \"finalizeGame|gameLog\" -Context 2)",
+      "Bash(Select-String -Pattern \"turn_\" -Context 2)"
     ],
     "deny": [],
     "ask": []
