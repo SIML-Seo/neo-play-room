@@ -375,9 +375,9 @@ export default function GameRoom() {
 
         {/* 게임 진행 중 - 캔버스 & 게임 UI */}
         {gameRoom.status === 'in-progress' && (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* 캔버스 영역 */}
-            <div className="lg:col-span-3">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* 왼쪽: 캔버스 영역 */}
+            <div className="lg:col-span-2">
             {isDrawing ? (
               <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                 <p className="text-indigo-900 font-medium">
@@ -392,13 +392,17 @@ export default function GameRoom() {
               </div>
             )}
 
-            <Canvas
-              ref={canvasRef}
-              width={800}
-              height={600}
-              isDrawingEnabled={isDrawing && gameRoom.status === 'in-progress'}
-              onCanvasChange={handleCanvasChange}
-            />
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center justify-center">
+                <Canvas
+                  ref={canvasRef}
+                  width={600}
+                  height={450}
+                  isDrawingEnabled={isDrawing && gameRoom.status === 'in-progress'}
+                  onCanvasChange={handleCanvasChange}
+                />
+              </div>
+            </div>
 
             {/* AI 에러 표시 */}
             {aiError && (
@@ -427,8 +431,8 @@ export default function GameRoom() {
             )}
           </div>
 
-          {/* 사이드바 - 게임 정보 */}
-          <div className="space-y-6">
+          {/* 중간: 타이머 & 플레이어 */}
+          <div className="lg:col-span-1 space-y-6">
             {/* 현재 턴 정보 */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">현재 턴</h3>
@@ -478,63 +482,6 @@ export default function GameRoom() {
                     {gameRoom.turnCount} / {gameRoom.maxTurns}
                   </span>
                 </div>
-              </div>
-            </div>
-
-            {/* 턴 히스토리 & AI 추론 결과 */}
-            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">
-              <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2">
-                <span>🎯</span>
-                <span>턴 히스토리</span>
-              </h3>
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {gameRoom.aiGuesses && gameRoom.aiGuesses.length > 0 ? (
-                  gameRoom.aiGuesses.map((guess, idx) => {
-                    const playerUid =
-                      gameRoom.turnOrder[((guess.turn as number) - 1) % gameRoom.turnOrder.length]
-                    const player = allPlayers.find((p) => p.uid === playerUid)
-                    const confidenceColor =
-                      (guess.confidence as number) >= 80
-                        ? 'text-green-600'
-                        : (guess.confidence as number) >= 50
-                          ? 'text-amber-600'
-                          : 'text-red-600'
-
-                    return (
-                      <div
-                        key={idx}
-                        className="bg-white rounded-lg p-3 text-sm shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 animate-slideIn"
-                      >
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded">
-                              턴 {guess.turn}
-                            </span>
-                            {player && (
-                              <span className="text-xs text-gray-600">
-                                by {player.displayName}
-                              </span>
-                            )}
-                          </div>
-                          <span className={`text-xs font-medium ${confidenceColor}`}>
-                            {guess.confidence}% 확신
-                          </span>
-                        </div>
-                        <div className="font-medium text-gray-900 text-base">{guess.guess}</div>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <div className="text-center py-8 bg-white rounded-lg">
-                    <div className="text-4xl mb-2">🤖</div>
-                    <p className="text-sm text-indigo-700 font-medium">
-                      아직 AI 추론 결과가 없습니다.
-                    </p>
-                    <p className="text-xs text-indigo-500 mt-1">
-                      그림을 그리고 AI에게 제출해보세요!
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -597,9 +544,69 @@ export default function GameRoom() {
                 })}
               </div>
             </div>
+          </div>
+
+          {/* 오른쪽: AI 히스토리 & 채팅 */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* 턴 히스토리 & AI 추론 결과 */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">
+              <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2">
+                <span>🎯</span>
+                <span>턴 히스토리</span>
+              </h3>
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {gameRoom.aiGuesses && gameRoom.aiGuesses.length > 0 ? (
+                  gameRoom.aiGuesses.map((guess, idx) => {
+                    const playerUid =
+                      gameRoom.turnOrder[((guess.turn as number) - 1) % gameRoom.turnOrder.length]
+                    const player = allPlayers.find((p) => p.uid === playerUid)
+                    const confidenceColor =
+                      (guess.confidence as number) >= 80
+                        ? 'text-green-600'
+                        : (guess.confidence as number) >= 50
+                          ? 'text-amber-600'
+                          : 'text-red-600'
+
+                    return (
+                      <div
+                        key={idx}
+                        className="bg-white rounded-lg p-3 text-sm shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 animate-slideIn"
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded">
+                              턴 {guess.turn}
+                            </span>
+                            {player && (
+                              <span className="text-xs text-gray-600">
+                                by {player.displayName}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-xs font-medium ${confidenceColor}`}>
+                            {guess.confidence}% 확신
+                          </span>
+                        </div>
+                        <div className="font-medium text-gray-900 text-base">{guess.guess}</div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-8 bg-white rounded-lg">
+                    <div className="text-4xl mb-2">🤖</div>
+                    <p className="text-sm text-indigo-700 font-medium">
+                      아직 AI 추론 결과가 없습니다.
+                    </p>
+                    <p className="text-xs text-indigo-500 mt-1">
+                      그림을 그리고 AI에게 제출해보세요!
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* 채팅 */}
-            <div className="h-96">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col" style={{ height: 'calc(100vh - 400px)', minHeight: '400px' }}>
               <Chat roomId={roomId!} user={user} />
             </div>
           </div>
