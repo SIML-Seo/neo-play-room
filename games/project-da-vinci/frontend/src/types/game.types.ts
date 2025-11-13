@@ -5,6 +5,7 @@ export interface Player {
   uid: string
   name: string
   displayName?: string | null
+  email?: string | null
   photoURL?: string | null
   team: string
   ready: boolean

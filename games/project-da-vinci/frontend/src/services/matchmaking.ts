@@ -3,8 +3,6 @@ import { database } from '@/firebase'
 import type { User } from 'firebase/auth'
 import { ENV } from '@/config/env'
 import { setRoomSecret } from '@/services/roomSecrets'
-import type { GameDifficulty } from '@/types/game.types'
-import { getDifficultyConfig } from '@/utils/difficulty'
 
 export interface WaitingPlayer {
   uid: string
@@ -79,28 +77,22 @@ export function subscribeToWaitingPlayers(
 /**
  * 게임 룸 생성
  */
-export async function createGameRoom(
-  players: WaitingPlayer[],
-  difficulty: GameDifficulty = 'normal'
-): Promise<string> {
+export async function createGameRoom(players: WaitingPlayer[]): Promise<string> {
   const roomsRef = ref(database, 'gameRooms')
   const newRoomRef = push(roomsRef)
   const roomId = newRoomRef.key!
 
   const turnOrder = players.map((p) => p.uid)
-  const difficultyConfig = getDifficultyConfig(difficulty)
 
   await set(newRoomRef, {
     roomId,
     status: 'waiting', // waiting, in-progress, completed
     theme: ENV.isDevelopment ? '테스트' : '동물', // 개발: 단순한 테마, 상용: 랜덤 선택
-    difficulty, // 난이도 추가
     currentTurn: turnOrder[0],
     turnOrder,
     currentTurnIndex: 0,
-    maxTurns: difficultyConfig.maxTurns, // 난이도별 최대 턴
+    maxTurns: ENV.game.maxTurns,
     turnCount: 0,
-    turnTimeLimit: difficultyConfig.turnTimeLimit, // 난이도별 시간 제한
     startTime: serverTimestamp(),
     canvasData: '', // 초기 빈 캔버스
     players: players.reduce(

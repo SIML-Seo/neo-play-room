@@ -75,6 +75,13 @@ export default function GameRoom() {
     }
   }, [remainingTime, gameRoom?.status, handleNextTurn])
 
+  // 게임 종료 시 결과 페이지로 리다이렉트
+  useEffect(() => {
+    if (gameRoom?.status === 'finished' && roomId) {
+      navigate(`/results?roomId=${roomId}`)
+    }
+  }, [gameRoom?.status, roomId, navigate])
+
   // 관전자/다른 플레이어는 최신 캔버스를 불러오기
   useEffect(() => {
     console.log('[GameRoom] 캔버스 데이터 변경 감지', {
@@ -156,13 +163,6 @@ export default function GameRoom() {
       </div>
     )
   }
-
-  // 게임 종료 시 결과 페이지로 리다이렉트
-  useEffect(() => {
-    if (gameRoom?.status === 'finished' && roomId) {
-      navigate(`/results?roomId=${roomId}`)
-    }
-  }, [gameRoom?.status, roomId, navigate])
 
   const isDrawing = isMyTurn(user.uid)
   const currentPlayer = gameRoom.players[gameRoom.currentTurn]
@@ -366,7 +366,7 @@ export default function GameRoom() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-[calc(100vh-200px)] flex flex-col">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">💬 채팅</h3>
                 <div className="flex-1 overflow-hidden">
-                  <Chat roomId={roomId!} />
+                  <Chat roomId={roomId!} user={user} />
                 </div>
               </div>
             </div>
