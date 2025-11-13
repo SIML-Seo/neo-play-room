@@ -215,6 +215,12 @@ export default function Admin() {
                 </div>
               </div>
               <button
+                onClick={() => navigate('/leaderboard')}
+                className="px-4 py-2 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors font-medium"
+              >
+                리더보드
+              </button>
+              <button
                 onClick={() => navigate('/lobby')}
                 className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >

@@ -162,8 +162,7 @@ export interface AIGuess {
   guess: string;
   confidence: number;
   timestamp: number;
-  storagePath: string;
-  sha256: string;
+  imageUrl?: string;  // Storage Public URL (AI 학습 데이터용)
 }
 
 export interface LiveDrawing {
@@ -416,13 +415,31 @@ DO NOT explain your reasoning. ONLY return the JSON.`;
     const guess = parsed.guess;
     const confidence = parsed.confidence || 0.5;
 
-    // 3. Storage 업로드 (turn-$n.jpg)
+    // 3. Storage 업로드 (AI 학습 데이터용)
+    // 각 턴의 이미지와 AI 판정을 함께 저장하여 차후 AI 학습 데이터로 활용
     const buffer = Buffer.from(base64Payload, 'base64');
     const turnNumber = gameRoom.turnCount + 1;
-    const storagePath = `drawings/rooms/${roomId}/turn-${turnNumber}.jpg`;
-    await storage.file(storagePath).save(buffer, { contentType: 'image/jpeg', resumable: false });
+    const fileName = `turns/${roomId}/turn_${turnNumber}.png`;
+    const file = storage.file(fileName);
 
-    const hash = createHash('sha256').update(buffer).digest('hex');
+    await file.save(buffer, {
+      metadata: {
+        contentType: 'image/png',
+        metadata: {
+          roomId,
+          turn: turnNumber.toString(),
+          guess,
+          confidence: confidence.toString(),
+          timestamp: Date.now().toString(),
+        },
+      },
+    });
+
+    // Public URL 생성 (리더보드에서 접근 가능)
+    await file.makePublic();
+    const imageUrl = `https://storage.googleapis.com/${storage.name}/${fileName}`;
+
+    logger.info(`✅ 이미지 저장 완료: ${imageUrl}`);
 
     // 4. 정답 확인
     const isCorrect = guess === gameRoom.targetWord;
@@ -434,8 +451,7 @@ DO NOT explain your reasoning. ONLY return the JSON.`;
       guess,
       confidence,
       timestamp: Date.now(),
-      storagePath,
-      sha256: hash,
+      imageUrl,  // Storage Public URL
     };
 
     if (isCorrect) {
@@ -572,27 +588,40 @@ export const auth = admin.auth();
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // rooms/* 은 Cloud Functions(Admin)만 쓰기, 사용자는 읽기만 허용
-    match /drawings/rooms/{roomId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if false;
-    }
-
-    // finals/* 는 리더보드 노출 용도 → 인증 사용자 읽기 허용
-    match /drawings/finals/{roomId}.jpg {
-      allow read: if request.auth != null;
-      allow write: if false;
+    // turns/* 은 Cloud Functions(Admin)만 쓰기, Public 읽기 허용
+    match /turns/{roomId}/{fileName} {
+      allow read: if true;  // Public URL로 리더보드 접근 허용
+      allow write: if false;  // Cloud Functions만 쓰기 가능
     }
   }
 }
 ```
 
-### Cloud Function 업로드 흐름
+### Cloud Function 업로드 흐름 (AI 학습 데이터 수집)
 
-- `judgeDrawing`이 Base64 이미지를 입력으로 받으므로, 추가 네트워크 호출 없이 Admin SDK로 Storage에 저장한다.
-- 각 턴 이미지는 `drawings/rooms/{roomId}/turn-${turn}.jpg`에 저장되고, SHA-256 해시가 `aiGuesses[].sha256`으로 함께 기록된다.
-- `finalizeGame`은 마지막 이미지를 `drawings/finals/{roomId}.jpg`로 복사해 장기 보관하며, `gameLogs`에 URI와 해시를 남긴다.
-- 주간 스케줄러(Function)에서 `drawings/rooms/*`를 30일마다 정리해 Storage 비용을 예측 가능하게 유지한다.
+**설계 목적**: 각 턴의 그림과 AI 판정을 함께 저장하여 차후 회사의 AI 학습 데이터 자원으로 활용
+
+**저장 프로세스**:
+1. `judgeDrawing` 함수가 Base64 이미지를 받아 AI 판정 수행
+2. AI 응답 직후, 이미지를 Storage에 업로드: `turns/{roomId}/turn_{턴번호}.png`
+3. 메타데이터에 게임 정보 기록:
+   - `roomId`: 게임 룸 식별자
+   - `turn`: 턴 번호
+   - `guess`: AI가 추측한 단어
+   - `confidence`: 신뢰도 점수
+   - `timestamp`: 판정 시각
+4. Public URL 생성하여 `aiGuesses[].imageUrl`에 저장
+5. Firestore `gameLogs`에 모든 턴별 이미지 URL 보관
+
+**데이터 활용 가치**:
+- **학습 데이터셋**: 그림 + 정답(targetWord) + AI 추측 쌍
+- **프롬프트 최적화**: 난이도별/테마별 AI 정확도 분석
+- **게임 밸런스 조정**: 어려운 단어/쉬운 단어 패턴 발견
+- **사용자 행동 분석**: 그림 스타일 시각화
+
+**비용 관리**:
+- 현재: 모든 턴별 이미지 영구 보관 (학습 데이터 우선)
+- 향후: 필요시 일정 기간 후 아카이브 스토리지로 이동 가능
 
 ---
 

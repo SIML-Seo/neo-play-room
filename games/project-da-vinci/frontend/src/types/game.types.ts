@@ -17,6 +17,7 @@ export interface AIGuess {
   guess: string
   confidence: number
   timestamp: number
+  imageUrl?: string // Storage에 저장된 턴별 이미지 URL
 }
 
 export interface GameRoom {

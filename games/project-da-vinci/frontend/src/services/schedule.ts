@@ -117,7 +117,6 @@ export function getNextOpenTime(schedule: GameScheduleConfig | null): Date | nul
   // 모든 날짜/시간대를 Date 객체로 변환하여 정렬
   const futureTimes = schedule.dateRanges
     .map((range) => {
-      const [startHour, startMin] = range.start.split(':').map(Number)
       const startDate = new Date(`${range.date}T${range.start}:00`)
       return { date: startDate, range }
     })

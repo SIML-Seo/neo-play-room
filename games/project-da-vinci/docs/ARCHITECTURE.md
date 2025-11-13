@@ -335,12 +335,30 @@ database.ref(`/liveDrawings/${roomId}/canvasState`).on('value', (snapshot) => {
     - gameLogs 읽기 → 리더보드 및 Storage 이미지 URL 표시
     - 우승팀 축하 애니메이션
 
-### 비용 최적화를 위한 이미지/로그 파이프라인
+### AI 학습 데이터 수집을 위한 이미지/로그 파이프라인
 
-1. **단일 업로드 지점**: 클라이언트는 이미지를 Storage에 직접 올리지 않습니다. `judgeDrawing` 함수가 이미지를 Base64로 전달받으므로, 함수 내부에서 `Buffer.from(base64, 'base64')` → Cloud Storage(`drawings/rooms/{roomId}/turn-${turnCount}.jpg`) 업로드를 수행합니다. AI 호출과 같은 함수 실행 안에서 처리하므로 추가 네트워크 비용이 없습니다.
-2. **메타데이터 서명**: 함수는 업로드 직후 SHA-256 해시를 계산해 `aiGuesses` 항목에 `{ storagePath, hash, guess, confidence }`를 함께 저장합니다. 이후 로그가 변경되면 해시 비교로 위변조 여부를 즉시 판단할 수 있습니다.
-3. **최종 결과**: 게임이 종료되면(정답 맞힘 또는 최대 턴), `finalizeGame` 트리거가 `aiGuesses`에서 마지막 이미지를 찾아 `gameLogs/{logId}`에 복사하고, Public URL을 생성해 `/results` 페이지가 바로 사용할 수 있게 합니다. 실패 시에는 Cloud Functions 재시도 로직을 활용하며, 3회 실패 시 Slack 알림(향후 추가)을 받도록 설계합니다.
-4. **보관 정책**: `drawings/rooms/*` 이미지는 30일 후 자동 삭제, `drawings/finals/*`는 아카이브용으로 유지합니다. 스케줄러 Function이 매주 만료 이미지를 정리해 Storage 비용을 상수로 유지합니다.
+**설계 철학**: 게임 데이터를 회사 자원으로 활용하기 위해 모든 턴의 그림과 AI 판정을 저장
+
+1. **단일 업로드 지점**: 클라이언트는 이미지를 Storage에 직접 올리지 않습니다. `judgeDrawing` 함수가 이미지를 Base64로 전달받고, AI 판정 직후 함수 내부에서 `Buffer.from(base64, 'base64')` → Cloud Storage(`turns/{roomId}/turn_{턴번호}.png`) 업로드를 수행합니다. AI 호출과 같은 함수 실행 안에서 처리하므로 추가 네트워크 비용이 없습니다.
+
+2. **메타데이터 기록**: 함수는 업로드 시 메타데이터에 게임 정보를 함께 저장합니다:
+   - `roomId`: 게임 룸 식별자
+   - `turn`: 턴 번호
+   - `guess`: AI가 추측한 단어
+   - `confidence`: 신뢰도 점수
+   - `timestamp`: 판정 시각
+
+3. **Public URL 생성**: `file.makePublic()`으로 공개 URL을 생성하고 `aiGuesses[].imageUrl`에 저장합니다. 이를 통해 리더보드에서 즉시 접근 가능합니다.
+
+4. **Firestore 로그 보관**: `finalizeGame` 트리거가 게임 종료 시 모든 `aiGuesses` 배열(이미지 URL 포함)을 Firestore `gameLogs`에 영구 저장합니다.
+
+5. **데이터 활용**:
+   - **학습 데이터셋**: 그림 + 정답(targetWord) + AI 추측 + 신뢰도
+   - **프롬프트 최적화**: 난이도/테마별 AI 정확도 분석
+   - **게임 밸런스**: 어려운 단어 패턴 발견
+   - **UX 개선**: 사용자 그림 스타일 시각화
+
+6. **보관 정책**: 현재는 모든 턴별 이미지를 영구 보관합니다(AI 학습 데이터 우선). 향후 필요시 일정 기간 후 Archive Storage로 이동하여 비용 절감 가능.
 ```
 
 ---

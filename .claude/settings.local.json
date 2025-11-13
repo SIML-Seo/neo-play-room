@@ -19,7 +19,8 @@
       "mcp__serena__find_file",
       "mcp__serena__get_symbols_overview",
       "Bash(Select-String -Pattern \"error TS\")",
-      "Bash(Select-Object -First 10)"
+      "Bash(Select-Object -First 10)",
+      "mcp__serena__find_symbol"
     ],
     "deny": [],
     "ask": []

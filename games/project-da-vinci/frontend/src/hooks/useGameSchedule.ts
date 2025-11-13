@@ -1,6 +1,6 @@
 /**
  * 게임 스케줄 관리 훅
- * 게임 가능 시간대 확인 및 실시간 업데이트
+ * Firestore 실시간 구독 (변경될 때만 비용 발생)
  */
 
 import { useState, useEffect } from 'react'
@@ -27,9 +27,11 @@ export function useGameSchedule(): UseGameScheduleReturn {
   const [timeUntilOpen, setTimeUntilOpen] = useState('')
   const [loading, setLoading] = useState(true)
 
-  // 스케줄 실시간 구독
+  // 스케줄 실시간 구독 (초기 1회 + 변경 시에만 비용 발생)
   useEffect(() => {
+    console.log('[useGameSchedule] Firestore 실시간 구독 시작')
     const unsubscribe = subscribeToGameSchedule((newSchedule) => {
+      console.log('[useGameSchedule] 스케줄 업데이트 수신:', newSchedule)
       setSchedule(newSchedule)
       setLoading(false)
     })

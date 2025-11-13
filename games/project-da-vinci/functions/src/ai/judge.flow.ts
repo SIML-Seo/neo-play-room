@@ -5,6 +5,7 @@
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getDatabase } from 'firebase-admin/database'
+import { getStorage } from 'firebase-admin/storage'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { buildPromptByDifficulty, AIDifficulty } from './prompts'
 import { logger } from 'firebase-functions'
@@ -135,7 +136,45 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
 
       logger.info(`AI 추론: ${guess} (신뢰도: ${confidence})`)
 
-      // 5. 정답 확인
+      // 5. Storage에 이미지 저장
+      let imageUrl = ''
+      try {
+        const storage = getStorage()
+        const bucket = storage.bucket()
+
+        // Base64 헤더 제거 후 Buffer로 변환
+        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '')
+        const imageBuffer = Buffer.from(base64Data, 'base64')
+
+        // 파일명: turns/{roomId}/turn_{turnCount}.png
+        const turnCount = gameRoom.turnCount + 1
+        const fileName = `turns/${roomId}/turn_${turnCount}.png`
+        const file = bucket.file(fileName)
+
+        await file.save(imageBuffer, {
+          metadata: {
+            contentType: 'image/png',
+            metadata: {
+              roomId,
+              turn: turnCount.toString(),
+              guess,
+              confidence: confidence.toString(),
+              timestamp: Date.now().toString(),
+            },
+          },
+        })
+
+        // Public URL 생성
+        await file.makePublic()
+        imageUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`
+
+        logger.info(`✅ 이미지 저장 완료: ${imageUrl}`)
+      } catch (storageError) {
+        logger.error('❌ 이미지 저장 실패:', storageError)
+        // 이미지 저장 실패해도 게임은 계속 진행
+      }
+
+      // 6. 정답 확인
       const normalizedGuess = guess.trim()
       const normalizedTarget = targetWord.trim()
       const isCorrect = normalizedGuess === normalizedTarget
@@ -148,6 +187,7 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
           guess,
           confidence,
           timestamp: Date.now(),
+          imageUrl, // Storage URL 추가
         },
       ]
 

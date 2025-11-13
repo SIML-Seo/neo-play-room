@@ -172,11 +172,11 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 - JSON 크기 제한 (100KB): 성능 저하 방지
 - 현재 턴 플레이어만 쓰기 권한 (RTDB Rules)
 
-### 5. AI 추론 파이프라인
+### 5. AI 추론 파이프라인 (+ 학습 데이터 수집)
 ```
 [Player 턴 종료]
     ↓
-[클라이언트] canvas.toDataURL('image/jpeg', 0.8) → Base64
+[클라이언트] canvas.toDataURL('image/png', 0.8) → Base64
     ↓
 [Cloud Function: judgeDrawing]
     - RTDB에서 GameRoom 조회 (theme, targetWord, difficulty)
@@ -186,13 +186,25 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
       - hard: Basic 프롬프트 (AI 정확도 낮음)
     - Gemini 1.5 Flash 호출 (이미지 + 프롬프트)
     - JSON 파싱 { guess: "백설공주", confidence: 0.85 }
+    - **Storage에 이미지 저장 (AI 학습 데이터용)**
+      - 경로: turns/{roomId}/turn_{턴번호}.png
+      - 메타데이터: roomId, turn, guess, confidence, timestamp
+      - Public URL 생성
     - 정답 확인 (guess === targetWord)
-    - 게임 상태 업데이트 (다음 턴 OR 종료)
+    - 게임 상태 업데이트 (aiGuesses에 imageUrl 포함)
     ↓
 [응답] { guess, confidence, isCorrect, gameStatus }
     ↓
 [클라이언트] UI 업데이트 (AI 추론 결과 표시)
+    ↓
+[게임 종료 시]
+    - Firestore gameLogs에 모든 aiGuesses 저장 (이미지 URL 포함)
+    - 리더보드에서 턴별 이미지 + 판정 확인 가능
 ```
+
+**데이터 활용**:
+- 그림 + 정답 + AI 추측 쌍으로 학습 데이터셋 구축
+- 프롬프트 최적화 및 게임 밸런스 조정에 활용
 
 ### 6. 협의 기반 게임 시작 플로우
 ```
@@ -239,7 +251,8 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 | | Node.js | 20 | Functions 런타임 |
 | **BaaS** | Firebase Auth | - | Google SSO (@neolab.net 도메인 제한) |
 | | Realtime Database | - | 실시간 동기화 (WebSocket 기반) |
-| | Cloud Storage | - | 최종 이미지 아카이빙 |
+| | Firestore | - | 게임 로그, 분석 데이터, 스케줄 저장 |
+| | Cloud Storage | - | AI 학습 데이터 (턴별 이미지 + 판정) |
 | | Hosting | - | React SPA 정적 파일 서빙 (CDN) |
 | **Testing** | Vitest | 4.0.8 | 단위 테스트 (jsdom 환경) |
 | | Testing Library | 16.3.0 | React 컴포넌트 테스트 |
@@ -381,12 +394,29 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
       "roomId": "{roomId}",
       "theme": "동화",
       "targetWord": "백설공주",
+      "difficulty": "normal",
       "finalTurnCount": 5,
       "finalTime": 180500,              // ms
+      "result": "success",
       "winningTeam": "{roomId}",
-      "finalImageUri": "gs://bucket/drawings/finals/{roomId}.jpg",
-      "aiGuessList": [...],
-      "completedAt": 1678886580500
+      "aiGuessList": [
+        {
+          "turn": 1,
+          "guess": "사과",
+          "confidence": 0.72,
+          "timestamp": 1678886401000,
+          "imageUrl": "https://storage.googleapis.com/.../turns/{roomId}/turn_1.png"
+        },
+        {
+          "turn": 2,
+          "guess": "공주",
+          "confidence": 0.65,
+          "timestamp": 1678886462000,
+          "imageUrl": "https://storage.googleapis.com/.../turns/{roomId}/turn_2.png"
+        }
+      ],
+      "completedAt": 1678886580500,
+      "finishedAt": "(Firestore Timestamp)"
     }
   }
 }
