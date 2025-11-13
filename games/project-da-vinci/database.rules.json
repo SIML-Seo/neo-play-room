@@ -14,14 +14,15 @@
       "waitingPlayers": {
         ".read": "auth != null",
         "$uid": {
-          ".write": "auth != null && auth.uid == $uid"
+          // 대기실: 인증된 사용자는 자유롭게 추가/삭제 가능 (게임 시작 시 필요)
+          ".write": "auth != null"
         }
       }
     },
 
     "gameRooms": {
+      ".read": "auth != null",  // 모든 게임룸 목록 읽기 허용 (findMyGameRoom용)
       "$roomId": {
-        ".read": "auth != null && data.child('players').child(auth.uid).exists()",
         ".write": "auth != null && (data.exists() ? data.child('players').child(auth.uid).exists() : root.child('lobby').child('waitingPlayers').child(auth.uid).exists())"
       }
     },

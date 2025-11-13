@@ -6,8 +6,9 @@ import {
   updatePlayerReady,
   startGame,
   endGameByTurnLimit,
+  updateDifficulty,
 } from '@/services/gameRoom'
-import type { GameRoom } from '@/types/game.types'
+import type { GameRoom, GameDifficulty } from '@/types/game.types'
 import { ENV } from '@/config/env'
 
 export function useGameRoom(roomId: string | undefined) {
@@ -101,6 +102,22 @@ export function useGameRoom(roomId: string | undefined) {
     [roomId]
   )
 
+  // 난이도 변경
+  const handleDifficultyChange = useCallback(
+    async (difficulty: GameDifficulty) => {
+      if (!roomId) return
+
+      try {
+        await updateDifficulty(roomId, difficulty)
+      } catch (err) {
+        console.error('Failed to update difficulty:', err)
+        const errorMessage = err instanceof Error ? err.message : '난이도 변경에 실패했습니다.'
+        setError(errorMessage)
+      }
+    },
+    [roomId]
+  )
+
   // 게임 시작
   const handleStartGame = useCallback(async () => {
     if (!roomId) return
@@ -139,6 +156,7 @@ export function useGameRoom(roomId: string | undefined) {
     handleCanvasChange,
     handleNextTurn,
     handlePlayerReady,
+    handleDifficultyChange,
     handleStartGame,
     isMyTurn,
     getRemainingTime,

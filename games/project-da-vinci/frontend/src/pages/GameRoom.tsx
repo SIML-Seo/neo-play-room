@@ -7,6 +7,7 @@ import Chat from '@/components/game/Chat'
 import { submitDrawingToAI } from '@/services/ai'
 import { ENV } from '@/config/env'
 import { subscribeToRoomSecret } from '@/services/roomSecrets'
+import { getDifficultyConfig, DIFFICULTY_CONFIG, type GameDifficulty } from '@/utils/difficulty'
 
 export default function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -17,13 +18,15 @@ export default function GameRoom() {
     error: roomError,
     handleCanvasChange,
     handleNextTurn,
+    handlePlayerReady,
+    handleDifficultyChange,
     handleStartGame,
     isMyTurn,
     getRemainingTime,
   } = useGameRoom(roomId)
   const navigate = useNavigate()
   const canvasRef = useRef<CanvasHandle>(null)
-  const [remainingTime, setRemainingTime] = useState(ENV.game.turnTimeLimit)
+  const [remainingTime, setRemainingTime] = useState(gameRoom?.turnTimeLimit || ENV.game.turnTimeLimit)
   const [isSubmittingToAI, setIsSubmittingToAI] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [targetWord, setTargetWord] = useState<string | null>(null)
@@ -72,6 +75,13 @@ export default function GameRoom() {
     }
   }, [remainingTime, gameRoom?.status, handleNextTurn])
 
+  // 게임 종료 시 결과 페이지로 리다이렉트
+  useEffect(() => {
+    if (gameRoom?.status === 'finished' && roomId) {
+      navigate(`/results?roomId=${roomId}`)
+    }
+  }, [gameRoom?.status, roomId, navigate])
+
   // 관전자/다른 플레이어는 최신 캔버스를 불러오기
   useEffect(() => {
     console.log('[GameRoom] 캔버스 데이터 변경 감지', {
@@ -118,14 +128,7 @@ export default function GameRoom() {
 
       console.log('AI 판단 결과:', result)
 
-      // 게임이 종료되었으면 결과 페이지로 이동
-      if (result.gameStatus === 'finished') {
-        if (result.isCorrect) {
-          alert(`🎉 정답입니다! AI가 "${result.guess}"라고 추론했습니다!`)
-        } else {
-          alert(`❌ 게임 종료! AI의 최종 추론: "${result.guess}"`)
-        }
-      }
+      // 게임이 종료되면 useEffect에서 자동으로 /results로 리다이렉트됨
     } catch (err) {
       console.error('AI 제출 실패:', err)
       const errorMessage =
@@ -161,76 +164,6 @@ export default function GameRoom() {
     )
   }
 
-  // 게임 종료 상태 확인
-  if (gameRoom.status === 'finished') {
-    const isSuccess = gameRoom.result === 'success'
-    const isTurnLimitExceeded = gameRoom.failReason === 'turnLimitExceeded'
-    const revealedWord = gameRoom.targetWordReveal || '비공개'
-
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-2xl w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <div className="text-center mb-6">
-            {isSuccess ? (
-              <>
-                <div className="text-6xl mb-4">🎉</div>
-                <h2 className="text-3xl font-bold text-green-600 mb-2">성공!</h2>
-                <p className="text-gray-600">AI가 정답을 맞혔습니다!</p>
-              </>
-            ) : isTurnLimitExceeded ? (
-              <>
-                <div className="text-6xl mb-4">⏱️</div>
-                <h2 className="text-3xl font-bold text-orange-600 mb-2">시간 초과</h2>
-                <p className="text-gray-600">
-                  최대 {gameRoom.maxTurns}턴을 초과했습니다. 다음에 다시 도전하세요!
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="text-6xl mb-4">😢</div>
-                <h2 className="text-3xl font-bold text-red-600 mb-2">실패</h2>
-                <p className="text-gray-600">게임이 종료되었습니다.</p>
-              </>
-            )}
-          </div>
-
-          <div className="bg-gray-50 rounded-lg p-6 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-4">게임 결과</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">목표 단어</span>
-                  <span className="font-medium text-gray-900">{revealedWord}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">소요 턴</span>
-                <span className="font-medium text-gray-900">
-                  {gameRoom.turnCount} / {gameRoom.maxTurns}턴
-                </span>
-              </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">AI 추론 횟수</span>
-                  <span className="font-medium text-gray-900">{gameRoom.aiGuesses?.length || 0}회</span>
-                </div>
-                {gameRoom.lastGuess && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">마지막 추론</span>
-                    <span className="font-medium text-gray-900">{gameRoom.lastGuess}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-          <button
-            onClick={() => navigate('/lobby')}
-            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-          >
-            로비로 돌아가기
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   const isDrawing = isMyTurn(user.uid)
   const currentPlayer = gameRoom.players[gameRoom.currentTurn]
   const allPlayers = Object.values(gameRoom.players)
@@ -251,6 +184,17 @@ export default function GameRoom() {
               <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
                 {gameRoom.theme}
               </span>
+              {/* 난이도 배지 */}
+              {gameRoom.difficulty && (
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                    getDifficultyConfig(gameRoom.difficulty).bgColor
+                  } ${getDifficultyConfig(gameRoom.difficulty).color}`}
+                >
+                  <span>{getDifficultyConfig(gameRoom.difficulty).icon}</span>
+                  <span>{getDifficultyConfig(gameRoom.difficulty).label}</span>
+                </span>
+              )}
               {gameRoom.status === 'waiting' && (
                 <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
                   대기 중
@@ -276,31 +220,164 @@ export default function GameRoom() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* 게임 대기 중 */}
+        {/* 게임 대기 중 - 대기실 UI */}
         {gameRoom.status === 'waiting' && (
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-yellow-900">게임 시작 대기 중</h3>
-                <p className="text-sm text-yellow-700">
-                  모든 플레이어가 준비되면 게임이 시작됩니다.
-                </p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* 왼쪽: 플레이어 목록 & 난이도 선택 */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* 난이도 선택 */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  🎯 난이도 선택 (모두 수정 가능)
+                </h3>
+                <div className="space-y-3">
+                  {(Object.keys(DIFFICULTY_CONFIG) as GameDifficulty[]).map((difficulty) => {
+                    const config = DIFFICULTY_CONFIG[difficulty]
+                    const isSelected = gameRoom.difficulty === difficulty
+
+                    return (
+                      <button
+                        key={difficulty}
+                        onClick={() => handleDifficultyChange(difficulty)}
+                        className={`w-full p-4 rounded-lg border-2 transition-all duration-300 text-left ${
+                          isSelected
+                            ? `${config.bgColor} border-current shadow-md scale-105`
+                            : 'bg-gray-50 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{config.icon}</span>
+                            <span
+                              className={`font-bold text-lg ${isSelected ? config.color : 'text-gray-700'}`}
+                            >
+                              {config.label}
+                            </span>
+                          </div>
+                          {isSelected && <span className="text-2xl animate-scaleIn">✓</span>}
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{config.description}</p>
+                        <div className="flex gap-4 text-xs text-gray-500">
+                          <span>⏱️ {config.turnTimeLimit}초</span>
+                          <span>🔄 {config.maxTurns}턴</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-              {allPlayers[0]?.uid === user.uid && (
-                <button
-                  onClick={handleStartGame}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  게임 시작
-                </button>
-              )}
+
+              {/* 플레이어 목록 */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">👥 참가자 ({allPlayers.length}명)</h3>
+                <div className="space-y-3">
+                  {allPlayers.map((player) => {
+                    const isMe = player.uid === user.uid
+                    const isReady = player.ready
+
+                    return (
+                      <div
+                        key={player.uid}
+                        className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all duration-300 ${
+                          isMe
+                            ? 'bg-indigo-50 border-indigo-200'
+                            : isReady
+                              ? 'bg-green-50 border-green-200'
+                              : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {player.photoURL && (
+                            <img
+                              src={player.photoURL}
+                              alt={player.displayName || ''}
+                              className="w-10 h-10 rounded-full"
+                            />
+                          )}
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {player.displayName}
+                              {isMe && <span className="text-xs text-indigo-600 ml-2">(나)</span>}
+                            </div>
+                            <div className="text-xs text-gray-500">{player.email}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isReady ? (
+                            <span className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded-full">
+                              ✓ 준비 완료
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 bg-gray-300 text-gray-600 text-xs font-medium rounded-full">
+                              대기 중
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* 준비 버튼 & 게임 시작 */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="space-y-4">
+                  {/* 내 준비 상태 토글 */}
+                  <button
+                    onClick={() => {
+                      const myPlayer = allPlayers.find((p) => p.uid === user.uid)
+                      handlePlayerReady(user.uid, !myPlayer?.ready)
+                    }}
+                    className={`w-full px-6 py-3 rounded-lg font-medium transition-all ${
+                      allPlayers.find((p) => p.uid === user.uid)?.ready
+                        ? 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    {allPlayers.find((p) => p.uid === user.uid)?.ready ? '준비 취소' : '준비 완료'}
+                  </button>
+
+                  {/* 모두 준비 완료 시 게임 시작 버튼 */}
+                  {allPlayers.every((p) => p.ready) && (
+                    <button
+                      onClick={handleStartGame}
+                      className="w-full px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all animate-pulse"
+                    >
+                      🚀 게임 시작하기
+                    </button>
+                  )}
+
+                  {/* 준비 상태 안내 */}
+                  <div className="text-center text-sm text-gray-600">
+                    {allPlayers.every((p) => p.ready) ? (
+                      <span className="text-green-600 font-medium">모든 플레이어가 준비 완료! 🎉</span>
+                    ) : (
+                      <span>
+                        {allPlayers.filter((p) => p.ready).length}/{allPlayers.length}명 준비 완료
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 오른쪽: 채팅 */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-[calc(100vh-200px)] flex flex-col">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">💬 채팅</h3>
+                <div className="flex-1 overflow-hidden">
+                  <Chat roomId={roomId!} user={user} />
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* 캔버스 영역 */}
-          <div className="lg:col-span-3">
+        {/* 게임 진행 중 - 캔버스 & 게임 UI */}
+        {gameRoom.status === 'in-progress' && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* 왼쪽: 캔버스 영역 */}
+            <div className="lg:col-span-2">
             {isDrawing ? (
               <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                 <p className="text-indigo-900 font-medium">
@@ -315,13 +392,15 @@ export default function GameRoom() {
               </div>
             )}
 
-            <Canvas
-              ref={canvasRef}
-              width={800}
-              height={600}
-              isDrawingEnabled={isDrawing && gameRoom.status === 'in-progress'}
-              onCanvasChange={handleCanvasChange}
-            />
+            <div className="flex items-center justify-center">
+              <Canvas
+                ref={canvasRef}
+                width={600}
+                height={450}
+                isDrawingEnabled={isDrawing && gameRoom.status === 'in-progress'}
+                onCanvasChange={handleCanvasChange}
+              />
+            </div>
 
             {/* AI 에러 표시 */}
             {aiError && (
@@ -350,12 +429,45 @@ export default function GameRoom() {
             )}
           </div>
 
-          {/* 사이드바 - 게임 정보 */}
-          <div className="space-y-6">
+          {/* 중간: 타이머 & 플레이어 */}
+          <div className="lg:col-span-1 space-y-6">
             {/* 현재 턴 정보 */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">현재 턴</h3>
-              <div className="space-y-3 text-sm">
+
+              {/* 큰 타이머 표시 */}
+              <div className="mb-6 flex flex-col items-center justify-center">
+                <div
+                  className={`text-6xl font-bold transition-all duration-300 ${
+                    remainingTime <= 10
+                      ? 'text-red-600 animate-pulse'
+                      : remainingTime <= 30
+                        ? 'text-amber-600'
+                        : 'text-indigo-600'
+                  }`}
+                >
+                  {remainingTime}
+                </div>
+                <div className="text-sm text-gray-500 mt-1">남은 시간 (초)</div>
+
+                {/* 진행 바 */}
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-3">
+                  <div
+                    className={`h-full transition-all duration-1000 ease-linear ${
+                      remainingTime <= 10
+                        ? 'bg-red-600'
+                        : remainingTime <= 30
+                          ? 'bg-amber-500'
+                          : 'bg-indigo-600'
+                    }`}
+                    style={{
+                      width: `${(remainingTime / (gameRoom.turnTimeLimit || ENV.game.turnTimeLimit)) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3 text-sm border-t border-gray-200 pt-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">그리는 사람</span>
                   <span className="font-medium text-gray-900">
@@ -368,49 +480,6 @@ export default function GameRoom() {
                     {gameRoom.turnCount} / {gameRoom.maxTurns}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">남은 시간</span>
-                  <span
-                    className={`font-medium ${
-                      remainingTime <= 10 ? 'text-red-600' : 'text-gray-900'
-                    }`}
-                  >
-                    {remainingTime}초
-                  </span>
-                </div>
-              </div>
-
-              {/* 타이머 프로그레스 바 */}
-              <div className="mt-4">
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-1000 ${
-                      remainingTime <= 10 ? 'bg-red-600' : 'bg-indigo-600'
-                    }`}
-                    style={{ width: `${(remainingTime / 60) * 100}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* AI 추론 결과 */}
-            <div className="bg-indigo-50 rounded-xl border border-indigo-200 p-6">
-              <h3 className="text-lg font-semibold text-indigo-900 mb-3">AI 추론</h3>
-              <div className="space-y-2">
-                {gameRoom.aiGuesses && gameRoom.aiGuesses.length > 0 ? (
-                  gameRoom.aiGuesses.slice(-3).map((guess, idx) => (
-                    <div key={idx} className="bg-white rounded-lg p-3 text-sm">
-                      <div className="font-medium text-gray-900">{guess.guess}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        턴 {guess.turn} - {guess.confidence}% 확신
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="bg-white rounded-lg p-3 text-sm">
-                    <span className="text-gray-500">아직 AI 추론이 없습니다...</span>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -425,36 +494,122 @@ export default function GameRoom() {
                   return (
                     <div
                       key={player.uid}
-                      className={`flex items-center gap-2 p-2 rounded-lg ${
-                        isCurrent ? 'bg-indigo-50 border border-indigo-200' : 'bg-gray-50'
+                      className={`flex items-center gap-2 p-3 rounded-lg transition-all duration-300 ${
+                        isCurrent
+                          ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-400 shadow-lg scale-105 animate-pulse'
+                          : isMe
+                            ? 'bg-indigo-50 border border-indigo-200'
+                            : 'bg-gray-50'
                       }`}
                     >
-                      {player.photoURL && (
-                        <img
-                          src={player.photoURL}
-                          alt={player.displayName || ''}
-                          className="w-6 h-6 rounded-full"
-                        />
-                      )}
-                      <span className="text-sm font-medium text-gray-900">
+                      <div className="relative">
+                        {player.photoURL ? (
+                          <img
+                            src={player.photoURL}
+                            alt={player.displayName || ''}
+                            className={`w-8 h-8 rounded-full ${
+                              isCurrent ? 'ring-2 ring-indigo-400' : ''
+                            }`}
+                          />
+                        ) : (
+                          <div
+                            className={`w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center ${
+                              isCurrent ? 'ring-2 ring-indigo-400' : ''
+                            }`}
+                          >
+                            <span className="text-sm font-bold">{player.displayName?.[0]}</span>
+                          </div>
+                        )}
+                        {isCurrent && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-bounce" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-sm font-medium ${
+                          isCurrent ? 'text-indigo-900' : 'text-gray-900'
+                        }`}
+                      >
                         {player.displayName}
                         {isMe && ' (나)'}
                       </span>
                       {isCurrent && (
-                        <span className="text-xs text-indigo-600 ml-auto">그리는 중</span>
+                        <span className="text-xs text-white bg-indigo-600 px-2 py-1 rounded-full ml-auto font-medium">
+                          🎨 그리는 중
+                        </span>
                       )}
                     </div>
                   )
                 })}
               </div>
             </div>
+          </div>
+
+          {/* 오른쪽: AI 히스토리 & 채팅 */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* 턴 히스토리 & AI 추론 결과 */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">
+              <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2">
+                <span>🎯</span>
+                <span>턴 히스토리</span>
+              </h3>
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {gameRoom.aiGuesses && gameRoom.aiGuesses.length > 0 ? (
+                  gameRoom.aiGuesses.map((guess, idx) => {
+                    const playerUid =
+                      gameRoom.turnOrder[((guess.turn as number) - 1) % gameRoom.turnOrder.length]
+                    const player = allPlayers.find((p) => p.uid === playerUid)
+                    const confidenceColor =
+                      (guess.confidence as number) >= 80
+                        ? 'text-green-600'
+                        : (guess.confidence as number) >= 50
+                          ? 'text-amber-600'
+                          : 'text-red-600'
+
+                    return (
+                      <div
+                        key={idx}
+                        className="bg-white rounded-lg p-3 text-sm shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 animate-slideIn"
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded">
+                              턴 {guess.turn}
+                            </span>
+                            {player && (
+                              <span className="text-xs text-gray-600">
+                                by {player.displayName}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-xs font-medium ${confidenceColor}`}>
+                            {guess.confidence}% 확신
+                          </span>
+                        </div>
+                        <div className="font-medium text-gray-900 text-base">{guess.guess}</div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-8 bg-white rounded-lg">
+                    <div className="text-4xl mb-2">🤖</div>
+                    <p className="text-sm text-indigo-700 font-medium">
+                      아직 AI 추론 결과가 없습니다.
+                    </p>
+                    <p className="text-xs text-indigo-500 mt-1">
+                      그림을 그리고 AI에게 제출해보세요!
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* 채팅 */}
-            <div className="h-96">
+            <div className="flex flex-col" style={{ height: 'calc(100vh - 400px)', minHeight: '400px' }}>
               <Chat roomId={roomId!} user={user} />
             </div>
           </div>
         </div>
+        )}
       </main>
     </div>
   )

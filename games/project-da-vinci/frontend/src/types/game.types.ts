@@ -1,9 +1,11 @@
 export type GameStatus = 'waiting' | 'in-progress' | 'finished'
+export type GameDifficulty = 'easy' | 'normal' | 'hard'
 
 export interface Player {
   uid: string
   name: string
   displayName?: string | null
+  email?: string | null
   photoURL?: string | null
   team: string
   ready: boolean
@@ -21,11 +23,13 @@ export interface GameRoom {
   roomId: string
   status: GameStatus
   theme: string
+  difficulty: GameDifficulty
   currentTurn: string
   turnOrder: string[]
   currentTurnIndex: number
   maxTurns: number
   turnCount: number
+  turnTimeLimit: number // 난이도별 턴 제한 시간
   startTime: number
   turnStartTime?: number
   endTime?: number

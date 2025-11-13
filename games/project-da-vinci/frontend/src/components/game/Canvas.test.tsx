@@ -6,6 +6,7 @@ import Canvas from './Canvas'
 vi.mock('fabric', () => {
   class MockCanvas {
     isDrawingMode = true
+    selection = true
     freeDrawingBrush = {
       color: '#000000',
       width: 5,
@@ -17,10 +18,17 @@ vi.mock('fabric', () => {
     toJSON = vi.fn(() => ({}))
     loadFromJSON = vi.fn()
     renderAll = vi.fn()
+    getObjects = vi.fn(() => [])
+  }
+
+  class MockPencilBrush {
+    color = '#000000'
+    width = 5
   }
 
   return {
     Canvas: MockCanvas,
+    PencilBrush: MockPencilBrush,
   }
 })
 

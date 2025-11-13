@@ -24,4 +24,7 @@ dist-ssr
 *.sw?
 
 .env
-.env.local
+.env.localtest-results/
+.env.production
+.env.development
+playwright-report/

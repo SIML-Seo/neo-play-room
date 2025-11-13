@@ -14,6 +14,26 @@ export interface CanvasHandle {
   clearCanvas: () => void
 }
 
+// Debounce 유틸리티 함수
+function debounce<T extends (...args: unknown[]) => void>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+
+  return function executedFunction(...args: Parameters<T>) {
+    const later = () => {
+      timeout = null
+      func(...args)
+    }
+
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+    timeout = setTimeout(later, wait)
+  }
+}
+
 const Canvas = forwardRef<CanvasHandle, CanvasProps>(
   ({ width = 800, height = 600, isDrawingEnabled = true, onCanvasChange }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -21,6 +41,22 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
     const [currentColor, setCurrentColor] = useState('#000000')
     const [brushWidth, setBrushWidth] = useState(5)
     const [isEraser, setIsEraser] = useState(false)
+
+    // Debounced canvas change handler
+    const debouncedCanvasChange = useRef<((...args: Parameters<typeof onCanvasChange>) => void) | null>(null)
+
+    useEffect(() => {
+      if (onCanvasChange) {
+        debouncedCanvasChange.current = debounce((canvasData: string) => {
+          console.log('[Canvas] 🚀 Debounced: Firebase 업데이트 실행')
+          onCanvasChange(canvasData)
+        }, 500) // 500ms 디바운스
+      }
+
+      return () => {
+        debouncedCanvasChange.current = null
+      }
+    }, [onCanvasChange])
 
     // Fabric.js 캔버스 초기화
     useEffect(() => {
@@ -57,12 +93,12 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       canvas.isDrawingMode = isDrawingEnabled
       console.log('[Canvas] 최종 드로잉 모드:', isDrawingEnabled)
 
-      // 캔버스 변경 이벤트
+      // 캔버스 변경 이벤트 (Debounced)
       canvas.on('path:created', () => {
-        console.log('[Canvas] path:created 이벤트 발생')
-        if (onCanvasChange) {
+        console.log('[Canvas] 📝 path:created 이벤트 발생 (디바운스 대기 중...)')
+        if (debouncedCanvasChange.current) {
           const canvasData = JSON.stringify(canvas.toJSON())
-          onCanvasChange(canvasData)
+          debouncedCanvasChange.current(canvasData)
         }
       })
 

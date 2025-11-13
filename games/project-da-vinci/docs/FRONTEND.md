@@ -585,6 +585,87 @@ Firebase Auth 로그인
 
 ### 3. GameRoom.tsx (메인 게임 화면)
 
+GameRoom은 게임 상태에 따라 다른 UI를 렌더링합니다.
+
+#### 3-1. Waiting 상태 (대기실)
+
+**목적**: 팀원들이 난이도를 협의하고 모두 준비 완료 후 게임 시작
+
+**레이아웃:**
+```
+┌───────────────────────────────────────────────────────┐
+│                    Header                             │
+│  (Project Da Vinci | 🔵 보통 | 동물 테마)             │
+├─────────────────────────────────┬─────────────────────┤
+│  난이도 선택 (모두 수정 가능)      │                     │
+│  ┌───────────────────────┐      │                     │
+│  │ 🟢 쉬움  (90초, 15턴)  │      │                     │
+│  ├───────────────────────┤      │                     │
+│  │ 🔵 보통  (60초, 10턴) ✓│      │                     │
+│  ├───────────────────────┤      │      Chat           │
+│  │ 🔴 어려움 (30초, 7턴)  │      │   (실시간 채팅)       │
+│  └───────────────────────┘      │                     │
+│                                 │                     │
+│  참가자 목록 (5명)                │                     │
+│  ┌───────────────────────┐      │                     │
+│  │ 김개발      ✓ 준비완료  │      │                     │
+│  │ 이디자인    대기중      │      │                     │
+│  │ 박기획      ✓ 준비완료  │      │                     │
+│  │ 최마케팅    대기중      │      │                     │
+│  │ 정개발      ✓ 준비완료  │      │                     │
+│  └───────────────────────┘      │                     │
+│                                 │                     │
+│  [      준비 완료       ]       │                     │
+│  (모두 준비 시 게임 시작 버튼)    │                     │
+└─────────────────────────────────┴─────────────────────┘
+```
+
+**주요 기능:**
+1. **난이도 선택** - 모든 참가자가 실시간으로 수정 가능
+2. **채팅** - 대기실에서도 채팅 활성화
+3. **준비 완료 시스템** - 각자 준비 버튼 클릭
+4. **게임 시작** - 모두 준비 완료 시에만 버튼 표시
+
+**코드 예시:**
+```typescript
+{gameRoom.status === 'waiting' && (
+  <div className="grid grid-cols-3 gap-8">
+    <div className="col-span-2">
+      {/* 난이도 선택 */}
+      {Object.keys(DIFFICULTY_CONFIG).map((difficulty) => (
+        <button onClick={() => handleDifficultyChange(difficulty)}>
+          {DIFFICULTY_CONFIG[difficulty].icon} {DIFFICULTY_CONFIG[difficulty].label}
+        </button>
+      ))}
+
+      {/* 참가자 목록 + 준비 상태 */}
+      {allPlayers.map((player) => (
+        <div key={player.uid}>
+          {player.displayName}
+          {player.ready ? '✓ 준비완료' : '대기중'}
+        </div>
+      ))}
+
+      {/* 준비 버튼 */}
+      <button onClick={() => handlePlayerReady(user.uid, !myReady)}>
+        {myReady ? '준비 취소' : '준비 완료'}
+      </button>
+
+      {/* 모두 준비 시 게임 시작 */}
+      {allPlayers.every((p) => p.ready) && (
+        <button onClick={handleStartGame}>🚀 게임 시작하기</button>
+      )}
+    </div>
+
+    <div className="col-span-1">
+      <Chat roomId={roomId} />
+    </div>
+  </div>
+)}
+```
+
+#### 3-2. In-Progress 상태 (게임 진행)
+
 **레이아웃:**
 ```
 ┌─────────────────────────────────────────┐
