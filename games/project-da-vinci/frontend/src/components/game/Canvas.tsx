@@ -15,11 +15,11 @@ export interface CanvasHandle {
 }
 
 // Debounce 유틸리티 함수
-function debounce<T extends (...args: unknown[]) => void>(
+function debounce<T extends (...args: any[]) => void>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null
+  let timeout: number | null = null
 
   return function executedFunction(...args: Parameters<T>) {
     const later = () => {
@@ -27,10 +27,10 @@ function debounce<T extends (...args: unknown[]) => void>(
       func(...args)
     }
 
-    if (timeout) {
+    if (timeout !== null) {
       clearTimeout(timeout)
     }
-    timeout = setTimeout(later, wait)
+    timeout = setTimeout(later, wait) as unknown as number
   }
 }
 
@@ -43,14 +43,14 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
     const [isEraser, setIsEraser] = useState(false)
 
     // Debounced canvas change handler
-    const debouncedCanvasChange = useRef<((...args: Parameters<typeof onCanvasChange>) => void) | null>(null)
+    const debouncedCanvasChange = useRef<((canvasData: string) => void) | null>(null)
 
     useEffect(() => {
       if (onCanvasChange) {
         debouncedCanvasChange.current = debounce((canvasData: string) => {
           console.log('[Canvas] 🚀 Debounced: Firebase 업데이트 실행')
           onCanvasChange(canvasData)
-        }, 500) // 500ms 디바운스
+        }, 500)
       }
 
       return () => {

@@ -8,7 +8,18 @@
       "Bash(\"C:\\Users\\Neolab-WON\\Desktop\\another\\neo-play-room\\games\\project-da-vinci\\docs\\SETUP.md\")",
       "Bash(npm run build:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm run test:run:*)",
+      "Bash(git checkout:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "mcp__serena__initial_instructions",
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__activate_project",
+      "mcp__serena__find_file",
+      "mcp__serena__get_symbols_overview",
+      "Bash(Select-String -Pattern \"error TS\")",
+      "Bash(Select-Object -First 10)"
     ],
     "deny": [],
     "ask": []
