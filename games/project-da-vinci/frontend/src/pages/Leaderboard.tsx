@@ -319,11 +319,18 @@ export default function Leaderboard() {
                               AI 추론 히스토리 (턴별 그림 + 판정)
                             </h4>
                             <div className="space-y-4">
-                              {log.aiGuessList.map((guess, idx) => (
-                                <div
-                                  key={idx}
-                                  className="bg-gray-50 rounded-lg p-4 border border-gray-200"
-                                >
+                              {log.aiGuessList.map((guess, idx) => {
+                                // 디버깅: 전체 배열과 각 항목 확인
+                                if (idx === 0) {
+                                  console.log('[Leaderboard] aiGuessList 전체:', log.aiGuessList)
+                                  console.log('[Leaderboard] aiGuessList 길이:', log.aiGuessList.length)
+                                }
+                                console.log(`[Leaderboard] Turn ${guess.turn} 데이터:`, guess)
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                                  >
                                   <div className="flex items-start gap-4">
                                     {/* 턴별 이미지 */}
                                     {guess.imageUrl ? (
@@ -370,7 +377,8 @@ export default function Leaderboard() {
                                     </div>
                                   </div>
                                 </div>
-                              ))}
+                                )
+                              })}
                             </div>
                           </div>
                         </div>

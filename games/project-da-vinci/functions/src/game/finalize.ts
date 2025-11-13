@@ -9,29 +9,15 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { logger } from 'firebase-functions'
 
 /**
- * 게임 종료 시 게임 로그 저장 Trigger
+ * 게임 종료 처리 로직 (공통 함수)
  */
-export const finalizeGame = onValueUpdated(
-  {
-    ref: '/gameRooms/{roomId}/status',
-    region: 'asia-northeast3',
-  },
-  async (event) => {
-    const newStatus = event.data.after.val()
-    const roomId = event.params.roomId as string
+export async function processGameFinalization(roomId: string): Promise<void> {
+  logger.info(`[finalizeGame] 게임 종료 처리 시작: ${roomId}`)
 
-    // 게임이 종료되지 않았으면 무시
-    if (newStatus !== 'finished') {
-      logger.info(`[finalizeGame] 게임이 아직 진행 중: ${roomId}`)
-      return
-    }
+  const db = getDatabase()
+  const firestore = getFirestore()
 
-    logger.info(`[finalizeGame] 게임 종료 감지: ${roomId}`)
-
-    const db = getDatabase()
-    const firestore = getFirestore()
-
-    try {
+  try {
       // 1. 게임 룸 데이터 가져오기
       const roomSnapshot = await db.ref(`/gameRooms/${roomId}`).once('value')
       if (!roomSnapshot.exists()) {
@@ -131,8 +117,31 @@ export const finalizeGame = onValueUpdated(
         db.ref(`/chatMessages/${roomId}`).remove(),
       ])
       logger.info(`[finalizeGame] ✅ RTDB 데이터 정리 완료: ${roomId}`)
-    } catch (error) {
-      logger.error(`[finalizeGame] 게임 로그 저장 실패: ${roomId}`, error)
+  } catch (error) {
+    logger.error(`[finalizeGame] 게임 로그 저장 실패: ${roomId}`, error)
+    throw error
+  }
+}
+
+/**
+ * 게임 종료 시 게임 로그 저장 Trigger (Database Trigger)
+ */
+export const finalizeGame = onValueUpdated(
+  {
+    ref: '/gameRooms/{roomId}/status',
+    region: 'asia-northeast3',
+  },
+  async (event) => {
+    const newStatus = event.data.after.val()
+    const roomId = event.params.roomId as string
+
+    // 게임이 종료되지 않았으면 무시
+    if (newStatus !== 'finished') {
+      logger.info(`[finalizeGame] 게임이 아직 진행 중: ${roomId}`)
+      return
     }
+
+    logger.info(`[finalizeGame] 게임 종료 감지 (Trigger): ${roomId}`)
+    await processGameFinalization(roomId)
   }
 )

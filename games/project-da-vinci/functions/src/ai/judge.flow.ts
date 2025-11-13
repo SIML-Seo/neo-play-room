@@ -9,6 +9,7 @@ import { getStorage } from 'firebase-admin/storage'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { buildPromptByDifficulty, AIDifficulty } from './prompts'
 import { logger } from 'firebase-functions'
+import { processGameFinalization } from '../game/finalize'
 
 interface JudgeRequest {
   roomId: string
@@ -164,11 +165,21 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
           },
         })
 
-        // Public URL 생성
+        // Public URL 생성 (환경에 따라 다른 URL)
         await file.makePublic()
-        imageUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`
 
-        logger.info(`✅ 이미지 저장 완료: ${imageUrl}`)
+        // Emulator 환경 확인
+        const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true'
+        if (isEmulator) {
+          // Emulator: http://127.0.0.1:9199/{bucket}/{fileName}?alt=media
+          const storageEmulatorHost = process.env.FIREBASE_STORAGE_EMULATOR_HOST || '127.0.0.1:9199'
+          imageUrl = `http://${storageEmulatorHost}/${bucket.name}/${fileName}?alt=media`
+        } else {
+          // Production: googleapis.com URL 사용
+          imageUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`
+        }
+
+        logger.info(`✅ 이미지 저장 완료 (${isEmulator ? 'Emulator' : 'Production'}): ${imageUrl}`)
       } catch (storageError) {
         logger.error('❌ 이미지 저장 실패:', storageError)
         // 이미지 저장 실패해도 게임은 계속 진행
@@ -209,6 +220,13 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
         })
 
         logger.info(`🎉 정답! 룸: ${roomId}, 답: ${guess}`)
+
+        // Emulator Trigger 버그 대응: 게임 종료 처리 직접 호출
+        try {
+          await processGameFinalization(roomId)
+        } catch (finalizationError) {
+          logger.error(`❌ 게임 종료 처리 실패 (정답):`, finalizationError)
+        }
       } else if (newTurnCount >= gameRoom.maxTurns) {
         // 최대 턴 초과, 게임 실패
         gameStatus = 'finished'
@@ -224,6 +242,13 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
         })
 
         logger.warn(`❌ 최대 턴 초과! 룸: ${roomId}`)
+
+        // Emulator Trigger 버그 대응: 게임 종료 처리 직접 호출
+        try {
+          await processGameFinalization(roomId)
+        } catch (finalizationError) {
+          logger.error(`❌ 게임 종료 처리 실패 (턴 초과):`, finalizationError)
+        }
       } else {
         // 오답, 다음 턴으로
         const nextTurnIndex = (gameRoom.currentTurnIndex + 1) % gameRoom.turnOrder.length

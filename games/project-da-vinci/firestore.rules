@@ -8,16 +8,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // 게임 로그 (읽기 전용 - Cloud Function만 쓰기)
+    // 게임 로그 (읽기 전용 - Cloud Function(Admin SDK)이 쓰기)
     match /gameLogs/{logId} {
       allow read: if request.auth != null;
-      allow write: if false; // Cloud Function만 작성 가능
+      allow write: if false; // 클라이언트 쓰기 차단 (Admin SDK는 규칙 우회)
     }
 
-    // 분석 데이터 (읽기 전용 - Cloud Function이 자동 집계)
-    match /analytics/{type}/{id} {
+    // 분석 데이터 (읽기 전용 - Cloud Function(Admin SDK)이 자동 집계)
+    match /analytics/{docId} {
       allow read: if request.auth != null;
-      allow write: if false; // Cloud Function만 작성 가능
+      allow write: if false; // 클라이언트 쓰기 차단 (Admin SDK는 규칙 우회)
     }
 
     // 게임 스케줄 설정 (마스터 계정만 수정 가능)
