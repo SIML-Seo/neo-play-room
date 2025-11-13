@@ -84,7 +84,7 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
 
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-2.5-flash-lite',
       generationConfig: {
         temperature: 0.7, // 약간의 창의성 허용
         topP: 0.9,
