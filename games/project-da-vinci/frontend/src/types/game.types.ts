@@ -17,6 +17,7 @@ export interface AIGuess {
   guess: string
   confidence: number
   timestamp: number
+  imageUrl?: string // Storage에 저장된 턴별 이미지 URL
 }
 
 export interface GameRoom {
@@ -63,10 +64,57 @@ export interface GameLog {
   roomId: string
   theme: string
   targetWord: string
+  difficulty: GameDifficulty
   finalTurnCount: number
   finalTime: number
+  result: 'success' | 'failure'
+  failReason?: 'turnLimitExceeded' | 'aiFailure'
   winningTeam: string
   finalImageUri: string
   aiGuessList: AIGuess[]
   completedAt: number
+  finishedAt: any // Firestore Timestamp
+}
+
+// Firestore 분석 데이터 타입
+export interface DailyAnalytics {
+  date: string // YYYY-MM-DD
+  totalGames: number
+  successCount: number
+  failureCount: number
+  totalTurns: number
+  avgTurns: number
+  avgTime: number
+}
+
+export interface WordAnalytics {
+  word: string
+  attempts: number
+  successCount: number
+  successRate: number
+  avgTurns: number
+  avgConfidence: number
+}
+
+export interface DepartmentAnalytics {
+  department: string
+  totalGames: number
+  successCount: number
+  successRate: number
+  avgTurns: number
+}
+
+// 게임 스케줄 타입 (특정 날짜/시간대)
+export interface GameScheduleDateRange {
+  id?: string // Firestore 문서 ID
+  date: string // YYYY-MM-DD 형식
+  start: string // HH:mm 형식
+  end: string // HH:mm 형식
+  description?: string // 선택적 설명 (예: "팀 빌딩 이벤트")
+}
+
+export interface GameScheduleConfig {
+  dateRanges: GameScheduleDateRange[]
+  updatedBy: string
+  updatedAt: any // Firestore Timestamp
 }

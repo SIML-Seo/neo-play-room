@@ -23,6 +23,10 @@
   "database": {
     "rules": "database.rules.json"
   },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
   "storage": {
     "rules": "storage.rules"
   },
@@ -33,6 +37,9 @@
     "database": {
       "port": 9000,
       "rules": "database.rules.dev.json"
+    },
+    "firestore": {
+      "port": 9299
     },
     "functions": {
       "port": 5001

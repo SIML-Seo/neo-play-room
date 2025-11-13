@@ -1,5 +1,6 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useMatchmaking } from '@/hooks/useMatchmaking'
+import { useGameSchedule } from '@/hooks/useGameSchedule'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { ENV } from '@/config/env'
@@ -13,6 +14,7 @@ export default function Lobby() {
     joinWaitingRoom,
     isInWaitingRoom,
   } = useMatchmaking()
+  const { isAllowed, nextOpenTime, timeUntilOpen, loading: scheduleLoading } = useGameSchedule()
   const navigate = useNavigate()
 
   // 로그인하지 않은 경우 홈으로 리다이렉트
@@ -22,12 +24,12 @@ export default function Lobby() {
     }
   }, [isAuthenticated, loading, navigate])
 
-  // 로그인 완료되면 자동으로 대기실 입장
+  // 로그인 완료되면 자동으로 대기실 입장 (게임 허용 시간대일 때만)
   useEffect(() => {
-    if (user && !isInWaitingRoom && !isJoining) {
+    if (user && !isInWaitingRoom && !isJoining && isAllowed) {
       joinWaitingRoom()
     }
-  }, [user, isInWaitingRoom, isJoining, joinWaitingRoom])
+  }, [user, isInWaitingRoom, isJoining, isAllowed, joinWaitingRoom])
 
   const handleSignOut = async () => {
     try {
@@ -38,7 +40,7 @@ export default function Lobby() {
     }
   }
 
-  if (loading || !user) {
+  if (loading || scheduleLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-gray-600 text-xl">로딩 중...</div>
@@ -46,8 +48,90 @@ export default function Lobby() {
     )
   }
 
+  // 게임이 허용되지 않는 시간대
+  if (!isAllowed) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <h1 className="text-2xl font-bold text-gray-900">Project Da Vinci</h1>
+                <span className="text-sm text-gray-500">Lobby</span>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                  {user.photoURL && (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || ''}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  )}
+                  <div className="text-sm">
+                    <div className="font-medium text-gray-900">{user.displayName}</div>
+                    <div className="text-gray-500">{user.email}</div>
+                  </div>
+                </div>
+                {user.email === 'swh1182@neolab.net' && (
+                  <button
+                    onClick={() => navigate('/admin')}
+                    className="px-4 py-2 text-sm bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors font-medium"
+                  >
+                    관리자
+                  </button>
+                )}
+                <button
+                  onClick={handleSignOut}
+                  className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  로그아웃
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Closed Message */}
+        <main className="max-w-4xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-12 text-center">
+            <div className="w-24 h-24 mx-auto mb-6 bg-yellow-100 rounded-full flex items-center justify-center">
+              <span className="text-5xl">🔒</span>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">게임 시간이 아닙니다</h2>
+            <p className="text-gray-600 text-lg mb-8">
+              현재는 게임 운영 시간이 아닙니다.<br />
+              다음 게임 시간까지 기다려주세요!
+            </p>
+
+            {nextOpenTime && (
+              <div className="bg-indigo-50 rounded-xl border border-indigo-200 p-6 max-w-md mx-auto">
+                <div className="text-sm text-indigo-600 font-medium mb-2">다음 게임 시작</div>
+                <div className="text-2xl font-bold text-indigo-900 mb-1">
+                  {nextOpenTime.toLocaleString('ko-KR', {
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </div>
+                <div className="text-indigo-700 text-lg font-semibold">{timeUntilOpen}</div>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   // 빈 슬롯 개수 계산
   const emptySlots = Math.max(0, ENV.game.maxPlayers - waitingPlayers.length)
+
+  // 마스터 계정 여부 확인
+  const isMaster = user.email === 'swh1182@neolab.net'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -74,6 +158,14 @@ export default function Lobby() {
                   <div className="text-gray-500">{user.email}</div>
                 </div>
               </div>
+              {isMaster && (
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="px-4 py-2 text-sm bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors font-medium"
+                >
+                  관리자
+                </button>
+              )}
               <button
                 onClick={handleSignOut}
                 className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
