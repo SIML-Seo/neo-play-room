@@ -21,6 +21,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "dompurify": "^3.3.0",
     "fabric": "^6.9.0",
     "firebase": "^12.5.0",

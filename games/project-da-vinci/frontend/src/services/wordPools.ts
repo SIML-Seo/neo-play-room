@@ -4,7 +4,7 @@
  * Gemini API로 주제별 단어 자동 생성
  */
 
-import { collection, doc, getDoc, setDoc, getDocs, query, where } from 'firebase/firestore'
+import { collection, doc, getDoc, setDoc, getDocs } from 'firebase/firestore'
 import { firestore } from '@/firebase'
 import type { ThemeWordPool } from '@/types/game.types'
 import { GoogleGenerativeAI } from '@google/generative-ai'

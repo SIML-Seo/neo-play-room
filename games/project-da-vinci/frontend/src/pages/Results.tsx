@@ -4,28 +4,7 @@ import { ref, get } from 'firebase/database'
 import { database } from '@/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import { calculateScore } from '@/services/gameLog'
-import type { GameRoom } from '@/types/game.types'
-
-interface GameLog {
-  logId: string
-  roomId: string
-  theme: string
-  difficulty: string
-  targetWord: string
-  finalTurnCount: number
-  finalTime: number
-  result: 'success' | 'failure' | 'unknown'
-  failReason: string | null
-  lastGuess: string | null
-  aiGuessList: Array<{
-    turn: number
-    guess: string
-    confidence: number
-    timestamp: number
-  }>
-  players: Record<string, unknown>
-  completedAt: number
-}
+import type { GameRoom, GameLog } from '@/types/game.types'
 
 export default function Results() {
   const navigate = useNavigate()

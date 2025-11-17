@@ -148,10 +148,10 @@ function getDifficultyMultiplier(difficulty: string): number {
  * 점수 = (턴 수 / 난이도 가중치) * 1000 + (시간 / 1000)
  * 낮을수록 높은 순위
  *
- * @param log 게임 로그
+ * @param log 게임 로그 또는 필요한 필드만 포함한 객체
  * @returns 보정 점수
  */
-export function calculateScore(log: GameLog): number {
+export function calculateScore(log: Pick<GameLog, 'difficulty' | 'finalTurnCount' | 'finalTime'>): number {
   const multiplier = getDifficultyMultiplier(log.difficulty)
 
   // 턴 점수: 난이도 보정 적용 (가중치로 나누면 어려운 난이도일수록 점수가 낮아짐)
