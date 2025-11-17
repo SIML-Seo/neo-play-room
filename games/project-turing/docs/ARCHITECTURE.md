@@ -139,7 +139,7 @@
     │
     └─ RTDB 업데이트
        - status: 'in-progress'
-       - 첫 번째 질문 생성
+       - 질문 생성 시작
        - 타이머 시작
 ```
 
@@ -148,9 +148,20 @@
 ```
 [턴 시작]
     │
+    ├─ 질문 선택 (Firestore 질문 풀)
+    │  - 카테고리 결정: categories[turnNumber % 5]
+    │    * Turn 1: personal (개인 경험)
+    │    * Turn 2: company (사내 문화)
+    │    * Turn 3: creative (창의적 질문)
+    │    * Turn 4: trend (트렌드)
+    │    * Turn 5: values (가치관)
+    │  - Firestore에서 해당 카테고리 질문 랜덤 선택
+    │  - 중복 방지 (이전 턴에 나온 질문 제외)
+    │
     ├─ RTDB에 현재 턴 정보 저장
     │  /gameRooms/{roomId}/turns/{turnNumber}
     │  - question: "최근에 본 영화는?"
+    │  - category: "personal"
     │  - timerDuration: 60 (난이도별)
     │  - timerStartTime: serverTimestamp
     │
@@ -172,11 +183,10 @@
            ↓
 [AI 답변 생성]
     │
-    ├─ 타이머 시작 후 일정 시간 경과 시
-    │  또는 난이도에 따라
-    │  - Easy: 즉시 (타인 답변 참고 X)
-    │  - Normal: 30초 후
-    │  - Hard: 대부분 참가자 제출 후
+    ├─ 난이도별 트리거 타이밍
+    │  - Easy: 타이머 시작 즉시 (타인 답변 참고 X)
+    │  - Normal: 타이머 시작 즉시 (타인 답변 참고 X)
+    │  - Hard: 4명(80%) 제출 시 (타인 답변 분석)
     │
     ├─ Cloud Function 호출
     │  generateAIResponse(roomId, turn, difficulty)
@@ -575,8 +585,9 @@ interface GameLog {
 | 항목 | Easy | Normal | Hard |
 |-----|------|--------|------|
 | **타이머** | 60초 | 45초 | 30초 |
-| **AI 답변 시점** | 즉시 (0초) | 30초 후 | 대부분 제출 후 |
+| **AI 답변 시점** | 즉시 (타인 참고 X) | 즉시 (타인 참고 X) | 4명(80%) 제출 후 |
 | **AI 답변 스타일** | 로봇같이 | 자연스럽게 | 타인 모방 |
+| **답변 공개 순서** | 랜덤 | 랜덤 | 랜덤 |
 | **AI 프롬프트** | 단순 | 중간 | 복잡 (타인 답변 분석) |
 | **점수 배율** | 1.0 | 1.3 | 1.6 |
 

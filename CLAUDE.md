@@ -54,10 +54,20 @@ neo-play-room/
   - 실시간 협동 게임 (Firebase Realtime Database)
   - 난이도별 점수 보정 시스템
 
+#### 2. **project-turing** (Cycle 2)
+- **게임**: 5인 협동 AI 찾기 (튜링 테스트)
+- **기술 스택**: React 19 + Firebase + Gemini AI
+- **상태**: 📋 설계 완료 (구현 대기)
+- **문서**: `games/project-turing/CLAUDE.md`
+- **특징**:
+  - AI가 사람처럼 답변, 참가자들이 AI 찾기
+  - 난이도별 AI 답변 전략 (Easy/Normal/Hard)
+  - 질문 → 답변 → 토론 → 투표 시스템
+
 ### 향후 프로젝트
 
-- **Cycle 2**: TBD (2개월 후)
 - **Cycle 3**: TBD (4개월 후)
+- **Cycle 4**: TBD (6개월 후)
 
 ---
 

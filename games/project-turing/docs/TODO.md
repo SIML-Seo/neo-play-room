@@ -19,6 +19,14 @@
   - [ ] Authentication (Google SSO)
   - [ ] Realtime Database 초기 구조 생성
   - [ ] Firestore 초기 컬렉션 생성
+  - [ ] **질문 풀 생성 (Firestore)**
+    - [ ] 5개 카테고리별 질문 수집 (각 20개)
+      - personal (개인 경험)
+      - company (사내 문화)
+      - creative (창의적 질문)
+      - trend (트렌드)
+      - values (가치관)
+    - [ ] Firestore /questions 컬렉션에 저장
   - [ ] Security Rules 작성
   - [ ] Firebase Emulator 설정
 
