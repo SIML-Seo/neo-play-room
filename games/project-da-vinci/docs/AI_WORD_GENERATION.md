@@ -36,16 +36,17 @@ await updateGameSchedule([
 
 ### 1. 환경 변수 설정
 
-**frontend/.env 파일:**
+**functions/.env 파일:**
 ```bash
 # Gemini API Key 추가
-VITE_GEMINI_API_KEY=AIzaSyC...실제키
+GEMINI_API_KEY=AIzaSyC...실제키
 ```
 
 **API 키 발급:**
 1. https://ai.google.dev/ 접속
 2. "Get API key in Google AI Studio" 클릭
 3. API 키 생성 및 복사
+4. `functions/.env` 파일에 설정
 
 ### 2. 게임 스케줄 등록
 
@@ -360,9 +361,10 @@ await generateAndSaveWordPool('악기', '악기 종류', '마스터UID', 25)
 
 ### 1. API 키 보안
 
-- ❌ `.env` 파일을 Git에 커밋하지 마세요
-- ✅ `.env.example`만 커밋
-- ✅ 실제 키는 `.env.local`에 저장
+- ❌ `functions/.env` 파일을 Git에 커밋하지 마세요
+- ✅ `functions/.env.example`만 커밋
+- ✅ 실제 키는 `functions/.env`에 저장 (.gitignore에 포함됨)
+- ✅ Cloud Functions에서만 API 호출 (클라이언트 노출 방지)
 
 ### 2. API 할당량
 

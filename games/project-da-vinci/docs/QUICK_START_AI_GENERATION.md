@@ -15,10 +15,14 @@
 
 ## 2단계: 환경 변수 설정 (1분)
 
-**frontend/.env 파일 열기**
+**functions/.env 파일 생성**
 ```bash
-# 기존 Firebase 설정 아래에 추가
-VITE_GEMINI_API_KEY=AIzaSyC...여기에붙여넣기
+# functions/.env.example을 복사
+cd functions
+cp .env.example .env
+
+# .env 파일 편집
+GEMINI_API_KEY=AIzaSyC...여기에붙여넣기
 ```
 
 저장!
@@ -121,9 +125,10 @@ await generateAndSaveWordPool(
 
 ### API 키 오류
 ```
-Error: Gemini API 키가 설정되지 않았습니다.
+Error: GEMINI_API_KEY가 설정되지 않았습니다.
 ```
-→ `.env` 파일에 `VITE_GEMINI_API_KEY` 추가 확인
+→ `functions/.env` 파일에 `GEMINI_API_KEY` 추가 확인
+→ Functions Emulator 재시작 필요
 
 ### 생성 실패
 ```

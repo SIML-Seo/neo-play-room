@@ -1,13 +1,13 @@
 /**
  * 주제별 문제 풀 관리 서비스
  * Firestore를 사용하여 주제별 단어 목록 관리
- * Gemini API로 주제별 단어 자동 생성
+ * Cloud Functions를 통한 AI 단어 자동 생성
  */
 
 import { collection, doc, getDoc, setDoc, getDocs } from 'firebase/firestore'
-import { firestore } from '@/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { firestore, functions } from '@/firebase'
 import type { ThemeWordPool } from '@/types/game.types'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const WORD_POOLS_COLLECTION = 'wordPools'
 
@@ -99,130 +99,43 @@ export function selectRandomWords(words: string[], count: number): string[] {
 }
 
 /**
- * Gemini API로 주제에 맞는 단어 자동 생성
+ * Cloud Function을 통해 주제에 맞는 단어 자동 생성
  */
 export async function generateWordsForTheme(
   theme: string,
-  count: number = 20,
-  apiKey?: string
+  count: number = 20
 ): Promise<string[]> {
-  // API 키 확인
-  const key = apiKey || import.meta.env.VITE_GEMINI_API_KEY
-  if (!key) {
-    throw new Error('Gemini API 키가 설정되지 않았습니다.')
-  }
-
-  const genAI = new GoogleGenerativeAI(key)
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
-    generationConfig: {
-      temperature: 0.8, // 다양성을 위해 약간 높게
-      topP: 0.9,
-      topK: 40,
-      maxOutputTokens: 500,
-    },
-  })
-
-  const prompt = buildWordGenerationPrompt(theme, count)
-
   try {
-    const result = await model.generateContent(prompt)
-    const response = result.response.text()
+    const generateWords = httpsCallable<
+      { theme: string; count?: number },
+      { theme: string; words: string[]; count: number }
+    >(functions, 'generateWords')
 
-    // JSON 파싱
-    const words = parseWordsFromResponse(response)
+    const result = await generateWords({ theme, count })
 
-    if (words.length === 0) {
-      throw new Error('AI가 단어를 생성하지 못했습니다.')
-    }
-
-    console.log(`[generateWordsForTheme] ${theme}: ${words.length}개 단어 생성 완료`)
-    return words
+    console.log(`[generateWordsForTheme] ${theme}: ${result.data.words.length}개 단어 생성 완료`)
+    return result.data.words
   } catch (error) {
     console.error(`[generateWordsForTheme] ${theme} 생성 실패:`, error)
     throw error
   }
 }
 
-/**
- * 단어 생성 프롬프트 작성
- */
-function buildWordGenerationPrompt(theme: string, count: number): string {
-  return `당신은 Pictionary 게임을 위한 문제 출제자입니다.
-
-**주제**: ${theme}
-
-**요구사항**:
-1. "${theme}" 주제에 맞는 그림으로 표현 가능한 단어 ${count}개를 생성하세요.
-2. 모든 단어는 **한글**로 작성하세요.
-3. 단어는 **명사**여야 합니다 (동사, 형용사 금지).
-4. 너무 쉽지도, 너무 어렵지도 않은 적절한 난이도로 선택하세요.
-5. 다양성을 고려하여 중복되지 않는 단어들을 선택하세요.
-6. 그림으로 표현하기 어려운 추상적인 개념은 피하세요.
-
-**응답 형식** (JSON 배열만):
-{
-  "words": ["단어1", "단어2", "단어3", ...]
-}
-
-**예시**:
-주제: "동화"
-{
-  "words": ["백설공주", "신데렐라", "콩쥐팥쥐", "흥부놀부", "견우직녀", "심청전", "춘향전", "피노키오", "인어공주", "잠자는숲속의공주", "빨간모자", "헨젤과그레텔", "엄지공주", "미운오리새끼", "성냥팔이소녀", "알라딘", "라푼젤", "개구리왕자", "브레멘음악대", "이솝우화"]
-}
-
-이제 "${theme}" 주제로 ${count}개의 단어를 생성하세요.`
-}
 
 /**
- * AI 응답에서 단어 배열 파싱
- */
-function parseWordsFromResponse(response: string): string[] {
-  try {
-    // JSON 마크다운 제거
-    let cleaned = response.trim()
-    if (cleaned.startsWith('```json')) {
-      cleaned = cleaned.replace(/^```json\n/, '').replace(/\n```$/, '')
-    } else if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```\n/, '').replace(/\n```$/, '')
-    }
-
-    const parsed = JSON.parse(cleaned)
-
-    if (parsed.words && Array.isArray(parsed.words)) {
-      return parsed.words.filter((w: any) => typeof w === 'string' && w.trim().length > 0)
-    }
-
-    // 배열이 직접 반환된 경우
-    if (Array.isArray(parsed)) {
-      return parsed.filter((w: any) => typeof w === 'string' && w.trim().length > 0)
-    }
-
-    throw new Error('words 배열을 찾을 수 없습니다.')
-  } catch (error) {
-    console.error('[parseWordsFromResponse] JSON 파싱 실패:', error)
-    console.error('원본 응답:', response)
-    throw new Error('AI 응답을 파싱할 수 없습니다.')
-  }
-}
-
-/**
- * 주제별 문제 풀 자동 생성 및 저장 (마스터 계정만)
+ * 주제별 문제 풀 자동 생성 (Cloud Function 호출)
+ * Cloud Function이 생성과 저장을 모두 처리하므로 별도 저장 불필요
  */
 export async function generateAndSaveWordPool(
   theme: string,
   description: string,
   createdBy: string,
-  count: number = 20,
-  apiKey?: string
+  count: number = 20
 ): Promise<ThemeWordPool> {
   console.log(`[generateAndSaveWordPool] ${theme} 주제 단어 생성 시작...`)
 
-  // AI로 단어 생성
-  const words = await generateWordsForTheme(theme, count, apiKey)
-
-  // Firestore에 저장
-  await updateWordPool(theme, words, description, createdBy)
+  // Cloud Function이 생성과 저장을 모두 처리
+  const words = await generateWordsForTheme(theme, count)
 
   console.log(`[generateAndSaveWordPool] ${theme} 완료: ${words.length}개 단어 저장`)
 
