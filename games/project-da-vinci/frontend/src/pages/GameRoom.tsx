@@ -260,6 +260,9 @@ export default function GameRoom() {
                         <div className="flex gap-4 text-xs text-gray-500">
                           <span>⏱️ {config.turnTimeLimit}초</span>
                           <span>🔄 {config.maxTurns}턴</span>
+                          <span className="font-semibold text-purple-600">
+                            ⭐ 점수 보정 ×{config.scoreMultiplier.toFixed(1)}
+                          </span>
                         </div>
                       </button>
                     )

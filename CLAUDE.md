@@ -181,9 +181,9 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 [Cloud Function: judgeDrawing]
     - RTDB에서 GameRoom 조회 (theme, targetWord, difficulty)
     - 난이도별 프롬프트 생성 (buildPromptByDifficulty(theme, difficulty))
-      - easy: Few-shot 프롬프트 (AI 정확도 높음)
-      - normal: Enhanced 프롬프트 (AI 정확도 중간)
-      - hard: Basic 프롬프트 (AI 정확도 낮음)
+      - easy: Few-shot 프롬프트 (AI 정확도 80%, 45초/턴, 최대 15턴)
+      - normal: Enhanced 프롬프트 (AI 정확도 60%, 30초/턴, 최대 10턴)
+      - hard: Minimal 프롬프트 (AI 정확도 30-40%, 20초/턴, 최대 5턴)
     - Gemini 1.5 Flash 호출 (이미지 + 프롬프트)
     - JSON 파싱 { guess: "백설공주", confidence: 0.85 }
     - **Storage에 이미지 저장 (AI 학습 데이터용)**
@@ -199,12 +199,23 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
     ↓
 [게임 종료 시]
     - Firestore gameLogs에 모든 aiGuesses 저장 (이미지 URL 포함)
-    - 리더보드에서 턴별 이미지 + 판정 확인 가능
+    - 난이도별 점수 보정 적용: score = (turnCount / multiplier) * 1000 + (time / 1000)
+      - easy: multiplier = 1.0 (기준)
+      - normal: multiplier = 1.3 (30% 보정)
+      - hard: multiplier = 1.6 (60% 보정)
+    - 리더보드에서 턴별 이미지 + 판정 + 보정 점수 확인 가능
 ```
 
 **데이터 활용**:
 - 그림 + 정답 + AI 추측 쌍으로 학습 데이터셋 구축
 - 프롬프트 최적화 및 게임 밸런스 조정에 활용
+
+**점수 계산 시스템**:
+- 낮은 점수일수록 높은 순위 (골프 스코어 방식)
+- 어려운 난이도일수록 같은 턴 수에도 더 낮은 점수 획득
+- 예시:
+  - Easy 3턴 120초 = 3,120점
+  - Hard 3턴 90초 = 1,965점 (hard가 더 높은 순위)
 
 ### 6. 협의 기반 게임 시작 플로우
 ```
@@ -434,19 +445,26 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 
 ## 🧠 AI 프롬프트 전략
 
-### 3가지 프롬프트 버전 (docs/AI.md 참조)
+### 난이도별 프롬프트 전략 (docs/AI.md 참조)
 
-1. **buildJudgePrompt(theme)**: 기본 프롬프트
-   - "You are playing a Pictionary game. Guess what this drawing represents."
-   - 카테고리 힌트만 제공
+1. **buildFewShotPrompt(theme)** - Easy 난이도
+   - 과거 게임 예시 3개 제공 (Few-shot learning)
+   - 테마별 예시 단어 풍부하게 제공 (동화: 백설공주, 신데렐라...)
+   - AI 정확도 목표: ~80%
+   - 시간/턴: 45초/15턴
 
-2. **buildEnhancedPrompt(theme)**: 테마별 힌트 추가
-   - 테마별 예시 단어 제공 (동화: 백설공주, 신데렐라...)
-   - 현재 기본 사용 중
+2. **buildEnhancedPrompt(theme)** - Normal 난이도
+   - 테마별 힌트 제공
+   - 카테고리 예시만 제공 (Few-shot 없음)
+   - AI 정확도 목표: ~60%
+   - 시간/턴: 30초/10턴
 
-3. **buildFewShotPrompt(theme)**: Few-shot 학습 (향후 개선용)
-   - 과거 게임 예시 3개 제공
-   - 정확도 향상 목표
+3. **buildHardPrompt(theme)** - Hard 난이도
+   - 힌트 최소화, 엄격한 판단 기준
+   - "Be very strict and literal in your interpretation"
+   - 창의적 추론 금지, 명확한 형태만 인식
+   - AI 정확도 목표: ~30-40%
+   - 시간/턴: 20초/5턴
 
 ### Gemini API 설정
 

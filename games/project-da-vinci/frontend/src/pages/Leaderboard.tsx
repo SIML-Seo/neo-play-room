@@ -11,6 +11,7 @@ import {
   getRecentGameLogs,
   groupGameLogsBySession,
   sortGameLogsByRanking,
+  calculateScore,
 } from '@/services/gameLog'
 import type { GameLog } from '@/types/game.types'
 
@@ -28,6 +29,9 @@ export default function Leaderboard() {
   // 게임 로그 데이터
   const [gameLogs, setGameLogs] = useState<GameLog[]>([])
   const [groupedLogs, setGroupedLogs] = useState<Map<string, GameLog[]>>(new Map())
+
+  // 점수 계산 설명 모달
+  const [showScoreModal, setShowScoreModal] = useState(false)
 
   // 마스터 계정 확인
   const isMaster = user?.email === 'swh1182@neolab.net'
@@ -160,7 +164,17 @@ export default function Leaderboard() {
         {/* 헤더 */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">게임 리더보드</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-gray-900">게임 리더보드</h1>
+              <button
+                onClick={() => setShowScoreModal(true)}
+                className="px-3 py-1 text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors font-medium flex items-center gap-1"
+                title="점수 계산 방식 보기"
+              >
+                <span>ⓘ</span>
+                <span>점수 계산 설명</span>
+              </button>
+            </div>
             <button
               onClick={() => navigate('/admin')}
               className="px-4 py-2 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
@@ -299,6 +313,9 @@ export default function Leaderboard() {
                               <div className="text-sm text-gray-600">
                                 {(log.finalTime / 1000).toFixed(1)}초
                               </div>
+                              <div className="text-xs text-purple-600 font-semibold mt-1">
+                                점수: {calculateScore(log).toFixed(0)}점
+                              </div>
                             </div>
                           </div>
 
@@ -390,6 +407,171 @@ export default function Leaderboard() {
             </div>
           )
         })}
+
+        {/* 점수 계산 설명 모달 */}
+        {showScoreModal && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowScoreModal(false)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 모달 헤더 */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">점수 계산 방식</h2>
+                <button
+                  onClick={() => setShowScoreModal(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* 모달 본문 */}
+              <div className="px-6 py-6 space-y-6">
+                {/* 기본 설명 */}
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <h3 className="text-lg font-bold text-purple-900 mb-2">
+                    🏆 낮은 점수일수록 높은 순위 (골프 스코어 방식)
+                  </h3>
+                  <p className="text-purple-700">
+                    어려운 난이도를 선택하면 같은 턴 수와 시간에도 더 낮은 점수(높은 순위)를
+                    받습니다!
+                  </p>
+                </div>
+
+                {/* 계산 공식 */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">📐 계산 공식</h3>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 font-mono text-center">
+                    <div className="text-xl font-bold text-blue-600 mb-2">
+                      점수 = (턴 수 ÷ 난이도 가중치) × 1000 + (시간 ÷ 1000)
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      예: (3턴 ÷ 1.6) × 1000 + 90초 = 1,965점
+                    </div>
+                  </div>
+                </div>
+
+                {/* 난이도 가중치 */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">⚖️ 난이도 가중치</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">🟢</span>
+                        <span className="font-semibold text-green-700">쉬움 (Easy)</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-green-700">× 1.0</div>
+                        <div className="text-xs text-green-600">기준 점수</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">🔵</span>
+                        <span className="font-semibold text-blue-700">보통 (Normal)</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-blue-700">× 1.3</div>
+                        <div className="text-xs text-blue-600">30% 보정</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">🔴</span>
+                        <span className="font-semibold text-red-700">어려움 (Hard)</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-red-700">× 1.6</div>
+                        <div className="text-xs text-red-600">60% 보정</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 예시 비교 */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">📊 예시 비교</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-gray-100 border-b-2 border-gray-300">
+                          <th className="px-3 py-2 text-left font-semibold">난이도</th>
+                          <th className="px-3 py-2 text-center font-semibold">턴 수</th>
+                          <th className="px-3 py-2 text-center font-semibold">시간</th>
+                          <th className="px-3 py-2 text-right font-semibold text-purple-700">
+                            보정 점수
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        <tr className="hover:bg-gray-50">
+                          <td className="px-3 py-2">
+                            <span className="text-green-700 font-medium">🟢 쉬움</span>
+                          </td>
+                          <td className="px-3 py-2 text-center">3턴</td>
+                          <td className="px-3 py-2 text-center">120초</td>
+                          <td className="px-3 py-2 text-right font-bold text-purple-600">
+                            3,120점
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="px-3 py-2">
+                            <span className="text-blue-700 font-medium">🔵 보통</span>
+                          </td>
+                          <td className="px-3 py-2 text-center">4턴</td>
+                          <td className="px-3 py-2 text-center">100초</td>
+                          <td className="px-3 py-2 text-right font-bold text-purple-600">
+                            3,177점
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="px-3 py-2">
+                            <span className="text-red-700 font-medium">🔴 어려움</span>
+                          </td>
+                          <td className="px-3 py-2 text-center">5턴</td>
+                          <td className="px-3 py-2 text-center">80초</td>
+                          <td className="px-3 py-2 text-right font-bold text-purple-600">
+                            3,205점
+                          </td>
+                        </tr>
+                        <tr className="bg-yellow-50 border-t-2 border-yellow-300">
+                          <td className="px-3 py-2">
+                            <span className="text-red-700 font-bold">🔴 어려움</span>
+                          </td>
+                          <td className="px-3 py-2 text-center font-bold">3턴</td>
+                          <td className="px-3 py-2 text-center font-bold">90초</td>
+                          <td className="px-3 py-2 text-right font-bold text-red-700 text-lg">
+                            1,965점 🏆
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-3 text-sm text-gray-600 bg-yellow-50 border border-yellow-200 rounded p-3">
+                    💡 <strong>핵심:</strong> Hard 난이도로 3턴에 성공하면, Easy 난이도 3턴보다
+                    훨씬 낮은 점수(높은 순위)를 받습니다!
+                  </div>
+                </div>
+
+                {/* 닫기 버튼 */}
+                <div className="flex justify-end pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setShowScoreModal(false)}
+                    className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                  >
+                    확인
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
