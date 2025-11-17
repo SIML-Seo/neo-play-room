@@ -3,6 +3,8 @@ import { database } from '@/firebase'
 import type { User } from 'firebase/auth'
 import { ENV } from '@/config/env'
 import { setRoomSecret } from '@/services/roomSecrets'
+import { getGameSchedule, getCurrentTheme } from '@/services/schedule'
+import { getWordPoolByTheme, selectRandomWord } from '@/services/wordPools'
 
 export interface WaitingPlayer {
   uid: string
@@ -84,10 +86,42 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
 
   const turnOrder = players.map((p) => p.uid)
 
+  // 현재 스케줄에서 주제 가져오기
+  let theme: string
+  let targetWord: string
+
+  if (ENV.isDevelopment) {
+    // 개발 환경: 고정된 테스트 데이터
+    theme = '테스트'
+    targetWord = '집'
+  } else {
+    // 상용 환경: 스케줄에서 주제 가져오기
+    const schedule = await getGameSchedule()
+    const currentTheme = getCurrentTheme(schedule)
+
+    if (currentTheme) {
+      theme = currentTheme
+      // 주제별 문제 풀에서 랜덤 단어 선택
+      const wordPool = await getWordPoolByTheme(currentTheme)
+      if (wordPool && wordPool.words.length > 0) {
+        targetWord = selectRandomWord(wordPool.words)
+      } else {
+        // 문제 풀이 없으면 기본값 사용
+        console.warn(`[createGameRoom] ${currentTheme} 주제의 문제 풀이 없습니다. 기본값 사용.`)
+        targetWord = '고양이'
+      }
+    } else {
+      // 스케줄이 없으면 기본 주제 사용
+      console.warn('[createGameRoom] 현재 활성 스케줄이 없습니다. 기본 주제 사용.')
+      theme = '동물'
+      targetWord = '고양이'
+    }
+  }
+
   await set(newRoomRef, {
     roomId,
     status: 'waiting', // waiting, in-progress, completed
-    theme: ENV.isDevelopment ? '테스트' : '동물', // 개발: 단순한 테마, 상용: 랜덤 선택
+    theme,
     currentTurn: turnOrder[0],
     turnOrder,
     currentTurnIndex: 0,
@@ -112,11 +146,12 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
   })
 
   // 비공개 정답 단어 저장
-  const targetWord = ENV.isDevelopment ? '집' : '고양이'
   await setRoomSecret(roomId, targetWord)
 
   // 대기열에서 플레이어들 제거
   await Promise.all(players.map((p) => leaveLobby(p.uid)))
+
+  console.log(`[createGameRoom] 게임 생성 완료 - 주제: ${theme}, 정답: ${targetWord}`)
 
   return roomId
 }

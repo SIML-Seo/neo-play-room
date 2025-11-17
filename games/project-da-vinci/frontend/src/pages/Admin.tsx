@@ -44,6 +44,7 @@ export default function Admin() {
   const [newDate, setNewDate] = useState('')
   const [newStartTime, setNewStartTime] = useState('12:00')
   const [newEndTime, setNewEndTime] = useState('13:00')
+  const [newTheme, setNewTheme] = useState('')
   const [newDescription, setNewDescription] = useState('')
 
   // 마스터 권한 확인
@@ -101,6 +102,11 @@ export default function Admin() {
       return
     }
 
+    if (!newTheme) {
+      alert('주제를 입력해주세요.')
+      return
+    }
+
     if (newStartTime >= newEndTime) {
       alert('종료 시간은 시작 시간보다 늦어야 합니다.')
       return
@@ -112,6 +118,7 @@ export default function Admin() {
         date: newDate,
         start: newStartTime,
         end: newEndTime,
+        theme: newTheme,
         description: newDescription || undefined,
       }
 
@@ -133,6 +140,7 @@ export default function Admin() {
       setNewDate('')
       setNewStartTime('12:00')
       setNewEndTime('13:00')
+      setNewTheme('')
       setNewDescription('')
 
       alert('게임 시간이 추가되었습니다.')
@@ -377,9 +385,9 @@ export default function Admin() {
               {/* 새 스케줄 추가 폼 */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="text-sm font-medium text-blue-900 mb-3">새 게임 시간 추가</div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                   <div>
-                    <label className="block text-xs text-blue-800 mb-1">날짜</label>
+                    <label className="block text-xs text-blue-800 mb-1">날짜 *</label>
                     <input
                       type="date"
                       value={newDate}
@@ -388,7 +396,7 @@ export default function Admin() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-blue-800 mb-1">시작 시간</label>
+                    <label className="block text-xs text-blue-800 mb-1">시작 시간 *</label>
                     <input
                       type="time"
                       value={newStartTime}
@@ -397,11 +405,21 @@ export default function Admin() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-blue-800 mb-1">종료 시간</label>
+                    <label className="block text-xs text-blue-800 mb-1">종료 시간 *</label>
                     <input
                       type="time"
                       value={newEndTime}
                       onChange={(e) => setNewEndTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-blue-800 mb-1">주제 * (AI 자동 생성)</label>
+                    <input
+                      type="text"
+                      value={newTheme}
+                      onChange={(e) => setNewTheme(e.target.value)}
+                      placeholder="예: 우주, 음악, 동화"
                       className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
                     />
                   </div>
@@ -411,7 +429,7 @@ export default function Admin() {
                       type="text"
                       value={newDescription}
                       onChange={(e) => setNewDescription(e.target.value)}
-                      placeholder="예: 팀 빌딩"
+                      placeholder="예: 우주 탐험 이벤트"
                       className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
                     />
                   </div>
@@ -433,8 +451,13 @@ export default function Admin() {
                   {schedule.dateRanges.map((range, idx) => (
                     <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm border border-gray-200">
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">
-                          {range.date} ({new Date(range.date).toLocaleDateString('ko-KR', { weekday: 'short' })})
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-gray-900">
+                            {range.date} ({new Date(range.date).toLocaleDateString('ko-KR', { weekday: 'short' })})
+                          </div>
+                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                            주제: {range.theme}
+                          </span>
                         </div>
                         <div className="text-xs text-gray-600 mt-1">
                           {range.start} ~ {range.end}

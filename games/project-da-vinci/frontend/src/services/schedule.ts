@@ -1,11 +1,13 @@
 /**
  * 게임 스케줄 관리 서비스
  * Firestore를 사용하여 게임 가능 시간대 관리
+ * 주제 등록 시 자동으로 문제 풀 생성
  */
 
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
 import { firestore } from '@/firebase'
 import type { GameScheduleConfig, GameScheduleDateRange } from '@/types/game.types'
+import { getWordPoolByTheme, generateAndSaveWordPool } from '@/services/wordPools'
 
 /**
  * 게임 스케줄 설정 조회
@@ -27,12 +29,44 @@ export async function getGameSchedule(): Promise<GameScheduleConfig | null> {
 
 /**
  * 게임 스케줄 설정 업데이트 (마스터 계정만)
+ * 주제가 새로 추가되면 자동으로 문제 풀 생성
  */
 export async function updateGameSchedule(
   dateRanges: GameScheduleDateRange[],
-  updatedBy: string
+  updatedBy: string,
+  autoGenerateWords: boolean = true
 ): Promise<void> {
   try {
+    // 새로운 주제 찾기
+    if (autoGenerateWords) {
+      const uniqueThemes = [...new Set(dateRanges.map((range) => range.theme))]
+
+      for (const theme of uniqueThemes) {
+        // 이미 문제 풀이 있는지 확인
+        const existingPool = await getWordPoolByTheme(theme)
+
+        if (!existingPool) {
+          console.log(`[updateGameSchedule] "${theme}" 주제의 문제 풀이 없습니다. 자동 생성 시작...`)
+
+          try {
+            await generateAndSaveWordPool(
+              theme,
+              `${theme} 주제 (자동 생성)`,
+              updatedBy,
+              20 // 기본 20개 단어 생성
+            )
+            console.log(`[updateGameSchedule] ✅ "${theme}" 주제 문제 풀 생성 완료`)
+          } catch (error) {
+            console.error(`[updateGameSchedule] ❌ "${theme}" 주제 생성 실패:`, error)
+            // 생성 실패해도 스케줄은 저장
+          }
+        } else {
+          console.log(`[updateGameSchedule] "${theme}" 주제 문제 풀이 이미 존재 (${existingPool.words.length}개 단어)`)
+        }
+      }
+    }
+
+    // 스케줄 저장
     const docRef = doc(firestore, 'gameSchedules', 'config')
     await setDoc(docRef, {
       dateRanges,
@@ -150,4 +184,34 @@ export function formatTimeUntil(targetDate: Date): string {
   } else {
     return `${minutes}분 후`
   }
+}
+
+/**
+ * 현재 시간의 게임 주제 가져오기
+ */
+export function getCurrentTheme(schedule: GameScheduleConfig | null): string | null {
+  if (!schedule || schedule.dateRanges.length === 0) {
+    return null
+  }
+
+  const now = new Date()
+  const currentDate = now.toISOString().split('T')[0] // YYYY-MM-DD
+  const currentTimeMinutes = now.getHours() * 60 + now.getMinutes()
+
+  // 오늘 날짜의 활성 시간대 찾기
+  const todaySchedules = schedule.dateRanges.filter((range) => range.date === currentDate)
+
+  for (const timeSlot of todaySchedules) {
+    const [startHour, startMin] = timeSlot.start.split(':').map(Number)
+    const [endHour, endMin] = timeSlot.end.split(':').map(Number)
+
+    const startMinutes = startHour * 60 + startMin
+    const endMinutes = endHour * 60 + endMin
+
+    if (currentTimeMinutes >= startMinutes && currentTimeMinutes < endMinutes) {
+      return timeSlot.theme
+    }
+  }
+
+  return null
 }

@@ -111,10 +111,21 @@ export interface GameScheduleDateRange {
   start: string // HH:mm 형식
   end: string // HH:mm 형식
   description?: string // 선택적 설명 (예: "팀 빌딩 이벤트")
+  theme: string // 게임 주제 (예: "동화", "영화", "음식", "동물")
 }
 
 export interface GameScheduleConfig {
   dateRanges: GameScheduleDateRange[]
   updatedBy: string
   updatedAt: any // Firestore Timestamp
+}
+
+// 주제별 문제 풀 타입
+export interface ThemeWordPool {
+  theme: string // 주제 이름 (예: "동화", "영화", "음식", "동물")
+  words: string[] // 문제 단어 목록
+  description?: string // 주제 설명
+  createdAt?: any // Firestore Timestamp
+  updatedAt?: any // Firestore Timestamp
+  createdBy?: string // 생성자 UID
 }
