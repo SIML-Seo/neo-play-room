@@ -1,29 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(tree:*)",
-      "Bash(cat:*)",
-      "Bash(\"C:\\Users\\Neolab-WON\\Desktop\\another\\neo-play-room\\games\\project-da-vinci\\frontend\\.env.example\")",
-      "Bash(\"C:\\Users\\Neolab-WON\\Desktop\\another\\neo-play-room\\games\\project-da-vinci\\functions\\.env.example\")",
-      "Bash(\"C:\\Users\\Neolab-WON\\Desktop\\another\\neo-play-room\\games\\project-da-vinci\\docs\\SETUP.md\")",
-      "Bash(npm run build:*)",
-      "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(npm run test:run:*)",
-      "Bash(git checkout:*)",
-      "mcp__context7__resolve-library-id",
-      "mcp__context7__get-library-docs",
-      "mcp__serena__initial_instructions",
-      "mcp__serena__check_onboarding_performed",
-      "mcp__serena__activate_project",
-      "mcp__serena__find_file",
-      "mcp__serena__get_symbols_overview",
-      "Bash(Select-String -Pattern \"error TS\")",
-      "Bash(Select-Object -First 10)",
-      "mcp__serena__find_symbol",
-      "Bash(firebase emulators:exec:*)",
-      "Bash(Select-String -Pattern \"finalizeGame|gameLog\" -Context 2)",
-      "Bash(Select-String -Pattern \"turn_\" -Context 2)"
+      "Bash(npm install:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

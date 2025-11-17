@@ -48,9 +48,14 @@ neo-play-room/
 │       │   └── package.json             # React 19, Fabric.js 6, Zustand 5
 │       ├── functions/                   # Cloud Functions (Node 20)
 │       │   ├── src/
-│       │   │   ├── index.ts             # 진입점
-│       │   │   ├── ai/                  # judgeDrawing Function + prompts.ts
+│       │   │   ├── index.ts             # 진입점 (모든 Function export)
+│       │   │   ├── ai/                  # ⚠️ AI 관련 로직은 여기만!
+│       │   │   │   ├── judge.flow.ts    # 그림 판정 (gemini-2.5-flash-lite)
+│       │   │   │   ├── wordGenerator.ts # 단어 생성 (gemini-2.5-flash-lite)
+│       │   │   │   └── prompts.ts       # 프롬프트 템플릿
 │       │   │   └── game/                # matchPlayers, finalizeGame
+│       │   ├── .env                     # ⚠️ 민감한 키 (GEMINI_API_KEY 등)
+│       │   ├── .env.example             # 환경 변수 템플릿
 │       │   └── package.json             # Gemini AI 0.21, Firebase Admin 12.7
 │       ├── firebase.json                # Firebase 배포 설정
 │       └── database.rules.json          # RTDB 보안 규칙
@@ -141,10 +146,57 @@ firebase deploy --only hosting
 
 ## 📐 아키텍처 핵심 원칙
 
+### 0. ⚠️ **최우선 규칙: 기존 구현 패턴 준수** ⚠️
+
+**새로운 기능 구현 시 반드시 다음을 확인:**
+
+1. **기존 유사 기능이 있는지 먼저 확인**
+   - 예: AI 기능 추가 시 → `functions/src/ai/judge.flow.ts` 확인 필수
+   - 예: Firebase 인증 추가 시 → `frontend/src/hooks/useAuth.ts` 확인 필수
+   - 예: Firestore 접근 시 → `frontend/src/services/` 확인 필수
+
+2. **기존 패턴을 반드시 따를 것**
+   - ❌ **절대 금지**: Frontend에서 직접 외부 API 키 사용
+   - ✅ **올바른 방법**: Cloud Functions를 통해 API 호출
+   - ❌ **절대 금지**: 다른 모델/라이브러리 버전 사용
+   - ✅ **올바른 방법**: 기존 구현과 동일한 모델/버전 사용
+
+3. **보안 원칙 (Security First)**
+   - **API 키는 절대 Frontend에 노출 금지**
+   - **모든 민감한 로직은 Cloud Functions에서 실행**
+   - **환경 변수 위치:**
+     - Frontend: `frontend/.env` → `VITE_` 접두사 (public 데이터만)
+     - Functions: `functions/.env` → 민감한 키 (API 키 등)
+
+4. **기존 코드 참조 체크리스트**
+   ```
+   [ ] 유사 기능이 이미 구현되어 있는지 확인했는가?
+   [ ] 기존 구현의 모델/라이브러리 버전을 확인했는가?
+   [ ] 기존 구현의 보안 패턴을 확인했는가?
+   [ ] 기존 구현의 에러 처리 방식을 확인했는가?
+   [ ] 기존 구현의 로깅 방식을 확인했는가?
+   ```
+
+**실제 사례 (반면교사):**
+```typescript
+// ❌ 잘못된 예: judge.flow.ts를 확인하지 않고 구현
+// frontend/src/services/wordPools.ts
+import { GoogleGenerativeAI } from '@google/generative-ai'
+const key = import.meta.env.VITE_GEMINI_API_KEY // 🚨 보안 위험!
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' }) // 🚨 다른 모델!
+
+// ✅ 올바른 예: judge.flow.ts 패턴 확인 후 구현
+// functions/src/ai/wordGenerator.ts
+import { GoogleGenerativeAI } from '@google/generative-ai'
+const apiKey = process.env.GEMINI_API_KEY // ✅ 서버 사이드
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' }) // ✅ 동일 모델
+```
+
 ### 1. 서버리스 우선 (Serverless-First)
 - **백엔드 서버 없음**: Firebase BaaS로 인프라 관리 최소화
 - **Cloud Functions**: HTTP Callable로 AI 추론 등 서버 로직 처리
 - **Realtime Database**: WebSocket 기반 실시간 동기화 (Firestore 대신 RTDB 선택 이유: 낮은 지연시간)
+- **⚠️ 중요**: 모든 외부 API 호출은 Cloud Functions에서만 실행
 
 ### 2. 게임 상태의 단일 진실 공급원 (Single Source of Truth)
 - **Zustand**: 클라이언트 인증 상태만 관리 (`authStore`)
@@ -445,6 +497,29 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 
 ## 🧠 AI 프롬프트 전략
 
+**⚠️ 중요: AI 관련 모든 로직은 `functions/src/ai/`에만 존재**
+
+### AI Functions 목록
+
+1. **judgeDrawing** (`judge.flow.ts`)
+   - 역할: 플레이어 그림 판정
+   - 모델: `gemini-2.5-flash-lite`
+   - 입력: roomId, imageBase64
+   - 출력: guess, confidence, isCorrect, gameStatus
+
+2. **generateWords** (`wordGenerator.ts`)
+   - 역할: 주제별 단어 자동 생성
+   - 모델: `gemini-2.5-flash-lite` (judge.flow.ts와 동일)
+   - 입력: theme, count
+   - 출력: theme, words[], count
+
+**⚠️ 신규 AI 기능 추가 시:**
+- ✅ `functions/src/ai/` 디렉토리에 추가
+- ✅ 기존 judge.flow.ts의 패턴 참조 (모델, 파싱 로직, 에러 처리)
+- ✅ `gemini-2.5-flash-lite` 모델 사용 (일관성)
+- ✅ Robust JSON 파싱 (여러 키 허용, fallback)
+- ❌ Frontend에서 직접 구현 금지
+
 ### 난이도별 프롬프트 전략 (docs/AI.md 참조)
 
 1. **buildFewShotPrompt(theme)** - Easy 난이도
@@ -612,21 +687,54 @@ const data: any = ...; // RTDB 응답 타입이 동적이므로 any 허용
 
 ## 🔐 보안 고려사항
 
-### 1. API 키 보호
+### 1. API 키 보호 ⚠️ **최우선 보안 원칙**
 
-❌ **절대 금지:**
+**절대 규칙: Frontend에서 외부 API 직접 호출 금지**
+
+❌ **절대 금지 - 클라이언트 노출:**
 ```typescript
-// frontend/src/config.ts
-export const GEMINI_API_KEY = "AIzaSyC...";  // 클라이언트 노출 위험!
+// ❌ frontend/src/services/wordPools.ts (잘못된 예)
+import { GoogleGenerativeAI } from '@google/generative-ai'
+const key = import.meta.env.VITE_GEMINI_API_KEY  // 🚨 보안 위험!
+const genAI = new GoogleGenerativeAI(key)        // 🚨 클라이언트 노출!
 ```
 
-✅ **올바른 방법:**
+**문제점:**
+- 브라우저 개발자 도구에서 API 키 확인 가능
+- 빌드된 JS 번들에 키가 포함됨
+- 악의적 사용자가 키를 추출하여 남용 가능
+
+✅ **올바른 방법 - Cloud Functions 사용:**
+```typescript
+// ✅ functions/src/ai/wordGenerator.ts (올바른 예)
+import { GoogleGenerativeAI } from '@google/generative-ai'
+const apiKey = process.env.GEMINI_API_KEY  // ✅ 서버 사이드만 접근
+const genAI = new GoogleGenerativeAI(apiKey)
+
+// ✅ frontend/src/services/wordPools.ts (올바른 예)
+import { httpsCallable } from 'firebase/functions'
+const generateWords = httpsCallable(functions, 'generateWords')
+const result = await generateWords({ theme, count })  // ✅ Functions를 통해 호출
+```
+
+**환경 변수 관리:**
 ```bash
-# functions/.env (로컬)
+# ✅ functions/.env (서버 사이드 - 절대 커밋하지 말 것)
 GEMINI_API_KEY=AIzaSyC...
 
-# 프로덕션 (Firebase Config)
+# ✅ functions/.env.example (템플릿만 커밋)
+GEMINI_API_KEY=your-gemini-api-key-here
+
+# ✅ 프로덕션 배포 (Firebase Functions Config)
 firebase functions:config:set gemini.api_key="AIzaSyC..."
+```
+
+**검증 체크리스트:**
+```
+[ ] API 키가 frontend/ 디렉토리에 없는가?
+[ ] .env 파일이 .gitignore에 포함되어 있는가?
+[ ] 외부 API 호출이 모두 Cloud Functions를 통하는가?
+[ ] 빌드된 JS 번들에 API 키가 포함되지 않는가?
 ```
 
 ### 2. Firebase 보안 규칙

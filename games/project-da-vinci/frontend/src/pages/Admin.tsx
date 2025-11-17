@@ -18,6 +18,7 @@ import type {
   WordAnalytics,
   GameLog,
   GameScheduleConfig,
+  GameScheduleDateRange,
 } from '@/types/game.types'
 
 // 마스터 계정 이메일 목록 (TODO: 환경변수로 이동)
@@ -114,12 +115,12 @@ export default function Admin() {
 
     try {
       const currentRanges = schedule?.dateRanges || []
-      const newRange = {
+      const newRange: GameScheduleDateRange = {
         date: newDate,
         start: newStartTime,
         end: newEndTime,
         theme: newTheme,
-        description: newDescription || undefined,
+        ...(newDescription && { description: newDescription }), // description이 있을 때만 추가
       }
 
       const updatedRanges = [...currentRanges, newRange].sort((a, b) => {
