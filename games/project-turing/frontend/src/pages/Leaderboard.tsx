@@ -262,7 +262,7 @@ export default function Leaderboard() {
                            hover:bg-phosphor-green hover:text-terminal-bg transition-all
                            shadow-glow-green glitch-hover"
               >
-                > START NEW GAME
+                {'> START NEW GAME'}
               </button>
               <button
                 onClick={() => navigate('/')}
@@ -270,7 +270,7 @@ export default function Leaderboard() {
                            hover:bg-cyber-blue hover:text-terminal-bg transition-all
                            shadow-glow-blue glitch-hover"
               >
-                > RETURN HOME
+                {'> RETURN HOME'}
               </button>
             </div>
           </div>

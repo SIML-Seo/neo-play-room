@@ -153,7 +153,7 @@ export default function Lobby() {
                              shadow-glow-red hover:shadow-glow-red
                              glitch-hover"
                 >
-                  > LEAVE QUEUE
+                  {'> LEAVE QUEUE'}
                 </button>
               )}
 

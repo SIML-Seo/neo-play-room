@@ -1,4 +1,4 @@
-import { ref, onValue, set, remove, push, serverTimestamp } from 'firebase/database'
+import { ref, onValue, set, remove, push } from 'firebase/database'
 import { database } from '@/firebase'
 import type { User } from 'firebase/auth'
 import type { Player } from '@/types/game.types'
@@ -13,7 +13,7 @@ export interface WaitingPlayer {
 }
 
 const LOBBY_PATH = 'lobby/waitingPlayers'
-const MAX_PLAYERS = 5
+const MAX_PLAYERS = Number(import.meta.env.VITE_MAX_PLAYERS) || 5
 
 /**
  * 대기실에 플레이어 추가
@@ -101,7 +101,7 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
       uid: player.uid,
       name: player.name,
       email: player.email,
-      photoURL: player.photoURL,
+      photoURL: player.photoURL || undefined,
       anonymousId: anonymousIds[index],
       ready: false,
     }
@@ -113,7 +113,7 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
     status: 'waiting',
     difficulty: 'normal', // 기본 난이도
     currentTurn: 1,
-    maxTurns: 5,
+    maxTurns: Number(import.meta.env.VITE_MAX_TURNS) || 5,
     aiPlayerId, // 보안 규칙으로 클라이언트에서 읽기 차단
     startTime: null,
     endTime: null,

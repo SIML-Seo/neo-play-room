@@ -11,8 +11,8 @@ import AnswerInput from '@/components/game/AnswerInput'
 import VotingBoard from '@/components/game/VotingBoard'
 
 // 타이머 설정 (초 단위)
-const ANSWER_TIME_LIMIT = 90 // 답변 시간 90초
-const VOTE_TIME_LIMIT = 60 // 투표 시간 60초
+const ANSWER_TIME_LIMIT = Number(import.meta.env.VITE_ANSWER_TIME_LIMIT) || 90
+const VOTE_TIME_LIMIT = Number(import.meta.env.VITE_VOTE_TIME_LIMIT) || 60
 
 export default function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>()
