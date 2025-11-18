@@ -71,11 +71,17 @@ export default function Home() {
             </span>
           </div>
 
-          {/* ASCII Art Title */}
-          <div className="ascii-art text-center mb-6 text-2xl sm:text-3xl md:text-4xl animate-scaleGlow">
-{`╔═══════════════════════════════════════╗
-║    PROJECT TURING - AI DETECTOR      ║
-╚═══════════════════════════════════════╝`}
+          {/* Main Title */}
+          <div className="text-center mb-8 animate-scaleGlow">
+            <h1 className="font-terminal text-6xl sm:text-7xl md:text-8xl text-cyber-pink font-bold tracking-wider mb-4"
+                style={{
+                  textShadow: '0 0 20px #FF0080, 0 0 40px #FF0080, 0 0 60px #FF0080, 4px 4px 0px #000'
+                }}>
+              AI HUNTER
+            </h1>
+            <p className="text-cyber-blue font-mono text-lg sm:text-xl">
+              PROJECT TURING - AI 탐지 시스템
+            </p>
           </div>
 
           {/* Boot sequence */}
@@ -155,25 +161,25 @@ export default function Home() {
                 <button
                   onClick={handleLogin}
                   disabled={loading}
-                  className="group relative px-6 py-4 bg-terminal-surface border-2 border-phosphor-green text-phosphor-green font-mono font-bold
-                             hover:bg-phosphor-green hover:text-terminal-bg transition-all duration-300
-                             shadow-glow-green hover:shadow-glow-green
-                             disabled:opacity-50 disabled:cursor-not-allowed
-                             glitch-hover"
+                  className="group relative px-8 py-5 bg-terminal-surface border-4 border-cyber-pink text-cyber-pink font-mono font-bold text-lg
+                             hover:bg-cyber-pink hover:text-terminal-bg transition-all duration-300
+                             shadow-glow-pink hover:shadow-glow-pink hover:scale-105
+                             disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+                             rounded-xl"
                 >
                   <span className="relative z-10">
-                    {loading ? '인증 중...' : '[ 구글 로그인 ]'}
+                    {loading ? '인증 중...' : '구글 로그인'}
                   </span>
                 </button>
 
                 <button
                   onClick={() => navigate('/leaderboard')}
-                  className="group relative px-6 py-4 bg-terminal-surface border-2 border-cyber-blue text-cyber-blue font-mono font-bold
+                  className="group relative px-8 py-5 bg-terminal-surface border-4 border-cyber-blue text-cyber-blue font-mono font-bold text-lg
                              hover:bg-cyber-blue hover:text-terminal-bg transition-all duration-300
-                             shadow-glow-blue hover:shadow-glow-blue
-                             glitch-hover"
+                             shadow-glow-blue hover:shadow-glow-blue hover:scale-105
+                             rounded-xl"
                 >
-                  <span className="relative z-10">[ 순위표 보기 ]</span>
+                  <span className="relative z-10">순위표 보기</span>
                 </button>
               </div>
 
