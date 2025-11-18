@@ -27,8 +27,15 @@ neo-play-room/
 │   │   ├── frontend/            # React 프론트엔드
 │   │   ├── functions/           # Cloud Functions
 │   │   └── firebase.json        # Firebase 설정
-│   └── [future-game-2]/         # Cycle 2 게임 (예정)
-└── shared/                      # 공통 모듈 (향후 확장)
+│   ├── project-turing/          # Cycle 2: AI 찾기 게임
+│   │   └── CLAUDE.md            # ⚠️ project-turing 특화 가이드
+│   └── [future-game-3]/         # Cycle 3 게임 (예정)
+└── shared/                      # 공통 모듈 (프로젝트 간 공유)
+    ├── ui-components/           # Button, Loader, Timer
+    ├── utils/                   # sanitizer, shuffle
+    ├── hooks/                   # useAuth (Factory Pattern)
+    ├── store/                   # authStore (Zustand)
+    └── README.md                # shared 모듈 사용 가이드
 ```
 
 ### 멀티 게임 프로젝트 구조 원칙
@@ -165,6 +172,152 @@ API_KEY=your-api-key-here
 - **테스트 작성**: 새로운 기능 추가 시 테스트 필수
 - **코드 리뷰**: PR을 통한 코드 리뷰 필수
 - **문서화**: 복잡한 로직은 주석 추가
+
+---
+
+## 📦 Shared 모듈 사용 가이드
+
+### Shared 모듈 구조
+
+`shared/` 디렉토리는 **모든 게임 프로젝트가 공유하는 공통 모듈**을 포함합니다:
+
+```
+shared/
+├── ui-components/           # 공통 UI 컴포넌트
+│   ├── Button.tsx          # 버튼 컴포넌트 (variant, size)
+│   ├── Loader.tsx          # 로딩 스피너
+│   └── Timer.tsx           # 카운트다운 타이머
+├── utils/                  # 공통 유틸리티
+│   ├── sanitizer.ts        # XSS 방지 및 텍스트 처리
+│   └── shuffle.ts          # Fisher-Yates 셔플 알고리즘
+├── hooks/                  # 공통 React Hooks
+│   └── useAuth.ts          # Auth Hook Factory
+├── store/                  # 공통 상태 관리
+│   └── authStore.ts        # Zustand Auth Store Factory
+├── package.json            # 공통 모듈 메타데이터
+└── README.md               # 사용 가이드
+```
+
+### 사용 원칙
+
+#### 1. 새 프로젝트 시작 시 - Shared 설정 필수
+
+**Step 1: tsconfig.app.json 경로 설정**
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["../../../shared/*"]
+    }
+  }
+}
+```
+
+**Step 2: vite.config.ts 경로 설정**
+```typescript
+export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@shared': path.resolve(__dirname, '../../../shared'),
+    },
+  },
+})
+```
+
+#### 2. UI 컴포넌트 사용
+
+❌ **절대 금지: 동일한 UI 컴포넌트 중복 생성**
+```typescript
+// ❌ 각 프로젝트마다 Button 컴포넌트 생성 금지
+// games/my-game/src/components/Button.tsx
+```
+
+✅ **올바른 방법: Shared 컴포넌트 사용**
+```typescript
+// ✅ Shared 컴포넌트 import
+import Button from '@shared/ui-components/Button'
+import Loader from '@shared/ui-components/Loader'
+import Timer from '@shared/ui-components/Timer'
+```
+
+#### 3. 유틸리티 사용
+
+❌ **절대 금지: 동일한 유틸리티 중복 구현**
+```typescript
+// ❌ 각 프로젝트마다 shuffle 함수 구현 금지
+const shuffled = array.sort(() => Math.random() - 0.5)  // 편향된 셔플!
+```
+
+✅ **올바른 방법: Shared 유틸리티 사용**
+```typescript
+// ✅ Fisher-Yates 알고리즘 사용
+import { shuffle } from '@shared/utils/shuffle'
+import { sanitizeMessage } from '@shared/utils/sanitizer'
+
+const shuffled = shuffle([1, 2, 3, 4, 5])
+const safe = sanitizeMessage(userInput)
+```
+
+#### 4. 인증 (Auth) 사용 - Factory Pattern
+
+각 프로젝트가 **독립적인 Firebase 인스턴스**를 사용하면서도 **Auth 로직은 공통화**할 수 있도록 Factory Pattern을 사용합니다.
+
+**Step 1: store/authStore.ts 생성**
+```typescript
+import { createAuthStore } from '@shared/store/authStore'
+
+export const useAuthStore = createAuthStore()
+```
+
+**Step 2: hooks/useAuth.ts 생성**
+```typescript
+import { auth } from '@/firebase'
+import { useAuthStore } from '@/store/authStore'
+import { createUseAuth } from '@shared/hooks/useAuth'
+
+export const useAuth = createUseAuth(auth, useAuthStore)
+```
+
+**Step 3: 컴포넌트에서 사용**
+```typescript
+import { useAuth } from '@/hooks/useAuth'
+
+function LoginPage() {
+  const { user, signInWithGoogle, signOut } = useAuth()
+  // ... 로직
+}
+```
+
+### Shared 모듈 추가 가이드
+
+새로운 공통 모듈을 추가할 때:
+
+1. **재사용성 확인**: 최소 2개 이상의 게임 프로젝트에서 사용되는가?
+2. **게임 특화 로직 없음**: 특정 게임에만 적용되는 로직이 아닌가?
+3. **안정성**: 충분히 테스트되고 안정적인 코드인가?
+
+**추가 절차:**
+1. `shared/` 디렉토리에 모듈 생성
+2. `shared/package.json`의 `exports` 필드 업데이트
+3. `shared/README.md` 업데이트
+4. 이 파일 (루트 CLAUDE.md) 업데이트
+5. 기존 프로젝트들에서 중복 코드 제거
+
+**예시:**
+```bash
+# 1. 새 유틸리티 생성
+shared/utils/dateFormatter.ts
+
+# 2. shared/package.json 업데이트
+"exports": {
+  "./utils/dateFormatter": "./utils/dateFormatter.ts"
+}
+
+# 3. 문서 업데이트
+# 4. 기존 프로젝트에서 중복 제거
+```
 
 ---
 
