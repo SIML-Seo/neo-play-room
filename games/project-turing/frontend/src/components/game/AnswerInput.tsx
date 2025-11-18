@@ -5,6 +5,7 @@ import { sanitizeMessage } from '@/utils/sanitizer'
 interface AnswerInputProps {
   question: string
   onSubmit: (answer: string) => void
+  onChange?: (answer: string) => void
   disabled?: boolean
   submitted?: boolean
   maxLength?: number
@@ -13,12 +14,18 @@ interface AnswerInputProps {
 export default function AnswerInput({
   question,
   onSubmit,
+  onChange,
   disabled = false,
   submitted = false,
   maxLength = 200,
 }: AnswerInputProps) {
   const [answer, setAnswer] = useState('')
   const [error, setError] = useState<string | null>(null)
+
+  const handleChange = (value: string) => {
+    setAnswer(value)
+    onChange?.(value)
+  }
 
   const handleSubmit = () => {
     // 검증
@@ -57,7 +64,7 @@ export default function AnswerInput({
             <textarea
               id="answer"
               value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
+              onChange={(e) => handleChange(e.target.value)}
               disabled={disabled}
               maxLength={maxLength}
               placeholder="답변을 입력하세요... (1-2문장 권장)"

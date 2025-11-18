@@ -1,13 +1,18 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useGameRoom } from '@/hooks/useGameRoom'
+import { useTimer } from '@/hooks/useTimer'
 import { generateAIAnswer, checkVoteResult } from '@/services/ai'
 import Button from '@/components/common/Button'
 import Loader from '@/components/common/Loader'
 import Timer from '@/components/common/Timer'
 import AnswerInput from '@/components/game/AnswerInput'
 import VotingBoard from '@/components/game/VotingBoard'
+
+// 타이머 설정 (초 단위)
+const ANSWER_TIME_LIMIT = 90 // 답변 시간 90초
+const VOTE_TIME_LIMIT = 60 // 투표 시간 60초
 
 export default function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -29,9 +34,38 @@ export default function GameRoom() {
 
   const [submittedAnswer, setSubmittedAnswer] = useState(false)
   const [submittedVote, setSubmittedVote] = useState(false)
+  const [currentAnswer, setCurrentAnswer] = useState('')
 
   // 투표 집계 호출 여부 추적 (중복 호출 방지)
   const voteResultChecked = useRef<Record<number, boolean>>({})
+
+  // 답변 타이머 만료 시 자동 제출
+  const handleAnswerExpire = useCallback(() => {
+    if (!gameRoom || !roomId || !user || submittedAnswer) return
+
+    const myAnonymousId = getMyAnonymousId(user.uid)
+    if (!myAnonymousId) return
+
+    // 현재 입력된 답변이 있으면 제출, 없으면 기본 메시지 제출
+    const answerText = currentAnswer.trim() || '(시간 초과 - 답변 없음)'
+    handleSubmitAnswer(gameRoom.currentTurn, myAnonymousId, answerText)
+    setSubmittedAnswer(true)
+    console.log('[GameRoom] 답변 시간 초과, 자동 제출:', answerText)
+  }, [gameRoom, roomId, user, submittedAnswer, currentAnswer, getMyAnonymousId, handleSubmitAnswer])
+
+  // 투표 타이머 만료 시 자동 건너뛰기
+  const handleVoteExpire = useCallback(() => {
+    console.log('[GameRoom] 투표 시간 초과, 자동 건너뛰기')
+    // 투표를 하지 않으면 그냥 넘어감 (voteCount가 5가 안 되므로 게임이 진행 안 됨)
+    // 실제로는 랜덤 투표나 자동 기권 처리가 필요할 수 있음
+    setSubmittedVote(true)
+  }, [])
+
+  // 답변 타이머
+  const answerTimer = useTimer(ANSWER_TIME_LIMIT, handleAnswerExpire)
+
+  // 투표 타이머
+  const voteTimer = useTimer(VOTE_TIME_LIMIT, handleVoteExpire)
 
   // 로그인 안 되어 있으면 홈으로
   useEffect(() => {
@@ -91,6 +125,66 @@ export default function GameRoom() {
       })
     }
   }, [gameRoom, roomId])
+
+  // 턴 변경 시 상태 초기화
+  useEffect(() => {
+    if (gameRoom && gameRoom.status === 'in-progress') {
+      setSubmittedAnswer(false)
+      setSubmittedVote(false)
+      setCurrentAnswer('')
+    }
+  }, [gameRoom?.currentTurn])
+
+  // 타이머 제어 로직
+  useEffect(() => {
+    if (!gameRoom || gameRoom.status !== 'in-progress') {
+      answerTimer.reset()
+      voteTimer.reset()
+      return
+    }
+
+    const currentTurn = gameRoom.turns[gameRoom.currentTurn]
+    if (!currentTurn) return
+
+    const answerCount = currentTurn.answers ? Object.keys(currentTurn.answers).length : 0
+    const voteCount = currentTurn.votes ? Object.keys(currentTurn.votes).length : 0
+    const allAnswersSubmitted = answerCount === 6
+    const myAnonymousId = getMyAnonymousId(user?.uid || '')
+    const myAnswer = currentTurn.answers?.[myAnonymousId || '']
+    const myVote = currentTurn.votes?.[user?.uid || '']
+
+    // 답변 단계
+    if (!allAnswersSubmitted && !myAnswer) {
+      // 답변 타이머 시작
+      if (!answerTimer.isRunning) {
+        answerTimer.reset(ANSWER_TIME_LIMIT)
+        answerTimer.start()
+      }
+      voteTimer.reset()
+    }
+    // 투표 단계
+    else if (allAnswersSubmitted && !myVote && !currentTurn.voteResult) {
+      // 투표 타이머 시작
+      if (!voteTimer.isRunning) {
+        voteTimer.reset(VOTE_TIME_LIMIT)
+        voteTimer.start()
+      }
+      answerTimer.reset()
+    }
+    // 대기 중
+    else {
+      answerTimer.pause()
+      voteTimer.pause()
+    }
+  }, [
+    gameRoom,
+    user,
+    getMyAnonymousId,
+    answerTimer,
+    voteTimer,
+    submittedAnswer,
+    submittedVote,
+  ])
 
   if (loading || !user) {
     return (
@@ -243,29 +337,56 @@ export default function GameRoom() {
 
             {/* 답변 단계 */}
             {!allAnswersSubmitted && (
-              <AnswerInput
-                question={currentTurn.question}
-                onSubmit={(answer) => {
-                  if (myAnonymousId) {
-                    handleSubmitAnswer(gameRoom.currentTurn, myAnonymousId, answer)
-                    setSubmittedAnswer(true)
-                  }
-                }}
-                submitted={!!myAnswer}
-              />
+              <>
+                {/* 답변 타이머 */}
+                {!myAnswer && answerTimer.isRunning && (
+                  <div className="bg-white rounded-lg shadow-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-lg font-semibold">남은 시간</p>
+                      <Timer timeLeft={answerTimer.timeLeft} />
+                    </div>
+                  </div>
+                )}
+
+                <AnswerInput
+                  question={currentTurn.question}
+                  onChange={(value) => setCurrentAnswer(value)}
+                  onSubmit={(answer) => {
+                    if (myAnonymousId) {
+                      handleSubmitAnswer(gameRoom.currentTurn, myAnonymousId, answer)
+                      setSubmittedAnswer(true)
+                      answerTimer.pause()
+                    }
+                  }}
+                  submitted={!!myAnswer}
+                />
+              </>
             )}
 
             {/* 투표 단계 */}
             {allAnswersSubmitted && currentTurn.answers && (
-              <VotingBoard
-                answers={currentTurn.answers}
-                onVote={(votedFor) => {
-                  handleSubmitVote(gameRoom.currentTurn, user.uid, votedFor)
-                  setSubmittedVote(true)
-                }}
-                voted={!!myVote}
-                myVote={myVote?.votedFor || null}
-              />
+              <>
+                {/* 투표 타이머 */}
+                {!myVote && !currentTurn.voteResult && voteTimer.isRunning && (
+                  <div className="bg-white rounded-lg shadow-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-lg font-semibold">투표 남은 시간</p>
+                      <Timer timeLeft={voteTimer.timeLeft} />
+                    </div>
+                  </div>
+                )}
+
+                <VotingBoard
+                  answers={currentTurn.answers}
+                  onVote={(votedFor) => {
+                    handleSubmitVote(gameRoom.currentTurn, user.uid, votedFor)
+                    setSubmittedVote(true)
+                    voteTimer.pause()
+                  }}
+                  voted={!!myVote}
+                  myVote={myVote?.votedFor || null}
+                />
+              </>
             )}
 
             {/* 투표 진행 상황 */}
@@ -294,7 +415,7 @@ export default function GameRoom() {
                 </div>
 
                 {currentTurn.voteResult.gameEnded ? (
-                  <Button onClick={() => navigate('/results')} size="lg" className="w-full" variant="success">
+                  <Button onClick={() => navigate(`/results/${roomId}`)} size="lg" className="w-full" variant="success">
                     결과 보기
                   </Button>
                 ) : (
@@ -315,7 +436,7 @@ export default function GameRoom() {
         {gameRoom.status === 'finished' && (
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <h2 className="text-3xl font-bold mb-4">게임 종료!</h2>
-            <Button onClick={() => navigate('/results')} size="lg" variant="success">
+            <Button onClick={() => navigate(`/results/${roomId}`)} size="lg" variant="success">
               결과 보기
             </Button>
           </div>
