@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useMatchmaking } from '@/hooks/useMatchmaking'
-import Button from '@shared/ui-components/Button'
 import Loader from '@shared/ui-components/Loader'
 
 export default function Lobby() {
@@ -36,148 +35,264 @@ export default function Lobby() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader size="lg" text="로딩 중..." />
+      <div className="flex items-center justify-center min-h-screen bg-terminal-bg">
+        <div className="text-center space-y-4">
+          <Loader size="lg" />
+          <p className="text-phosphor-green font-mono text-sm glow-text animate-blink">
+            LOADING MATCHMAKING SYSTEM...
+          </p>
+        </div>
       </div>
     )
   }
 
+  const progressPercentage = (waitingPlayers.length / 5) * 100
+
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* 헤더 */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">대기실</h1>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-terminal-bg p-4 md:p-8 noise-texture">
+      <div className="max-w-5xl mx-auto">
+        {/* Terminal Window */}
+        <div className="terminal-border bg-terminal-surface/90 backdrop-blur-sm mb-2">
+          {/* Terminal Header */}
+          <div className="flex items-center justify-between p-4 border-b-2 border-phosphor-green/30">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-cyber-red shadow-glow-red" />
+                <div className="w-3 h-3 rounded-full bg-cyber-yellow" />
+                <div className="w-3 h-3 rounded-full bg-phosphor-green shadow-glow-green" />
+              </div>
+              <span className="text-phosphor-green font-mono text-sm glow-text">
+                MATCHMAKING_TERMINAL
+              </span>
+            </div>
+
+            {/* User Info */}
+            <div className="flex items-center gap-3">
               {user.photoURL && (
                 <img
                   src={user.photoURL}
                   alt="Profile"
-                  className="w-10 h-10 rounded-full"
+                  className="w-8 h-8 rounded-full border-2 border-phosphor-green shadow-glow-green"
                 />
               )}
-              <span className="font-semibold">{user.displayName}</span>
+              <span className="text-white/90 font-mono text-sm hidden sm:inline">
+                {user.displayName}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-1 bg-cyber-red/20 border border-cyber-red text-cyber-red font-mono text-xs
+                           hover:bg-cyber-red hover:text-terminal-bg transition-all
+                           shadow-glow-red"
+              >
+                LOGOUT
+              </button>
             </div>
-            <Button variant="danger" size="sm" onClick={handleLogout}>
-              로그아웃
-            </Button>
+          </div>
+
+          {/* Main Content */}
+          <div className="p-6 space-y-6">
+            {/* Status Display */}
+            <div className="space-y-3">
+              <div className="flex items-baseline gap-3">
+                <span className="text-cyber-blue font-mono text-sm">[SYSTEM]</span>
+                <span className="text-phosphor-green font-terminal text-3xl glow-text">
+                  PLAYER QUEUE: {waitingPlayers.length}/5
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-terminal-bg h-6 border-2 border-phosphor-green/50 relative overflow-hidden">
+                <div
+                  className="h-full bg-phosphor-green/30 transition-all duration-500 relative"
+                  style={{ width: `${progressPercentage}%` }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-phosphor-green/50 to-transparent animate-shimmer" />
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-phosphor-green font-mono text-xs font-bold glow-text">
+                    {progressPercentage.toFixed(0)}% READY
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-white/70 font-mono text-xs pl-8">
+                {waitingPlayers.length < 5
+                  ? `▸ WAITING FOR ${5 - waitingPlayers.length} MORE PLAYER${5 - waitingPlayers.length > 1 ? 'S' : ''}...`
+                  : '▸ INITIALIZING GAME SESSION...'}
+              </p>
+            </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="p-4 bg-cyber-red/20 border-2 border-cyber-red animate-glitch">
+                <p className="text-cyber-red font-mono text-sm glow-text">
+                  <span className="font-bold">[ERROR]</span> {error}
+                </p>
+              </div>
+            )}
+
+            {/* Join/Leave Controls */}
+            <div className="flex gap-4">
+              {!isInWaitingRoom ? (
+                <button
+                  onClick={joinWaitingRoom}
+                  disabled={isJoining}
+                  className="flex-1 px-6 py-3 bg-terminal-surface border-2 border-phosphor-green text-phosphor-green font-mono font-bold
+                             hover:bg-phosphor-green hover:text-terminal-bg transition-all duration-300
+                             shadow-glow-green hover:shadow-glow-green
+                             disabled:opacity-50 disabled:cursor-not-allowed
+                             glitch-hover"
+                >
+                  {isJoining ? '> JOINING...' : '> JOIN QUEUE'}
+                </button>
+              ) : (
+                <button
+                  onClick={leaveWaitingRoom}
+                  className="flex-1 px-6 py-3 bg-terminal-surface border-2 border-cyber-red text-cyber-red font-mono font-bold
+                             hover:bg-cyber-red hover:text-terminal-bg transition-all duration-300
+                             shadow-glow-red hover:shadow-glow-red
+                             glitch-hover"
+                >
+                  > LEAVE QUEUE
+                </button>
+              )}
+
+              <button
+                onClick={() => navigate('/')}
+                className="px-6 py-3 bg-terminal-surface border-2 border-cyber-blue text-cyber-blue font-mono font-bold
+                           hover:bg-cyber-blue hover:text-terminal-bg transition-all duration-300
+                           shadow-glow-blue
+                           glitch-hover"
+              >
+                HOME
+              </button>
+            </div>
+
+            {/* Player Slots */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-cyber-blue font-mono text-sm">[ROSTER]</span>
+                <div className="flex-1 h-px bg-cyber-blue/30" />
+              </div>
+
+              {/* Active Players */}
+              {waitingPlayers.length === 0 ? (
+                <div className="text-center py-8 text-white/40 font-mono text-sm">
+                  ▸ NO ACTIVE CONNECTIONS
+                </div>
+              ) : (
+                waitingPlayers.map((player, index) => (
+                  <div
+                    key={player.uid}
+                    className="group p-4 bg-terminal-bg/50 border-2 border-phosphor-green/50
+                               hover:border-phosphor-green hover:bg-phosphor-green/5
+                               transition-all duration-300 animate-slideInTerminal"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Slot Number */}
+                      <div className="w-12 h-12 flex items-center justify-center bg-phosphor-green/20 border-2 border-phosphor-green text-phosphor-green font-terminal text-xl glow-text">
+                        {index + 1}
+                      </div>
+
+                      {/* Profile Photo */}
+                      {player.photoURL && (
+                        <img
+                          src={player.photoURL}
+                          alt={player.name}
+                          className="w-12 h-12 rounded-full border-2 border-phosphor-green shadow-glow-green"
+                        />
+                      )}
+
+                      {/* Player Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-phosphor-green font-mono font-bold truncate glow-text">
+                          {player.name}
+                        </p>
+                        <p className="text-white/60 font-mono text-xs truncate">
+                          {player.email}
+                        </p>
+                      </div>
+
+                      {/* Status Indicators */}
+                      <div className="flex items-center gap-2">
+                        {player.uid === user.uid && (
+                          <span className="px-3 py-1 bg-cyber-blue/20 border border-cyber-blue text-cyber-blue text-xs font-mono font-bold">
+                            YOU
+                          </span>
+                        )}
+                        <span className="text-phosphor-green font-mono text-xs animate-blink">
+                          ●
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+
+              {/* Empty Slots */}
+              {Array.from({ length: 5 - waitingPlayers.length }).map((_, index) => (
+                <div
+                  key={`empty-${index}`}
+                  className="p-4 bg-terminal-bg/30 border-2 border-dashed border-white/20"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 flex items-center justify-center bg-white/5 border-2 border-white/20 text-white/40 font-terminal text-xl">
+                      {waitingPlayers.length + index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white/40 font-mono text-sm">
+                        EMPTY SLOT
+                      </p>
+                      <p className="text-white/20 font-mono text-xs">
+                        awaiting connection...
+                      </p>
+                    </div>
+                    <span className="text-white/20 font-mono text-xs animate-blink">
+                      ▯
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Game Instructions */}
+            <div className="p-4 bg-cyber-blue/10 border-2 border-cyber-blue/50">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-cyber-blue font-mono text-sm font-bold glow-text">
+                  [!] PROTOCOL BRIEFING
+                </span>
+              </div>
+              <ul className="space-y-2 text-xs font-mono text-white/80 leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <span className="text-cyber-blue">▸</span>
+                  <span>5 HUMANS + 1 AI will be matched in the session</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyber-blue">▸</span>
+                  <span>Each turn presents a QUESTION - all participants must ANSWER</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyber-blue">▸</span>
+                  <span>Answers displayed ANONYMOUSLY - use VOTING to identify AI</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyber-yellow">▸</span>
+                  <span>SUCCESS condition: Find AI within 5 TURNS</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
-        {/* 대기실 카드 */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          {/* 상태 표시 */}
-          <div className="text-center mb-8">
-            <p className="text-3xl font-bold mb-2">
-              대기 중: {waitingPlayers.length}/5
-            </p>
-            <p className="text-gray-600">
-              5명의 플레이어가 모이면 자동으로 게임이 시작됩니다
-            </p>
-          </div>
-
-          {/* 에러 메시지 */}
-          {error && (
-            <div className="bg-danger text-white px-4 py-3 rounded-lg mb-4">
-              {error}
-            </div>
-          )}
-
-          {/* 입장/퇴장 버튼 */}
-          {!isInWaitingRoom ? (
-            <div className="text-center mb-8">
-              <Button
-                onClick={joinWaitingRoom}
-                size="lg"
-                disabled={isJoining}
-                className="px-12"
-              >
-                {isJoining ? '입장 중...' : '대기실 입장'}
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center mb-8">
-              <Button
-                onClick={leaveWaitingRoom}
-                variant="danger"
-                size="lg"
-                className="px-12"
-              >
-                대기실 나가기
-              </Button>
-            </div>
-          )}
-
-          {/* 플레이어 목록 */}
-          <div className="space-y-4">
-            {waitingPlayers.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
-                대기 중인 플레이어가 없습니다
-              </div>
-            ) : (
-              waitingPlayers.map((player, index) => (
-                <div
-                  key={player.uid}
-                  className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg animate-fadeIn"
-                >
-                  {/* 순서 번호 */}
-                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
-                    {index + 1}
-                  </div>
-
-                  {/* 프로필 사진 */}
-                  {player.photoURL && (
-                    <img
-                      src={player.photoURL}
-                      alt={player.name}
-                      className="w-12 h-12 rounded-full"
-                    />
-                  )}
-
-                  {/* 이름 */}
-                  <div className="flex-1">
-                    <p className="font-semibold text-lg">{player.name}</p>
-                    <p className="text-sm text-gray-600">{player.email}</p>
-                  </div>
-
-                  {/* 현재 사용자 표시 */}
-                  {player.uid === user.uid && (
-                    <span className="px-3 py-1 bg-success text-white text-sm font-semibold rounded-full">
-                      나
-                    </span>
-                  )}
-                </div>
-              ))
-            )}
-
-            {/* 빈 슬롯 표시 */}
-            {Array.from({ length: 5 - waitingPlayers.length }).map((_, index) => (
-              <div
-                key={`empty-${index}`}
-                className="flex items-center gap-4 p-4 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300"
-              >
-                <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center text-gray-500 font-bold text-lg">
-                  {waitingPlayers.length + index + 1}
-                </div>
-                <div className="flex-1">
-                  <p className="text-gray-500 font-semibold">빈 슬롯</p>
-                  <p className="text-sm text-gray-400">대기 중...</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 게임 설명 */}
-          <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="font-bold text-blue-900 mb-2">게임 방법</h3>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• 6명 중 1명은 AI입니다 (나머지 5명은 실제 플레이어)</li>
-              <li>• 매 턴마다 질문이 주어지고, 모두가 답변합니다</li>
-              <li>• 익명으로 답변이 공개되며, 투표로 AI를 찾습니다</li>
-              <li>• 5턴 안에 AI를 찾으면 승리!</li>
-            </ul>
-          </div>
+        {/* Terminal Footer */}
+        <div className="terminal-border bg-terminal-surface/90 backdrop-blur-sm px-6 py-2 flex justify-between items-center text-xs font-mono">
+          <span className="text-phosphor-green">
+            QUEUE: <span className="animate-blink">ACTIVE</span>
+          </span>
+          <span className="text-white/50">
+            {new Date().toISOString().replace('T', ' ').substring(0, 19)}
+          </span>
         </div>
       </div>
     </div>
