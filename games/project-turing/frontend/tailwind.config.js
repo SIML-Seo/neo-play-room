@@ -19,8 +19,12 @@ export default {
         },
         cyber: {
           blue: '#00D9FF',      // Neon cyan (secondary)
+          pink: '#FF0080',      // Bright magenta/pink (AI HUNTER style)
+          magenta: '#FF1493',   // Hot pink
+          purple: '#A855F7',    // Purple for gradients
           red: '#FF3366',       // Alert red
           yellow: '#FFD700',    // Warning yellow
+          gold: '#FFA500',      // Gold for selection/highlight
         },
         // Keep semantic names for compatibility
         primary: '#00FF41',
@@ -118,6 +122,8 @@ export default {
         'glow-green': '0 0 10px #00FF4180, 0 0 20px #00FF4140, 0 0 30px #00FF4120',
         'glow-blue': '0 0 10px #00D9FF80, 0 0 20px #00D9FF40, 0 0 30px #00D9FF20',
         'glow-red': '0 0 10px #FF336680, 0 0 20px #FF336640, 0 0 30px #FF336620',
+        'glow-pink': '0 0 10px #FF008080, 0 0 20px #FF008040, 0 0 30px #FF008020',
+        'glow-gold': '0 0 10px #FFA50080, 0 0 20px #FFA50040, 0 0 30px #FFA50020',
       },
     },
   },
