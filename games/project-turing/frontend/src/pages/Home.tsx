@@ -38,7 +38,7 @@ export default function Home() {
         <div className="text-center space-y-4">
           <Loader size="lg" />
           <p className="text-phosphor-green font-mono text-sm glow-text animate-blink">
-            INITIALIZING SYSTEM...
+            시스템 초기화 중...
           </p>
         </div>
       </div>
@@ -81,19 +81,19 @@ export default function Home() {
           {/* Boot sequence */}
           <div className="space-y-2 mb-6 font-mono text-sm">
             <p className="text-phosphor-green animate-slideInTerminal" style={{ animationDelay: '0.1s' }}>
-              <span className="text-cyber-blue">[OK]</span> Initializing neural network analyzer...
+              <span className="text-cyber-blue">[OK]</span> 신경망 분석기 초기화 중...
             </p>
             <p className="text-phosphor-green animate-slideInTerminal" style={{ animationDelay: '0.2s' }}>
-              <span className="text-cyber-blue">[OK]</span> Loading Turing Test protocols...
+              <span className="text-cyber-blue">[OK]</span> 튜링 테스트 프로토콜 로딩 중...
             </p>
             <p className="text-phosphor-green animate-slideInTerminal" style={{ animationDelay: '0.3s' }}>
-              <span className="text-cyber-blue">[OK]</span> Connecting to consciousness detection matrix...
+              <span className="text-cyber-blue">[OK]</span> 의식 감지 매트릭스 연결 중...
             </p>
             <p className="text-cyber-yellow animate-slideInTerminal" style={{ animationDelay: '0.4s' }}>
-              <span className="text-cyber-blue">[!]</span> WARNING: AI infiltration detected in system
+              <span className="text-cyber-blue">[!]</span> 경고: 시스템 내 AI 침투 감지됨
             </p>
             <p className="text-phosphor-green animate-slideInTerminal" style={{ animationDelay: '0.5s' }}>
-              <span className="text-cyber-blue">[OK]</span> System ready. Authentication required.
+              <span className="text-cyber-blue">[OK]</span> 시스템 준비 완료. 인증이 필요합니다.
             </p>
           </div>
 
@@ -104,31 +104,31 @@ export default function Home() {
           {bootComplete && (
             <div className="space-y-4 animate-scaleGlow">
               <div className="terminal-prompt text-phosphor-green font-mono">
-                <span className="glow-text font-terminal text-xl">MISSION BRIEFING</span>
+                <span className="glow-text font-terminal text-xl">작전 브리핑</span>
               </div>
               <p className="text-white/90 font-mono text-sm leading-relaxed pl-6">
-                An artificial intelligence has infiltrated a team of 5 humans.
-                Your mission: identify the AI impostor before it learns too much
-                about human behavior. You have <span className="text-cyber-red glow-text">5 TURNS</span> to
-                expose the machine. Failure means the AI wins.
+                인공지능이 5명의 인간 팀에 침투했습니다.
+                당신의 임무: 인공지능이 인간의 행동을 너무 많이 학습하기 전에
+                AI 침입자를 식별하십시오. <span className="text-cyber-red glow-text">5턴</span> 안에
+                기계를 찾아내야 합니다. 실패하면 AI가 승리합니다.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6 text-xs font-mono">
                 <div className="flex items-start gap-2">
                   <span className="text-phosphor-green">▸</span>
-                  <span className="text-white/80">PLAYERS: 5 humans + 1 AI</span>
+                  <span className="text-white/80">플레이어: 5명의 인간 + AI 1개</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-cyber-blue">▸</span>
-                  <span className="text-white/80">TURNS: Maximum 5 rounds</span>
+                  <span className="text-white/80">턴: 최대 5라운드</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-cyber-yellow">▸</span>
-                  <span className="text-white/80">METHOD: Question & Answer analysis</span>
+                  <span className="text-white/80">방법: 질문 및 답변 분석</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-cyber-red">▸</span>
-                  <span className="text-white/80">GOAL: Identify AI via voting</span>
+                  <span className="text-white/80">목표: 투표를 통해 AI 식별</span>
                 </div>
               </div>
             </div>
@@ -147,7 +147,7 @@ export default function Home() {
           {bootComplete && (
             <div className="mt-8 space-y-4">
               <div className="terminal-prompt text-phosphor-green font-mono">
-                <span className="glow-text">AUTHENTICATE</span>
+                <span className="glow-text">인증</span>
                 <span className="terminal-cursor" />
               </div>
 
@@ -162,7 +162,7 @@ export default function Home() {
                              glitch-hover"
                 >
                   <span className="relative z-10">
-                    {loading ? 'AUTHORIZING...' : '[ LOGIN WITH GOOGLE ]'}
+                    {loading ? '인증 중...' : '[ 구글 로그인 ]'}
                   </span>
                 </button>
 
@@ -173,13 +173,13 @@ export default function Home() {
                              shadow-glow-blue hover:shadow-glow-blue
                              glitch-hover"
                 >
-                  <span className="relative z-10">[ VIEW LEADERBOARD ]</span>
+                  <span className="relative z-10">[ 순위표 보기 ]</span>
                 </button>
               </div>
 
               {/* Footer notice */}
               <p className="text-center text-white/50 text-xs font-mono pt-4 border-t border-white/10">
-                ⚠ AUTHORIZED PERSONNEL ONLY - NEOLAB CONVERGENCE CORP.
+                ⚠ 인가된 직원만 접근 가능 - 네오랩컨버전스
               </p>
             </div>
           )}
@@ -188,7 +188,7 @@ export default function Home() {
         {/* Terminal bottom border with status */}
         <div className="terminal-border bg-terminal-surface/90 backdrop-blur-sm px-6 py-2 flex justify-between items-center text-xs font-mono">
           <span className="text-phosphor-green">
-            STATUS: <span className="animate-blink">ONLINE</span>
+            상태: <span className="animate-blink">온라인</span>
           </span>
           <span className="text-cyber-blue">
             SYSTEM: TURING_OS_v1.950

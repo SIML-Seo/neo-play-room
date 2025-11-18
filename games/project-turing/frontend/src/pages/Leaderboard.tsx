@@ -31,7 +31,7 @@ export default function Leaderboard() {
         <div className="text-center space-y-4">
           <Loader size="lg" />
           <p className="text-phosphor-green font-mono text-sm glow-text animate-blink">
-            LOADING HIGH SCORES DATABASE...
+            최고 점수 데이터베이스 로딩 중...
           </p>
         </div>
       </div>
@@ -51,7 +51,7 @@ export default function Leaderboard() {
                        hover:bg-phosphor-green hover:text-terminal-bg transition-all
                        shadow-glow-green"
           >
-            RETURN TO HOME
+            홈으로 돌아가기
           </button>
         </div>
       </div>
@@ -167,7 +167,7 @@ export default function Leaderboard() {
             {gameLogs.length === 0 ? (
               <div className="p-12 text-center border-2 border-white/20 bg-terminal-bg/50">
                 <p className="text-white/60 font-mono text-xl mb-6">
-                  ▸ NO RECORDED GAMES
+                  ▸ 기록된 게임 없음
                 </p>
                 <button
                   onClick={() => navigate('/lobby')}
@@ -175,7 +175,7 @@ export default function Leaderboard() {
                              hover:bg-phosphor-green hover:text-terminal-bg transition-all
                              shadow-glow-green"
                 >
-                  START FIRST GAME
+                  첫 게임 시작하기
                 </button>
               </div>
             ) : (

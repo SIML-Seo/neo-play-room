@@ -39,7 +39,7 @@ export default function Lobby() {
         <div className="text-center space-y-4">
           <Loader size="lg" />
           <p className="text-phosphor-green font-mono text-sm glow-text animate-blink">
-            LOADING MATCHMAKING SYSTEM...
+            매칭 시스템 로딩 중...
           </p>
         </div>
       </div>
@@ -117,8 +117,8 @@ export default function Lobby() {
 
               <p className="text-white/70 font-mono text-xs pl-8">
                 {waitingPlayers.length < 5
-                  ? `▸ WAITING FOR ${5 - waitingPlayers.length} MORE PLAYER${5 - waitingPlayers.length > 1 ? 'S' : ''}...`
-                  : '▸ INITIALIZING GAME SESSION...'}
+                  ? `▸ ${5 - waitingPlayers.length}명의 플레이어를 더 기다리는 중...`
+                  : '▸ 게임 세션 초기화 중...'}
               </p>
             </div>
 
@@ -178,7 +178,7 @@ export default function Lobby() {
               {/* Active Players */}
               {waitingPlayers.length === 0 ? (
                 <div className="text-center py-8 text-white/40 font-mono text-sm">
-                  ▸ NO ACTIVE CONNECTIONS
+                  ▸ 활성 연결 없음
                 </div>
               ) : (
                 waitingPlayers.map((player, index) => (
@@ -242,10 +242,10 @@ export default function Lobby() {
                     </div>
                     <div className="flex-1">
                       <p className="text-white/40 font-mono text-sm">
-                        EMPTY SLOT
+                        빈 슬롯
                       </p>
                       <p className="text-white/20 font-mono text-xs">
-                        awaiting connection...
+                        연결 대기 중...
                       </p>
                     </div>
                     <span className="text-white/20 font-mono text-xs animate-blink">
@@ -260,25 +260,25 @@ export default function Lobby() {
             <div className="p-4 bg-cyber-blue/10 border-2 border-cyber-blue/50">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-cyber-blue font-mono text-sm font-bold glow-text">
-                  [!] PROTOCOL BRIEFING
+                  [!] 프로토콜 브리핑
                 </span>
               </div>
               <ul className="space-y-2 text-xs font-mono text-white/80 leading-relaxed">
                 <li className="flex items-start gap-2">
                   <span className="text-cyber-blue">▸</span>
-                  <span>5 HUMANS + 1 AI will be matched in the session</span>
+                  <span>세션에 5명의 인간 + AI 1개가 매칭됩니다</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-cyber-blue">▸</span>
-                  <span>Each turn presents a QUESTION - all participants must ANSWER</span>
+                  <span>각 턴마다 질문이 제시되며, 모든 참가자가 답변해야 합니다</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-cyber-blue">▸</span>
-                  <span>Answers displayed ANONYMOUSLY - use VOTING to identify AI</span>
+                  <span>답변은 익명으로 표시됩니다 - 투표로 AI를 식별하세요</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-cyber-yellow">▸</span>
-                  <span>SUCCESS condition: Find AI within 5 TURNS</span>
+                  <span>성공 조건: 5턴 이내에 AI 찾기</span>
                 </li>
               </ul>
             </div>
@@ -288,7 +288,7 @@ export default function Lobby() {
         {/* Terminal Footer */}
         <div className="terminal-border bg-terminal-surface/90 backdrop-blur-sm px-6 py-2 flex justify-between items-center text-xs font-mono">
           <span className="text-phosphor-green">
-            QUEUE: <span className="animate-blink">ACTIVE</span>
+            대기열: <span className="animate-blink">활성</span>
           </span>
           <span className="text-white/50">
             {new Date().toISOString().replace('T', ' ').substring(0, 19)}
