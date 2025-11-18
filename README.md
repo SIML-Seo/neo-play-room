@@ -22,14 +22,20 @@
 ```
 neo-play-room/
 ├── README.md                    # 본 문서 (레포지토리 전체 개요)
+├── CLAUDE.md                    # Claude Code 개발 가이드
 ├── games/                       # 게임 프로젝트 디렉토리
 │   ├── project-da-vinci/        # Cycle 1: AI 협동 Pictionary
-│   ├── project-beethoven/       # Cycle 2: (예정)
-│   └── project-curie/           # Cycle 3: (예정)
-└── shared/                      # 공통 모듈 (향후 확장)
-    ├── auth/                    # 공통 인증 로직
-    ├── ui-components/           # 재사용 가능한 UI 컴포넌트
-    └── utils/                   # 공통 유틸리티 함수
+│   │   └── CLAUDE.md            # da-vinci 특화 개발 가이드
+│   ├── project-turing/          # Cycle 2: AI 찾기 게임
+│   │   └── CLAUDE.md            # turing 특화 개발 가이드
+│   └── [future-games]/          # Cycle 3+: 향후 게임들
+└── shared/                      # 공통 모듈 (프로젝트 간 공유)
+    ├── ui-components/           # Button, Loader, Timer
+    ├── utils/                   # sanitizer, shuffle
+    ├── hooks/                   # useAuth (factory pattern)
+    ├── store/                   # authStore (Zustand)
+    ├── package.json             # 공통 모듈 메타데이터
+    └── README.md                # shared 모듈 사용 가이드
 ```
 
 ---

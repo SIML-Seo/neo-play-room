@@ -1,0 +1,106 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "lobby": {
+      "waitingPlayers": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null"
+        }
+      }
+    },
+
+    "gameRooms": {
+      ".read": "auth != null",
+      "$roomId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (data.exists() ? data.child('players').child(auth.uid).exists() : root.child('lobby').child('waitingPlayers').child(auth.uid).exists())",
+
+        // AI 플레이어 ID는 절대 읽기/쓰기 불가 (게임 종료 전까지 숨김)
+        "aiPlayerId": {
+          ".read": false,
+          ".write": false
+        },
+
+        // 게임 상태는 Cloud Functions만 변경 가능
+        "status": {
+          ".write": false
+        },
+
+        "currentTurn": {
+          ".write": false
+        },
+
+        "endTime": {
+          ".write": false
+        },
+
+        // 난이도와 준비 상태는 waiting 상태일 때만 변경 가능
+        "difficulty": {
+          ".write": "auth != null && data.parent().child('status').val() == 'waiting'"
+        },
+
+        // 플레이어 정보는 자기 자신만 수정 가능
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid == $uid"
+          }
+        },
+
+        "turns": {
+          "$turnNumber": {
+            "answers": {
+              "$anonymousId": {
+                // 답변의 isAI 필드는 절대 읽기 불가
+                "isAI": {
+                  ".read": false,
+                  ".write": false
+                },
+                // 답변 텍스트와 시간은 한 번만 쓰기 가능 (수정 불가)
+                "text": {
+                  ".write": "!data.exists() && auth != null"
+                },
+                "submittedAt": {
+                  ".write": "!data.exists() && auth != null"
+                }
+              }
+            },
+
+            // 투표는 자기 uid에만 쓰기 가능
+            "votes": {
+              "$uid": {
+                ".write": "auth != null && auth.uid == $uid && !data.exists()"
+              }
+            },
+
+            // 투표 결과는 Cloud Functions만 쓰기 가능
+            "voteResult": {
+              ".read": "auth != null",
+              ".write": false
+            }
+          }
+        }
+      }
+    },
+
+    // 채팅 메시지
+    "chatMessages": {
+      "$roomId": {
+        ".read": "auth != null",
+        "$messageId": {
+          ".write": "auth != null && !data.exists()"
+        }
+      }
+    },
+
+    // 사용자 프로필 (읽기 전용, Auth Trigger가 생성)
+    "users": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": false
+      }
+    }
+  }
+}

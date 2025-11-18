@@ -1,0 +1,29 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 기본 거부
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 질문 풀 (읽기 전용 - Cloud Function이나 Admin이 미리 생성)
+    match /questions/{questionId} {
+      allow read: if request.auth != null;
+      allow write: if false; // 클라이언트 쓰기 차단
+    }
+
+    // 게임 로그 (읽기 전용 - Cloud Function이 자동 생성)
+    match /gameLogs/{logId} {
+      allow read: if request.auth != null;
+      allow write: if false; // 클라이언트 쓰기 차단
+    }
+
+    // 리더보드 (읽기 전용 - Cloud Function이 자동 집계)
+    match /leaderboard/{userId} {
+      allow read: if request.auth != null;
+      allow write: if false; // 클라이언트 쓰기 차단
+    }
+  }
+}

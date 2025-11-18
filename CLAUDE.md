@@ -8,627 +8,331 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Neo Play Room**은 네오랩컨버전스 사내 소통 활성화를 위한 2개월 주기 게임 개발 프로젝트입니다.
 
-**현재 활성 프로젝트**: `games/project-da-vinci` - 5인 협동 AI Pictionary 게임
-- React 19 + TypeScript + Vite 프론트엔드
-- Firebase (Realtime Database + Cloud Functions) 백엔드
-- Gemini 1.5 Flash Vision API를 활용한 AI 그림 판정
+각 사이클마다 새로운 게임을 개발하여 팀원들 간 소통과 협업을 촉진합니다.
 
 ---
 
-## 🏗️ 프로젝트 구조
+## 🏗️ 레포지토리 구조
 
 ```
 neo-play-room/
-├── README.md                           # 레포지토리 전체 개요
-├── AGENTS.md                           # 팀 협업 가이드라인
-├── games/
-│   └── project-da-vinci/               # Cycle 1: AI 협동 Pictionary
-│       ├── README.md                    # 게임 개요 및 룰
-│       ├── docs/                        # 상세 설계 문서
-│       │   ├── ARCHITECTURE.md          # 시스템 아키텍처
-│       │   ├── FRONTEND.md              # 프론트엔드 설계
-│       │   ├── BACKEND.md               # Cloud Functions 설계
-│       │   ├── AI.md                    # Gemini API 프롬프트 전략
-│       │   ├── TESTING.md               # 테스트 전략 (Vitest, Playwright)
-│       │   └── TODO.md                  # 8주 개발 일정
-│       ├── frontend/                    # React SPA
-│       │   ├── src/
-│       │   │   ├── main.tsx             # 앱 진입점
-│       │   │   ├── App.tsx              # 라우팅 (Home, Lobby, GameRoom, Results)
-│       │   │   ├── components/          # UI 컴포넌트
-│       │   │   │   ├── game/            # Canvas, DrawingTools, Chat, AIGuessDisplay
-│       │   │   │   └── common/          # Button, Modal, Loader
-│       │   │   ├── pages/               # Home, Lobby, GameRoom, Results
-│       │   │   ├── hooks/               # useAuth, useGameRoom, useCanvas, useAIJudge
-│       │   │   ├── stores/              # Zustand (authStore만 사용, 게임 상태는 RTDB)
-│       │   │   ├── services/            # Firebase SDK 래퍼 (auth, database, functions)
-│       │   │   ├── types/               # game.types.ts (GameRoom, AIGuess 등)
-│       │   │   └── utils/               # timeFormatter, sanitizer
-│       │   ├── vite.config.ts           # Vite 설정 (@/ 경로 별칭)
-│       │   └── package.json             # React 19, Fabric.js 6, Zustand 5
-│       ├── functions/                   # Cloud Functions (Node 20)
-│       │   ├── src/
-│       │   │   ├── index.ts             # 진입점 (모든 Function export)
-│       │   │   ├── ai/                  # ⚠️ AI 관련 로직은 여기만!
-│       │   │   │   ├── judge.flow.ts    # 그림 판정 (gemini-2.5-flash-lite)
-│       │   │   │   ├── wordGenerator.ts # 단어 생성 (gemini-2.5-flash-lite)
-│       │   │   │   └── prompts.ts       # 프롬프트 템플릿
-│       │   │   └── game/                # matchPlayers, finalizeGame
-│       │   ├── .env                     # ⚠️ 민감한 키 (GEMINI_API_KEY 등)
-│       │   ├── .env.example             # 환경 변수 템플릿
-│       │   └── package.json             # Gemini AI 0.21, Firebase Admin 12.7
-│       ├── firebase.json                # Firebase 배포 설정
-│       └── database.rules.json          # RTDB 보안 규칙
-└── shared/                              # (향후 확장) 공통 모듈
+├── README.md                    # 레포지토리 전체 개요
+├── CLAUDE.md                    # 이 파일 - 공통 개발 가이드
+├── AGENTS.md                    # 팀 협업 가이드라인
+├── games/                       # 게임 프로젝트들
+│   ├── project-da-vinci/        # Cycle 1: AI 협동 Pictionary
+│   │   ├── CLAUDE.md            # ⚠️ project-da-vinci 특화 가이드
+│   │   ├── README.md            # 게임 개요 및 룰
+│   │   ├── docs/                # 상세 설계 문서
+│   │   ├── frontend/            # React 프론트엔드
+│   │   ├── functions/           # Cloud Functions
+│   │   └── firebase.json        # Firebase 설정
+│   ├── project-turing/          # Cycle 2: AI 찾기 게임
+│   │   └── CLAUDE.md            # ⚠️ project-turing 특화 가이드
+│   └── [future-game-3]/         # Cycle 3 게임 (예정)
+└── shared/                      # 공통 모듈 (프로젝트 간 공유)
+    ├── ui-components/           # Button, Loader, Timer
+    ├── utils/                   # sanitizer, shuffle
+    ├── hooks/                   # useAuth (Factory Pattern)
+    ├── store/                   # authStore (Zustand)
+    └── README.md                # shared 모듈 사용 가이드
 ```
+
+### 멀티 게임 프로젝트 구조 원칙
+
+1. **각 게임은 독립적인 디렉토리**: `games/[game-name]/`
+2. **각 게임은 자체 CLAUDE.md 보유**: 게임별 특화 가이드
+3. **공통 모듈은 shared/**: 여러 게임이 공유하는 코드
+4. **루트 CLAUDE.md**: 레포지토리 전체 공통 원칙
 
 ---
 
-## 🚀 개발 환경 설정 및 빌드 명령어
+## 📂 게임 프로젝트 목록
 
-### 프론트엔드 (frontend/)
+### 현재 활성 프로젝트
 
-```bash
-# 작업 디렉토리
-cd games/project-da-vinci/frontend
+#### 1. **project-da-vinci** (Cycle 1)
+- **게임**: 5인 협동 AI Pictionary
+- **기술 스택**: React 19 + Firebase + Gemini AI
+- **상태**: 🟢 개발 중
+- **문서**: `games/project-da-vinci/CLAUDE.md`
+- **특징**:
+  - AI를 플레이어로 설계 (정답을 모르고 그림 추론)
+  - 실시간 협동 게임 (Firebase Realtime Database)
+  - 난이도별 점수 보정 시스템
 
-# 개발 서버 실행 (Vite HMR)
-npm run dev                    # → http://localhost:5173
+#### 2. **project-turing** (Cycle 2)
+- **게임**: 5인 협동 AI 찾기 (튜링 테스트)
+- **기술 스택**: React 19 + Firebase + Gemini AI
+- **상태**: 📋 설계 완료 (구현 대기)
+- **문서**: `games/project-turing/CLAUDE.md`
+- **특징**:
+  - AI가 사람처럼 답변, 참가자들이 AI 찾기
+  - 난이도별 AI 답변 전략 (Easy/Normal/Hard)
+  - 질문 → 답변 → 토론 → 투표 시스템
 
-# 빌드 (TypeScript 검사 + Vite 번들링)
-npm run build                  # → dist/
+### 향후 프로젝트
 
-# 빌드 결과 미리보기
-npm run preview
-
-# 코드 품질
-npm run lint                   # ESLint 검사
-npm run lint:fix               # ESLint 자동 수정
-npm run format                 # Prettier 포맷팅
-
-# 테스트 (Vitest)
-npm run test                   # Watch 모드
-npm run test:ui                # Vitest UI
-npm run test:run               # 단일 실행 (CI용)
-npm run test:coverage          # 커버리지 리포트
-```
-
-### Cloud Functions (functions/)
-
-```bash
-# 작업 디렉토리
-cd games/project-da-vinci/functions
-
-# Functions 빌드
-npm run build                  # TypeScript → lib/
-
-# 로컬 개발 (Emulator)
-npm run serve                  # Emulator 실행 (빌드 후)
-
-# 배포
-npm run deploy                 # firebase deploy --only functions
-
-# 로그 확인
-npm run logs                   # firebase functions:log
-```
-
-### Firebase Emulator (전체 개발 환경)
-
-```bash
-# 레포지토리 루트에서
-firebase emulators:start
-
-# 실행되는 서비스:
-# - Auth: http://localhost:9099
-# - Realtime Database: http://localhost:9000
-# - Functions: http://localhost:5001
-# - Storage: http://localhost:9199
-# - Emulator UI: http://localhost:4000
-```
-
-### Firebase 배포
-
-```bash
-# 전체 배포 (Hosting + Functions)
-firebase deploy
-
-# Functions만 배포
-firebase deploy --only functions
-
-# 특정 Function만 배포
-firebase deploy --only functions:judgeDrawing
-
-# Hosting만 배포
-firebase deploy --only hosting
-```
+- **Cycle 3**: TBD (4개월 후)
+- **Cycle 4**: TBD (6개월 후)
 
 ---
 
-## 📐 아키텍처 핵심 원칙
+## 🚀 개발 시 주요 원칙
 
 ### 0. ⚠️ **최우선 규칙: 기존 구현 패턴 준수** ⚠️
 
 **새로운 기능 구현 시 반드시 다음을 확인:**
 
-1. **기존 유사 기능이 있는지 먼저 확인**
-   - 예: AI 기능 추가 시 → `functions/src/ai/judge.flow.ts` 확인 필수
-   - 예: Firebase 인증 추가 시 → `frontend/src/hooks/useAuth.ts` 확인 필수
-   - 예: Firestore 접근 시 → `frontend/src/services/` 확인 필수
+1. **현재 작업 중인 게임 프로젝트의 CLAUDE.md를 먼저 확인**
+   - 예: `project-da-vinci` 작업 시 → `games/project-da-vinci/CLAUDE.md` 필독
+   - 각 게임은 고유한 아키텍처와 패턴을 가질 수 있음
 
-2. **기존 패턴을 반드시 따를 것**
-   - ❌ **절대 금지**: Frontend에서 직접 외부 API 키 사용
-   - ✅ **올바른 방법**: Cloud Functions를 통해 API 호출
-   - ❌ **절대 금지**: 다른 모델/라이브러리 버전 사용
-   - ✅ **올바른 방법**: 기존 구현과 동일한 모델/버전 사용
+2. **기존 유사 기능이 있는지 먼저 확인**
+   - 같은 게임 내에서 유사 기능 검색
+   - shared/ 디렉토리에 공통 모듈이 있는지 확인
+   - 다른 게임 프로젝트의 구현 참조 (필요시)
 
-3. **보안 원칙 (Security First)**
-   - **API 키는 절대 Frontend에 노출 금지**
-   - **모든 민감한 로직은 Cloud Functions에서 실행**
-   - **환경 변수 위치:**
-     - Frontend: `frontend/.env` → `VITE_` 접두사 (public 데이터만)
-     - Functions: `functions/.env` → 민감한 키 (API 키 등)
+3. **기존 패턴을 반드시 따를 것**
+   - ❌ **절대 금지**: 무분별한 새로운 라이브러리 추가
+   - ✅ **올바른 방법**: 기존 구현과 동일한 도구/버전 사용
+   - ❌ **절대 금지**: 다른 아키텍처 패턴 도입
+   - ✅ **올바른 방법**: 해당 게임의 CLAUDE.md 패턴 준수
 
 4. **기존 코드 참조 체크리스트**
    ```
+   [ ] 해당 게임의 CLAUDE.md를 읽었는가?
    [ ] 유사 기능이 이미 구현되어 있는지 확인했는가?
-   [ ] 기존 구현의 모델/라이브러리 버전을 확인했는가?
+   [ ] 기존 구현의 라이브러리 버전을 확인했는가?
    [ ] 기존 구현의 보안 패턴을 확인했는가?
    [ ] 기존 구현의 에러 처리 방식을 확인했는가?
-   [ ] 기존 구현의 로깅 방식을 확인했는가?
    ```
 
-**실제 사례 (반면교사):**
+### 1. 보안 우선 원칙 (Security First)
+
+**모든 게임 프로젝트에 공통 적용되는 보안 원칙:**
+
+#### API 키 보호 ⚠️ **최우선 보안 원칙**
+
+**절대 규칙: Frontend에서 외부 API 직접 호출 금지**
+
+❌ **절대 금지 - 클라이언트 노출:**
 ```typescript
-// ❌ 잘못된 예: judge.flow.ts를 확인하지 않고 구현
-// frontend/src/services/wordPools.ts
-import { GoogleGenerativeAI } from '@google/generative-ai'
-const key = import.meta.env.VITE_GEMINI_API_KEY // 🚨 보안 위험!
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' }) // 🚨 다른 모델!
-
-// ✅ 올바른 예: judge.flow.ts 패턴 확인 후 구현
-// functions/src/ai/wordGenerator.ts
-import { GoogleGenerativeAI } from '@google/generative-ai'
-const apiKey = process.env.GEMINI_API_KEY // ✅ 서버 사이드
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' }) // ✅ 동일 모델
+// ❌ frontend에서 외부 API 키 직접 사용
+const apiKey = import.meta.env.VITE_API_KEY  // 🚨 보안 위험!
 ```
 
-### 1. 서버리스 우선 (Serverless-First)
-- **백엔드 서버 없음**: Firebase BaaS로 인프라 관리 최소화
-- **Cloud Functions**: HTTP Callable로 AI 추론 등 서버 로직 처리
-- **Realtime Database**: WebSocket 기반 실시간 동기화 (Firestore 대신 RTDB 선택 이유: 낮은 지연시간)
-- **⚠️ 중요**: 모든 외부 API 호출은 Cloud Functions에서만 실행
+**문제점:**
+- 브라우저 개발자 도구에서 API 키 확인 가능
+- 빌드된 JS 번들에 키가 포함됨
+- 악의적 사용자가 키를 추출하여 남용 가능
 
-### 2. 게임 상태의 단일 진실 공급원 (Single Source of Truth)
-- **Zustand**: 클라이언트 인증 상태만 관리 (`authStore`)
-- **Firebase RTDB**: 게임 상태는 모두 RTDB에 저장 (GameRoom, LiveDrawing, ChatMessages)
-- **React 훅이 RTDB 구독**: `useGameRoom(roomId)` → `onValue()` 리스너로 실시간 반영
+✅ **올바른 방법 - Backend/Cloud Functions 사용:**
+```typescript
+// ✅ Backend (예: Cloud Functions)
+const apiKey = process.env.API_KEY  // ✅ 서버 사이드만 접근
 
-### 3. AI를 "플레이어"로 설계
-- ❌ **잘못된 접근**: AI가 정답을 알고 "그림이 정답과 맞는지" 평가
-- ✅ **올바른 접근**: AI가 정답을 모르고 "그림이 무엇인지" 추론 → 진정한 협동 게임
-
-### 4. 실시간 캔버스 동기화
-```
-Player A (턴)                    Firebase RTDB                     Player B-E (관전)
-    │                                 │                                  │
-    ├─ 마우스로 그림 그리기                │                                  │
-    ├─ canvas.toJSON()                 │                                  │
-    ├─ set('/liveDrawings/roomId') ──→ │                                  │
-    │                                 ├─ onValue() 리스너 ──────────────→ │
-    │                                 │                                  ├─ canvas.loadFromJSON()
-    │                                 │                                  └─ 즉시 렌더링
+// ✅ Frontend
+import { httpsCallable } from 'firebase/functions'
+const callFunction = httpsCallable(functions, 'functionName')
+const result = await callFunction({ data })  // ✅ Backend를 통해 호출
 ```
 
-**최적화:**
-- Debounce (500ms): 과도한 RTDB 쓰기 방지
-- JSON 크기 제한 (100KB): 성능 저하 방지
-- 현재 턴 플레이어만 쓰기 권한 (RTDB Rules)
+**환경 변수 관리:**
+```bash
+# ✅ Backend .env (서버 사이드 - 절대 커밋하지 말 것)
+API_KEY=secret-key-here
 
-### 5. AI 추론 파이프라인 (+ 학습 데이터 수집)
-```
-[Player 턴 종료]
-    ↓
-[클라이언트] canvas.toDataURL('image/png', 0.8) → Base64
-    ↓
-[Cloud Function: judgeDrawing]
-    - RTDB에서 GameRoom 조회 (theme, targetWord, difficulty)
-    - 난이도별 프롬프트 생성 (buildPromptByDifficulty(theme, difficulty))
-      - easy: Few-shot 프롬프트 (AI 정확도 80%, 45초/턴, 최대 15턴)
-      - normal: Enhanced 프롬프트 (AI 정확도 60%, 30초/턴, 최대 10턴)
-      - hard: Minimal 프롬프트 (AI 정확도 30-40%, 20초/턴, 최대 5턴)
-    - Gemini 1.5 Flash 호출 (이미지 + 프롬프트)
-    - JSON 파싱 { guess: "백설공주", confidence: 0.85 }
-    - **Storage에 이미지 저장 (AI 학습 데이터용)**
-      - 경로: turns/{roomId}/turn_{턴번호}.png
-      - 메타데이터: roomId, turn, guess, confidence, timestamp
-      - Public URL 생성
-    - 정답 확인 (guess === targetWord)
-    - 게임 상태 업데이트 (aiGuesses에 imageUrl 포함)
-    ↓
-[응답] { guess, confidence, isCorrect, gameStatus }
-    ↓
-[클라이언트] UI 업데이트 (AI 추론 결과 표시)
-    ↓
-[게임 종료 시]
-    - Firestore gameLogs에 모든 aiGuesses 저장 (이미지 URL 포함)
-    - 난이도별 점수 보정 적용: score = (turnCount / multiplier) * 1000 + (time / 1000)
-      - easy: multiplier = 1.0 (기준)
-      - normal: multiplier = 1.3 (30% 보정)
-      - hard: multiplier = 1.6 (60% 보정)
-    - 리더보드에서 턴별 이미지 + 판정 + 보정 점수 확인 가능
+# ✅ .env.example (템플릿만 커밋)
+API_KEY=your-api-key-here
+
+# ✅ .gitignore 필수
+.env
+.env.local
 ```
 
-**데이터 활용**:
-- 그림 + 정답 + AI 추측 쌍으로 학습 데이터셋 구축
-- 프롬프트 최적화 및 게임 밸런스 조정에 활용
-
-**점수 계산 시스템**:
-- 낮은 점수일수록 높은 순위 (골프 스코어 방식)
-- 어려운 난이도일수록 같은 턴 수에도 더 낮은 점수 획득
-- 예시:
-  - Easy 3턴 120초 = 3,120점
-  - Hard 3턴 90초 = 1,965점 (hard가 더 높은 순위)
-
-### 6. 협의 기반 게임 시작 플로우
+**검증 체크리스트:**
 ```
-[Lobby: 5명 매칭 완료]
-    ↓
-[GameRoom 생성 (status: waiting, difficulty: normal)]
-    ↓
-[대기실 UI]
-    - 난이도 선택 (모든 참가자가 실시간 수정 가능)
-    - 채팅으로 난이도 협의
-    - 각 플레이어 "준비 완료" 버튼 클릭
-    ↓
-[모든 플레이어 ready: true]
-    ↓
-[게임 시작 버튼 활성화]
-    ↓
-[클릭 시 status: in-progress]
-    ↓
-[게임 진행 (Canvas + AI 추론)]
+[ ] API 키가 frontend/ 디렉토리에 없는가?
+[ ] .env 파일이 .gitignore에 포함되어 있는가?
+[ ] 외부 API 호출이 모두 Backend를 통하는가?
+[ ] 빌드된 JS 번들에 API 키가 포함되지 않는가?
 ```
 
-**협동 게임 철학:**
-- 난이도는 한 사람이 아닌 **모두가 협의**하여 결정
-- 준비 완료 시스템으로 **모든 플레이어가 동의** 후 시작
-- 대기실 채팅을 통한 **원활한 소통**
+#### 기타 공통 보안 원칙
+
+- **XSS 방지**: 사용자 입력은 항상 sanitize
+- **도메인 제한**: @neolab.net 계정만 접근 허용
+- **인증 확인**: 모든 API 요청은 인증된 사용자만
+- **권한 관리**: 최소 권한 원칙 적용
+
+### 2. 코드 품질 유지
+
+- **타입 안전성**: TypeScript strict mode 사용
+- **테스트 작성**: 새로운 기능 추가 시 테스트 필수
+- **코드 리뷰**: PR을 통한 코드 리뷰 필수
+- **문서화**: 복잡한 로직은 주석 추가
 
 ---
 
-## 🎨 주요 기술 스택 & 버전
+## 📦 Shared 모듈 사용 가이드
 
-| 카테고리 | 기술 | 버전 | 용도 |
-|---------|------|------|------|
-| **Frontend** | React | 19.2.0 | UI 라이브러리 (최신 Concurrent 렌더링) |
-| | TypeScript | 5.9.3 | 정적 타입 검사 (Strict Mode) |
-| | Vite | 7.2.2 | 빌드 도구 (HMR) |
-| | Tailwind CSS | 4.1.17 | 유틸리티 기반 스타일링 |
-| | Fabric.js | 6.9.0 | HTML5 Canvas 객체 제어 |
-| | Zustand | 5.0.8 | 경량 상태 관리 (authStore) |
-| | React Router | 7.9.5 | 클라이언트 라우팅 |
-| | DOMPurify | 3.3.0 | XSS 방지 (채팅 메시지 sanitize) |
-| **Backend** | Firebase Admin | 12.7.0 | Firebase 서버 SDK |
-| | Firebase Functions | 6.1.1 | Cloud Functions v2 |
-| | Gemini API | 0.21.0 | Google AI Vision 모델 |
-| | Node.js | 20 | Functions 런타임 |
-| **BaaS** | Firebase Auth | - | Google SSO (@neolab.net 도메인 제한) |
-| | Realtime Database | - | 실시간 동기화 (WebSocket 기반) |
-| | Firestore | - | 게임 로그, 분석 데이터, 스케줄 저장 |
-| | Cloud Storage | - | AI 학습 데이터 (턴별 이미지 + 판정) |
-| | Hosting | - | React SPA 정적 파일 서빙 (CDN) |
-| **Testing** | Vitest | 4.0.8 | 단위 테스트 (jsdom 환경) |
-| | Testing Library | 16.3.0 | React 컴포넌트 테스트 |
-| | Playwright | - | E2E 테스트 (향후 추가 예정) |
-| **Code Quality** | ESLint | 9.39.1 | Flat Config v9 + TypeScript ESLint |
-| | Prettier | 3.6.2 | 코드 포맷팅 |
-| | Husky | 9.1.7 | Git Hooks (pre-commit) |
-| | lint-staged | 16.2.6 | 변경된 파일만 lint + test |
+### Shared 모듈 구조
 
----
+`shared/` 디렉토리는 **모든 게임 프로젝트가 공유하는 공통 모듈**을 포함합니다:
 
-## 📂 핵심 파일 & 모듈 가이드
+```
+shared/
+├── ui-components/           # 공통 UI 컴포넌트
+│   ├── Button.tsx          # 버튼 컴포넌트 (variant, size)
+│   ├── Loader.tsx          # 로딩 스피너
+│   └── Timer.tsx           # 카운트다운 타이머
+├── utils/                  # 공통 유틸리티
+│   ├── sanitizer.ts        # XSS 방지 및 텍스트 처리
+│   └── shuffle.ts          # Fisher-Yates 셔플 알고리즘
+├── hooks/                  # 공통 React Hooks
+│   └── useAuth.ts          # Auth Hook Factory
+├── store/                  # 공통 상태 관리
+│   └── authStore.ts        # Zustand Auth Store Factory
+├── package.json            # 공통 모듈 메타데이터
+└── README.md               # 사용 가이드
+```
 
-### Frontend 주요 파일
+### 사용 원칙
 
-| 파일 경로 | 역할 | 주요 로직 |
-|----------|------|----------|
-| **src/main.tsx** | 앱 진입점 | React.createRoot() + Firebase 초기화 |
-| **src/App.tsx** | 라우팅 | React Router (/, /lobby, /game/:roomId, /results) |
-| **src/firebase.ts** | Firebase SDK 초기화 | auth, database, functions export |
-| **src/types/game.types.ts** | 타입 정의 | GameRoom, AIGuess, Player 등 인터페이스 |
+#### 1. 새 프로젝트 시작 시 - Shared 설정 필수
 
-#### 페이지 컴포넌트 (src/pages/)
-| 파일 | 경로 | 기능 |
-|-----|------|------|
-| **Home.tsx** | `/` | Google SSO 로그인 페이지 |
-| **Lobby.tsx** | `/lobby` | 5명 매칭 대기실 (매칭 완료 시 GameRoom 생성) |
-| **GameRoom.tsx** | `/game/:roomId` | **waiting**: 난이도 협의 + 채팅 + 준비 완료 대기실<br>**in-progress**: 메인 게임 (Canvas + Chat + AI 추론) |
-| **Results.tsx** | `/results` | 게임 종료 후 결과 화면 (리더보드) |
-
-#### 커스텀 훅 (src/hooks/)
-| 훅 | 기능 | 반환값 |
-|----|------|--------|
-| **useAuth()** | Firebase Auth 상태 관리 | `{ user, loading, signIn, signOut }` + @neolab.net 검증 |
-| **useGameRoom(roomId)** | 게임 룸 실시간 구독 + 상태 관리 | `{ gameRoom, handleCanvasChange, handlePlayerReady, handleDifficultyChange, handleStartGame, isMyTurn, getRemainingTime }` |
-| **useCanvas()** | Fabric.js Canvas 제어 | `{ canvas, initCanvas, syncCanvas, exportImage }` |
-| **useAIJudge()** | AI 추론 Cloud Function 호출 | `{ judge(roomId, imageBase64), loading, error }` |
-| **useMatchmaking()** | Lobby 플레이어 매칭 | `{ players, joinLobby, leaveLobby, startGame }` |
-
-#### 게임 컴포넌트 (src/components/game/)
-| 컴포넌트 | 기능 |
-|---------|------|
-| **Canvas.tsx** | Fabric.js 캔버스 (현재 턴 플레이어만 수정 가능, 나머지는 읽기 전용) |
-| **DrawingTools.tsx** | 브러시 색상/두께 선택, 지우기 버튼 |
-| **TurnIndicator.tsx** | 현재 턴 플레이어, 턴 수, 경과 시간 표시 |
-| **PlayerList.tsx** | 5명 팀원 목록 (프로필 사진, 이름, 부서) |
-| **Chat.tsx** | 실시간 채팅 (XSS 방지: DOMPurify) |
-| **AIGuessDisplay.tsx** | AI 추론 결과 및 히스토리 표시 |
-
-#### Services (src/services/)
-| 파일 | 역할 |
-|-----|------|
-| **auth.ts** | Firebase Auth 래퍼 (`signInWithPopup`, `signOut`) |
-| **gameRoom.ts** | 게임 룸 CRUD (`subscribeToGameRoom`, `updateCanvasData`, `updatePlayerReady`, `updateDifficulty`, `startGame`, `endTurn`) |
-| **matchmaking.ts** | Lobby 로직 (`joinLobby`, `createGameRoom(players, difficulty)`) |
-| **ai.ts** | Cloud Function 호출 (`judgeDrawing` httpsCallable) |
-
-#### 유틸리티 (src/utils/)
-| 파일 | 역할 |
-|-----|------|
-| **difficulty.ts** | 난이도 설정 관리 (`DIFFICULTY_CONFIG`, `getDifficultyConfig`, `getDifficultyLabel`) |
-| **timeFormatter.ts** | 시간 포맷팅 유틸리티 |
-| **sanitizer.ts** | XSS 방지 (DOMPurify 래퍼) |
-
-### Cloud Functions 주요 파일
-
-| 파일 경로 | 역할 |
-|----------|------|
-| **functions/src/index.ts** | Function 진입점 (judgeDrawing, matchPlayers, finalizeGame export) |
-| **functions/src/ai/prompts.ts** | 프롬프트 템플릿 (buildJudgePrompt, buildEnhancedPrompt, buildFewShotPrompt) |
-| **functions/src/ai/judge.ts** | judgeDrawing Function (Gemini API 호출 + 게임 상태 업데이트) |
-| **functions/src/game/matching.ts** | matchPlayers Function (참가자 → 5인 팀 자동 구성) |
-| **functions/src/game/finalize.ts** | finalizeGame Trigger (게임 종료 시 로그 저장) |
-
----
-
-## 🗂️ Firebase Realtime Database 구조
-
+**Step 1: tsconfig.app.json 경로 설정**
 ```json
 {
-  "users": {
-    "{uid}": {
-      "displayName": "김개발",
-      "email": "kim@neolab.net",
-      "department": "개발팀",
-      "photoURL": "https://..."
-    }
-  },
-
-  "lobby": {
-    "waitingPlayers": {
-      "{uid}": { "name": "...", "joinedAt": 1234567890 }
-    }
-  },
-
-  "gameRooms": {
-    "{roomId}": {
-      "status": "in-progress",        // 'waiting' | 'in-progress' | 'finished'
-      "theme": "동화",
-      "targetWord": "백설공주",
-      "currentTurn": "{uid}",
-      "turnOrder": ["{uid1}", "{uid2}", "{uid3}", "{uid4}", "{uid5}"],
-      "currentTurnIndex": 2,
-      "maxTurns": 10,
-      "turnCount": 3,
-      "startTime": 1678886400000,
-      "endTime": null,
-      "players": {
-        "{uid}": { "name": "김개발", "team": "A", "ready": true }
-      },
-      "aiGuesses": [
-        { "turn": 1, "guess": "사과", "confidence": 0.72, "timestamp": 1678886401000 },
-        { "turn": 2, "guess": "공주", "confidence": 0.65, "timestamp": 1678886462000 }
-      ]
-    }
-  },
-
-  "liveDrawings": {
-    "{roomId}": {
-      "canvasState": "{...Fabric.js JSON...}",  // Stringified JSON
-      "lastUpdatedBy": "{uid}",
-      "lastUpdatedAt": 1678886462000
-    }
-  },
-
-  "chatMessages": {
-    "{roomId}": {
-      "{messageId}": {
-        "uid": "{uid}",
-        "displayName": "김개발",
-        "text": "제가 사과 먼저 그릴게요",
-        "timestamp": 1678886400500
-      }
-    }
-  },
-
-  "gameLogs": {
-    "{logId}": {
-      "roomId": "{roomId}",
-      "theme": "동화",
-      "targetWord": "백설공주",
-      "difficulty": "normal",
-      "finalTurnCount": 5,
-      "finalTime": 180500,              // ms
-      "result": "success",
-      "winningTeam": "{roomId}",
-      "aiGuessList": [
-        {
-          "turn": 1,
-          "guess": "사과",
-          "confidence": 0.72,
-          "timestamp": 1678886401000,
-          "imageUrl": "https://storage.googleapis.com/.../turns/{roomId}/turn_1.png"
-        },
-        {
-          "turn": 2,
-          "guess": "공주",
-          "confidence": 0.65,
-          "timestamp": 1678886462000,
-          "imageUrl": "https://storage.googleapis.com/.../turns/{roomId}/turn_2.png"
-        }
-      ],
-      "completedAt": 1678886580500,
-      "finishedAt": "(Firestore Timestamp)"
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["../../../shared/*"]
     }
   }
 }
 ```
 
-### 보안 규칙 (database.rules.json)
-
-**핵심 원칙:**
-1. 인증된 사용자만 접근 (`auth != null`)
-2. 자신이 속한 게임 룸만 읽기/쓰기
-3. **현재 턴 플레이어만** 캔버스 수정 가능
-4. 게임 로그는 Cloud Function만 작성
-
----
-
-## 🧠 AI 프롬프트 전략
-
-**⚠️ 중요: AI 관련 모든 로직은 `functions/src/ai/`에만 존재**
-
-### AI Functions 목록
-
-1. **judgeDrawing** (`judge.flow.ts`)
-   - 역할: 플레이어 그림 판정
-   - 모델: `gemini-2.5-flash-lite`
-   - 입력: roomId, imageBase64
-   - 출력: guess, confidence, isCorrect, gameStatus
-
-2. **generateWords** (`wordGenerator.ts`)
-   - 역할: 주제별 단어 자동 생성
-   - 모델: `gemini-2.5-flash-lite` (judge.flow.ts와 동일)
-   - 입력: theme, count
-   - 출력: theme, words[], count
-
-**⚠️ 신규 AI 기능 추가 시:**
-- ✅ `functions/src/ai/` 디렉토리에 추가
-- ✅ 기존 judge.flow.ts의 패턴 참조 (모델, 파싱 로직, 에러 처리)
-- ✅ `gemini-2.5-flash-lite` 모델 사용 (일관성)
-- ✅ Robust JSON 파싱 (여러 키 허용, fallback)
-- ❌ Frontend에서 직접 구현 금지
-
-### 난이도별 프롬프트 전략 (docs/AI.md 참조)
-
-1. **buildFewShotPrompt(theme)** - Easy 난이도
-   - 과거 게임 예시 3개 제공 (Few-shot learning)
-   - 테마별 예시 단어 풍부하게 제공 (동화: 백설공주, 신데렐라...)
-   - AI 정확도 목표: ~80%
-   - 시간/턴: 45초/15턴
-
-2. **buildEnhancedPrompt(theme)** - Normal 난이도
-   - 테마별 힌트 제공
-   - 카테고리 예시만 제공 (Few-shot 없음)
-   - AI 정확도 목표: ~60%
-   - 시간/턴: 30초/10턴
-
-3. **buildHardPrompt(theme)** - Hard 난이도
-   - 힌트 최소화, 엄격한 판단 기준
-   - "Be very strict and literal in your interpretation"
-   - 창의적 추론 금지, 명확한 형태만 인식
-   - AI 정확도 목표: ~30-40%
-   - 시간/턴: 20초/5턴
-
-### Gemini API 설정
-
+**Step 2: vite.config.ts 경로 설정**
 ```typescript
-const model = genAI.getGenerativeModel({
-  model: 'gemini-1.5-flash-latest',
-  generationConfig: {
-    temperature: 0.7,        // 약간의 창의성 허용
-    topP: 0.9,
-    topK: 40,
-    maxOutputTokens: 100,    // JSON 응답은 짧음
+export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@shared': path.resolve(__dirname, '../../../shared'),
+    },
   },
-});
+})
 ```
 
-### JSON 응답 포맷 강제
+#### 2. UI 컴포넌트 사용
 
-```json
-{
-  "guess": "백설공주",
-  "confidence": 0.85
+❌ **절대 금지: 동일한 UI 컴포넌트 중복 생성**
+```typescript
+// ❌ 각 프로젝트마다 Button 컴포넌트 생성 금지
+// games/my-game/src/components/Button.tsx
+```
+
+✅ **올바른 방법: Shared 컴포넌트 사용**
+```typescript
+// ✅ Shared 컴포넌트 import
+import Button from '@shared/ui-components/Button'
+import Loader from '@shared/ui-components/Loader'
+import Timer from '@shared/ui-components/Timer'
+```
+
+#### 3. 유틸리티 사용
+
+❌ **절대 금지: 동일한 유틸리티 중복 구현**
+```typescript
+// ❌ 각 프로젝트마다 shuffle 함수 구현 금지
+const shuffled = array.sort(() => Math.random() - 0.5)  // 편향된 셔플!
+```
+
+✅ **올바른 방법: Shared 유틸리티 사용**
+```typescript
+// ✅ Fisher-Yates 알고리즘 사용
+import { shuffle } from '@shared/utils/shuffle'
+import { sanitizeMessage } from '@shared/utils/sanitizer'
+
+const shuffled = shuffle([1, 2, 3, 4, 5])
+const safe = sanitizeMessage(userInput)
+```
+
+#### 4. 인증 (Auth) 사용 - Factory Pattern
+
+각 프로젝트가 **독립적인 Firebase 인스턴스**를 사용하면서도 **Auth 로직은 공통화**할 수 있도록 Factory Pattern을 사용합니다.
+
+**Step 1: store/authStore.ts 생성**
+```typescript
+import { createAuthStore } from '@shared/store/authStore'
+
+export const useAuthStore = createAuthStore()
+```
+
+**Step 2: hooks/useAuth.ts 생성**
+```typescript
+import { auth } from '@/firebase'
+import { useAuthStore } from '@/store/authStore'
+import { createUseAuth } from '@shared/hooks/useAuth'
+
+export const useAuth = createUseAuth(auth, useAuthStore)
+```
+
+**Step 3: 컴포넌트에서 사용**
+```typescript
+import { useAuth } from '@/hooks/useAuth'
+
+function LoginPage() {
+  const { user, signInWithGoogle, signOut } = useAuth()
+  // ... 로직
 }
 ```
 
-**Fallback 파싱**: Gemini가 마크다운으로 감싸는 경우 정규식으로 추출
+### Shared 모듈 추가 가이드
 
----
+새로운 공통 모듈을 추가할 때:
 
-## 🧪 테스트 전략 (docs/TESTING.md 참조)
+1. **재사용성 확인**: 최소 2개 이상의 게임 프로젝트에서 사용되는가?
+2. **게임 특화 로직 없음**: 특정 게임에만 적용되는 로직이 아닌가?
+3. **안정성**: 충분히 테스트되고 안정적인 코드인가?
 
-### 테스트 피라미드
+**추가 절차:**
+1. `shared/` 디렉토리에 모듈 생성
+2. `shared/package.json`의 `exports` 필드 업데이트
+3. `shared/README.md` 업데이트
+4. 이 파일 (루트 CLAUDE.md) 업데이트
+5. 기존 프로젝트들에서 중복 코드 제거
 
-```
-      /\
-     /E2E\     (10% - Playwright)
-    /______\
-   /통합테스트\  (30% - Vitest + Firebase Emulator)
-  /__________\
- /  단위테스트 \ (60% - Vitest + Testing Library)
-/____________\
-```
-
-### 커버리지 목표
-
-| 모듈 | 목표 | 실행 시점 |
-|-----|------|----------|
-| **단위 테스트** | 80% | 매 커밋 (pre-commit hook via lint-staged) |
-| **통합 테스트** | 60% | PR 생성 시 (CI/CD) |
-| **E2E 테스트** | 주요 시나리오 10개 | 배포 전 (주 1회) |
-
-### 주요 테스트 파일
-
+**예시:**
 ```bash
-frontend/src/
-├── utils/
-│   ├── timeFormatter.test.ts        # 시간 포맷팅 유틸
-│   └── sanitizer.test.ts            # XSS 방지 sanitize
-├── stores/
-│   └── authStore.test.ts            # Zustand 스토어
-├── hooks/
-│   └── useAuth.test.ts              # Firebase Auth 훅
-├── services/
-│   └── matchmaking.test.ts          # Lobby 로직
-└── components/
-    └── game/
-        └── Canvas.test.tsx          # Fabric.js 캔버스 컴포넌트
+# 1. 새 유틸리티 생성
+shared/utils/dateFormatter.ts
 
-functions/test/
-├── ai/
-│   └── prompts.test.ts              # 프롬프트 생성 로직
-└── game/
-    └── matching.test.ts             # 팀 매칭 알고리즘
-```
-
-### pre-commit 자동 테스트 (lint-staged)
-
-```json
-"lint-staged": {
-  "*.{ts,tsx}": [
-    "eslint --fix",
-    "prettier --write",
-    "vitest related --run"     // 변경된 파일 관련 테스트만 실행
-  ]
+# 2. shared/package.json 업데이트
+"exports": {
+  "./utils/dateFormatter": "./utils/dateFormatter.ts"
 }
+
+# 3. 문서 업데이트
+# 4. 기존 프로젝트에서 중복 제거
 ```
 
 ---
 
-## 🎯 개발 워크플로우 & 컨벤션
+## 🎯 개발 워크플로우
+
+### Git 브랜치 전략
+
+```
+main (프로덕션)
+  ├── develop (개발 통합)
+  │   ├── feature/project-da-vinci/canvas-sync
+  │   ├── feature/project-da-vinci/ai-judge
+  │   └── feature/future-game/new-feature
+  └── hotfix/critical-bug
+```
 
 ### 커밋 메시지 컨벤션 (Conventional Commits)
 
@@ -643,279 +347,133 @@ test: 테스트 추가/수정
 perf: 성능 개선
 ```
 
-**예시:**
+**게임 프로젝트별 prefix 권장:**
 ```bash
-git commit -m "feat(frontend): Canvas 컴포넌트 실시간 동기화 구현"
-git commit -m "fix(functions): AI 추론 JSON 파싱 에러 수정"
-git commit -m "chore: Vite 7.2.2로 업그레이드"
+git commit -m "feat(da-vinci): Canvas 컴포넌트 실시간 동기화 구현"
+git commit -m "fix(da-vinci): AI 추론 JSON 파싱 에러 수정"
+git commit -m "chore(shared): 공통 유틸리티 패키지 추가"
 ```
 
-### PR 가이드라인 (AGENTS.md 참조)
+### PR 가이드라인
 
-1. **PR 제목**: Conventional Commits 형식
+1. **PR 제목**: `[게임명] 타입: 제목` 형식
+   - 예: `[da-vinci] feat: AI 난이도 시스템 추가`
+
 2. **설명 포함 사항**:
    - 변경 사항 요약
    - 게임플레이 영향 (있는 경우)
    - 테스트 방법 명시
    - UI 변경 시 스크린샷 첨부
-3. **크기 제한**: ~400줄 이하 (frontend/functions 분리 권장)
+
+3. **크기 제한**: ~400줄 이하 권장
+
+4. **리뷰어 지정**: 최소 1명 이상
 
 ### 코드 스타일
 
 - **들여쓰기**: 2 spaces
-- **세미콜론**: 사용 안 함 (Prettier 설정)
-- **따옴표**: 싱글 쿼트 (`'`)
+- **세미콜론**: 프로젝트별 설정 따름 (일관성 유지)
+- **따옴표**: 싱글 쿼트 (`'`) 권장
 - **최대 줄 길이**: 100자
-- **컴포넌트 파일명**: PascalCase (`CanvasBoard.tsx`)
-- **훅/유틸 파일명**: camelCase (`useGameRoom.ts`)
-
-### ESLint + Prettier 통합
-
-```bash
-npm run lint        # ESLint 검사
-npm run lint:fix    # 자동 수정
-npm run format      # Prettier 포맷팅
-```
-
-**우회 금지**: Husky/lint-staged를 bypass하지 말 것. 수정이 어려운 경우 주석으로 이유 명시:
-```typescript
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const data: any = ...; // RTDB 응답 타입이 동적이므로 any 허용
-```
+- **파일명**:
+  - 컴포넌트: PascalCase (`GameRoom.tsx`)
+  - 훅/유틸: camelCase (`useGameRoom.ts`)
+  - 상수: UPPER_CASE (`GAME_CONFIG.ts`)
 
 ---
 
-## 🔐 보안 고려사항
+## 📖 문서 구조
 
-### 1. API 키 보호 ⚠️ **최우선 보안 원칙**
+### 레포지토리 레벨 문서 (루트)
 
-**절대 규칙: Frontend에서 외부 API 직접 호출 금지**
+- **README.md**: 레포지토리 전체 개요
+- **CLAUDE.md**: 이 파일 - 공통 개발 가이드
+- **AGENTS.md**: 팀 협업 가이드라인
 
-❌ **절대 금지 - 클라이언트 노출:**
-```typescript
-// ❌ frontend/src/services/wordPools.ts (잘못된 예)
-import { GoogleGenerativeAI } from '@google/generative-ai'
-const key = import.meta.env.VITE_GEMINI_API_KEY  // 🚨 보안 위험!
-const genAI = new GoogleGenerativeAI(key)        // 🚨 클라이언트 노출!
-```
+### 게임 프로젝트 레벨 문서
 
-**문제점:**
-- 브라우저 개발자 도구에서 API 키 확인 가능
-- 빌드된 JS 번들에 키가 포함됨
-- 악의적 사용자가 키를 추출하여 남용 가능
-
-✅ **올바른 방법 - Cloud Functions 사용:**
-```typescript
-// ✅ functions/src/ai/wordGenerator.ts (올바른 예)
-import { GoogleGenerativeAI } from '@google/generative-ai'
-const apiKey = process.env.GEMINI_API_KEY  // ✅ 서버 사이드만 접근
-const genAI = new GoogleGenerativeAI(apiKey)
-
-// ✅ frontend/src/services/wordPools.ts (올바른 예)
-import { httpsCallable } from 'firebase/functions'
-const generateWords = httpsCallable(functions, 'generateWords')
-const result = await generateWords({ theme, count })  // ✅ Functions를 통해 호출
-```
-
-**환경 변수 관리:**
-```bash
-# ✅ functions/.env (서버 사이드 - 절대 커밋하지 말 것)
-GEMINI_API_KEY=AIzaSyC...
-
-# ✅ functions/.env.example (템플릿만 커밋)
-GEMINI_API_KEY=your-gemini-api-key-here
-
-# ✅ 프로덕션 배포 (Firebase Functions Config)
-firebase functions:config:set gemini.api_key="AIzaSyC..."
-```
-
-**검증 체크리스트:**
-```
-[ ] API 키가 frontend/ 디렉토리에 없는가?
-[ ] .env 파일이 .gitignore에 포함되어 있는가?
-[ ] 외부 API 호출이 모두 Cloud Functions를 통하는가?
-[ ] 빌드된 JS 번들에 API 키가 포함되지 않는가?
-```
-
-### 2. Firebase 보안 규칙
-
-**RTDB Rules:**
-- 현재 턴 플레이어만 캔버스 수정 가능
-- 자신이 속한 게임 룸만 접근
-- 게임 로그는 Cloud Function만 쓰기
-
-**Storage Rules:**
-- 인증 사용자는 읽기만 가능
-- 업로드는 Cloud Function(Admin SDK)만
-
-### 3. XSS 방지
-
-채팅 메시지는 **DOMPurify**로 sanitize:
-```typescript
-import DOMPurify from 'dompurify';
-
-export function sanitizeMessage(message: string): string {
-  return DOMPurify.sanitize(message, {
-    ALLOWED_TAGS: [],  // HTML 태그 모두 제거
-    ALLOWED_ATTR: [],
-  });
-}
-```
-
-### 4. 도메인 제한 (@neolab.net)
-
-`useAuth` 훅에서 이메일 도메인 검증:
-```typescript
-if (!user.email?.endsWith('@neolab.net')) {
-  throw new Error('네오랩컨버전스 계정만 접근 가능합니다.');
-}
-```
+각 게임 디렉토리 내:
+- **CLAUDE.md**: 해당 게임 특화 개발 가이드 (필수)
+- **README.md**: 게임 개요 및 룰
+- **docs/**: 상세 설계 문서
+  - ARCHITECTURE.md
+  - FRONTEND.md
+  - BACKEND.md
+  - AI.md (AI 사용 시)
+  - TESTING.md
+  - TODO.md
 
 ---
 
-## 📊 성능 최적화 전략
+## 🔍 특정 게임 작업 시 워크플로우
 
-### 1. 캔버스 동기화 최적화
+### 작업 시작 전 체크리스트
 
-```typescript
-import { debounce } from 'lodash-es';
-
-// 500ms마다 최대 1회만 RTDB에 저장
-const syncCanvasDebounced = debounce((roomId, json) => {
-  database.ref(`/liveDrawings/${roomId}/canvasState`).set(JSON.stringify(json));
-}, 500);
+```
+[ ] 1. 루트 CLAUDE.md (이 파일) 읽기 - 공통 원칙 이해
+[ ] 2. 해당 게임의 CLAUDE.md 읽기 - 게임 특화 가이드
+[ ] 3. 해당 게임의 README.md 읽기 - 게임 룰 이해
+[ ] 4. 해당 게임의 docs/ 읽기 - 상세 설계 이해
+[ ] 5. 기존 코드 패턴 확인 - 유사 기능 검색
 ```
 
-### 2. 이미지 압축
+### 예시: project-da-vinci 작업 시
 
-```typescript
-// AI 추론 전 이미지 품질 80%로 압축
-const imageBase64 = canvas.toDataURL('image/jpeg', 0.8);
-```
-
-### 3. Code Splitting (React.lazy)
-
-```typescript
-import { lazy, Suspense } from 'react';
-
-const GameRoom = lazy(() => import('@/pages/GameRoom'));
-
-<Suspense fallback={<Loader />}>
-  <GameRoom />
-</Suspense>
-```
-
-### 4. Fabric.js JSON 크기 제한
-
-```typescript
-const json = canvas.toJSON();
-const jsonSize = JSON.stringify(json).length;
-
-if (jsonSize > 100000) {  // 100KB
-  throw new Error('Canvas JSON exceeds 100KB. Too many objects!');
-}
-```
+1. **루트 CLAUDE.md** (이 파일) 읽기 ✅
+2. **games/project-da-vinci/CLAUDE.md** 읽기 ← **필수!**
+3. 작업 시작
 
 ---
 
-## 🚨 알려진 이슈 & 제약사항
-
-1. **Fabric.js JSON 직렬화 지연**
-   - 100개 이상 객체 시 성능 저하
-   - 해결 방안: Debounce + 증분 업데이트 (향후 개선)
-
-2. **Gemini API 응답 시간**
-   - 평균 2-3초 (네트워크 상황에 따라 변동)
-   - 사용자 경험: 로딩 애니메이션으로 대응
-
-3. **RTDB 무료 플랜 한도**
-   - Spark 플랜: 동시 접속 100명, 다운로드 10GB/월
-   - 50명 규모에서는 문제없음, 100명 이상 시 Blaze 플랜 필요
-
-4. **Gemini JSON 응답 불안정**
-   - 가끔 마크다운(```json```)으로 감싸는 경우 있음
-   - 정규식 fallback으로 대응 중
-
----
-
-## 📖 추가 참고 문서
-
-### 프로젝트 문서
-- **games/project-da-vinci/README.md**: 게임 룰 및 개요
-- **games/project-da-vinci/docs/ARCHITECTURE.md**: 시스템 아키텍처 다이어그램
-- **games/project-da-vinci/docs/FRONTEND.md**: 컴포넌트 상세 설계
-- **games/project-da-vinci/docs/BACKEND.md**: Cloud Functions 구현 가이드
-- **games/project-da-vinci/docs/AI.md**: Gemini API 프롬프트 엔지니어링
-- **games/project-da-vinci/docs/TESTING.md**: 테스트 전략 (Vitest, Playwright)
-- **games/project-da-vinci/docs/TODO.md**: 8주 개발 일정 및 체크리스트
-
-### 팀 협업
-- **AGENTS.md**: AI 에이전트 호출 시 한국어 응답 설정, 커밋 컨벤션, PR 가이드라인
-
-### 외부 문서
-- [Firebase Realtime Database Docs](https://firebase.google.com/docs/database)
-- [Fabric.js Documentation](http://fabricjs.com/docs/)
-- [Gemini API Guide](https://ai.google.dev/gemini-api/docs)
-- [React 19 Docs](https://react.dev/)
-- [Vite Guide](https://vite.dev/)
-
----
-
-## 🎯 개발 시 주의사항
+## 🚨 공통 주의사항
 
 ### DO ✅
-- **문서 우선**: 로직 변경 전 해당 문서(ARCHITECTURE.md, FRONTEND.md 등) 참조
-- **타입 안전성**: `any` 사용 최소화, 인터페이스 정의 (`types/game.types.ts`)
-- **테스트 작성**: 새로운 훅/컴포넌트 추가 시 최소 1개 테스트 작성
-- **보안 규칙 확인**: RTDB/Storage 경로 변경 시 보안 규칙 업데이트
-- **커밋 전 lint**: `npm run lint:fix` + `npm run format` 실행
-- **한국어 주석**: 복잡한 로직은 한국어로 주석 (AI 프롬프트는 영어)
+
+- **문서 우선**: 코드 작성 전 관련 문서 확인
+- **타입 안전성**: `any` 사용 최소화
+- **테스트 작성**: 새로운 기능은 테스트와 함께
+- **보안 확인**: API 키 노출 방지
+- **커밋 전 검증**: lint + test 실행
+- **한국어 주석**: 복잡한 로직은 한국어 주석 추가
 
 ### DON'T ❌
-- **RTDB 직접 수정 금지**: Admin Console에서 수동 편집하지 말 것 (보안 규칙 우회 위험)
+
 - **API 키 커밋 금지**: `.env`, `.runtimeconfig.json` 절대 커밋 안 함
-- **Zustand에 게임 상태 저장 금지**: 게임 상태는 RTDB가 단일 진실 공급원
-- **거대한 PR 지양**: 400줄 이하로 분할 (frontend/functions 분리)
-- **테스트 건너뛰기 금지**: `--no-verify` 사용 금지 (특수한 경우만 예외)
-- **프로덕션 직접 배포 금지**: Emulator 테스트 후 배포
+- **무분별한 라이브러리 추가 금지**: 필요성 검토 후 추가
+- **거대한 PR 지양**: 400줄 이하로 분할
+- **테스트 건너뛰기 금지**: `--no-verify` 사용 자제
+- **프로덕션 직접 수정 금지**: 항상 PR을 통한 배포
 
 ---
 
-## 🛠️ 문제 해결 (Troubleshooting)
+## 🔗 참고 문서
 
-### Firebase Emulator 실행 실패
-```bash
-# 포트 충돌 시
-firebase emulators:start --only functions,database
+### 레포지토리 공통
+- **README.md**: 레포지토리 전체 개요
+- **AGENTS.md**: AI 에이전트 협업 가이드
 
-# 캐시 삭제
-rm -rf .firebase
-```
+### 게임 프로젝트
+- **games/project-da-vinci/**: `games/project-da-vinci/CLAUDE.md` 참조
 
-### Cloud Function 배포 실패
-```bash
-# functions/ 빌드 에러 확인
-cd functions && npm run build
-
-# TypeScript 컴파일 에러 해결 후 재배포
-firebase deploy --only functions
-```
-
-### RTDB 보안 규칙 에러
-```bash
-# 로컬에서 테스트
-firebase emulators:start
-
-# 보안 규칙 시뮬레이터로 검증
-# Emulator UI → Database → Rules
-```
-
-### Gemini API 할당량 초과
-```bash
-# Google Cloud Console에서 할당량 확인
-# https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas
-```
+### 외부 문서
+- [Git Conventional Commits](https://www.conventionalcommits.org/)
+- [TypeScript Best Practices](https://www.typescriptlang.org/docs/handbook/declaration-files/do-s-and-don-ts.html)
 
 ---
 
-**이 파일은 Claude Code가 이 레포지토리에서 효율적으로 작업할 수 있도록 작성되었습니다. 문서가 실제 코드와 일치하지 않는 경우 코드가 우선입니다.**
+## 🎓 신규 게임 프로젝트 추가 가이드
+
+새로운 게임 프로젝트를 추가할 때:
+
+1. **디렉토리 생성**: `games/[game-name]/`
+2. **필수 파일 생성**:
+   - `CLAUDE.md`: 해당 게임 특화 개발 가이드
+   - `README.md`: 게임 개요 및 룰
+   - `docs/`: 상세 설계 문서 디렉토리
+3. **기술 스택 결정**: 프로젝트 특성에 맞게 선택
+4. **보안 원칙 준수**: 루트 CLAUDE.md의 보안 원칙 따르기
+5. **루트 CLAUDE.md 업데이트**: 게임 프로젝트 목록에 추가
+
+---
+
+**이 파일은 Claude Code가 Neo Play Room 레포지토리 전체에서 효율적으로 작업할 수 있도록 작성되었습니다. 각 게임 프로젝트 작업 시에는 해당 게임의 CLAUDE.md를 반드시 참조하세요.**

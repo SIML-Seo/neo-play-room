@@ -3,7 +3,25 @@
     "allow": [
       "Bash(git commit:*)",
       "Bash(npm install:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(firebase emulators:start:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(nul)",
+      "Bash(ping:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(dir /b:*)",
+      "Bash(temp-check.js)",
+      "Bash(del:*)",
+      "Bash(dir:*)",
+      "Bash(tasklist:*)",
+      "mcp__serena__list_dir",
+      "Bash(cmd //c \"taskkill //PID 34176 //F\")",
+      "Bash(cat:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
