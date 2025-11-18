@@ -148,7 +148,6 @@ export default function GameRoom() {
     if (!currentTurn) return
 
     const answerCount = currentTurn.answers ? Object.keys(currentTurn.answers).length : 0
-    const voteCount = currentTurn.votes ? Object.keys(currentTurn.votes).length : 0
     const allAnswersSubmitted = answerCount === 6
     const myAnonymousId = getMyAnonymousId(user?.uid || '')
     const myAnswer = currentTurn.answers?.[myAnonymousId || '']
@@ -234,10 +233,25 @@ export default function GameRoom() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="px-4 py-2 bg-terminal-surface/50 border-2 border-cyber-blue rounded-lg">
-              <p className="text-xs text-cyber-blue font-mono">난이도</p>
-              <p className="text-lg font-bold text-white capitalize font-mono">{gameRoom.difficulty}</p>
-            </div>
+            {/* AI를 찾아라 버튼 (투표 단계에서만 표시) */}
+            {gameRoom.status === 'in-progress' && currentTurn && allAnswersSubmitted && !currentTurn.voteResult && (
+              <button
+                onClick={() => {
+                  // 투표 섹션으로 스크롤
+                  document.getElementById('voting-section')?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="px-6 py-3 bg-terminal-surface border-3 border-cyber-purple text-cyber-purple font-mono font-bold text-base
+                           hover:bg-cyber-purple hover:text-terminal-bg transition-all duration-300
+                           shadow-glow-blue hover:scale-105 rounded-xl
+                           flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
+                </svg>
+                AI를 찾아라!
+              </button>
+            )}
             <button
               onClick={() => navigate('/lobby')}
               className="px-4 py-2 bg-cyber-red/20 border-2 border-cyber-red text-cyber-red font-mono text-sm
@@ -347,31 +361,44 @@ export default function GameRoom() {
         {/* In-Progress 상태 */}
         {gameRoom.status === 'in-progress' && currentTurn && (
           <div className="space-y-6">
-            {/* 턴 정보 */}
-            <div className="bg-terminal-surface border-4 border-cyber-blue rounded-2xl p-6 shadow-glow-blue">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="text-center sm:text-left">
-                  <p className="text-sm text-cyber-blue font-mono mb-1">카테고리</p>
-                  <p className="text-2xl font-terminal font-bold text-white">{currentTurn.category}</p>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <p className="text-xs text-cyber-blue font-mono mb-1">답변 제출</p>
-                    <p className="text-3xl font-terminal font-bold text-cyber-gold">
-                      {answerCount}<span className="text-white/50">/{MAX_PLAYERS + 1}</span>
+            {/* 질문 박스 (투표 단계에서 상단에 고정 표시) */}
+            {allAnswersSubmitted && (
+              <div className="bg-terminal-surface border-4 border-cyber-blue rounded-2xl p-6 shadow-glow-blue">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <svg className="w-8 h-8 text-cyber-blue" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-cyber-blue font-mono mb-2">질문</p>
+                    <p className="text-xl sm:text-2xl font-terminal font-bold text-white leading-relaxed">
+                      {currentTurn.question}
                     </p>
                   </div>
-                  {allAnswersSubmitted && (
-                    <div className="text-center">
-                      <p className="text-xs text-cyber-blue font-mono mb-1">투표 진행</p>
-                      <p className="text-3xl font-terminal font-bold text-cyber-gold">
-                        {voteCount}<span className="text-white/50">/{MAX_PLAYERS}</span>
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* 턴 정보 (답변 단계에서만 표시) */}
+            {!allAnswersSubmitted && (
+              <div className="bg-terminal-surface border-4 border-cyber-blue rounded-2xl p-6 shadow-glow-blue">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm text-cyber-blue font-mono mb-1">카테고리</p>
+                    <p className="text-2xl font-terminal font-bold text-white">{currentTurn.category}</p>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <p className="text-xs text-cyber-blue font-mono mb-1">답변 제출</p>
+                      <p className="text-3xl font-terminal font-bold text-cyber-gold">
+                        {answerCount}<span className="text-white/50">/{MAX_PLAYERS + 1}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 답변 단계 */}
             {!allAnswersSubmitted && (
@@ -408,10 +435,10 @@ export default function GameRoom() {
 
             {/* 투표 단계 */}
             {allAnswersSubmitted && currentTurn.answers && (
-              <>
+              <div id="voting-section">
                 {/* 투표 타이머 */}
                 {!myVote && !currentTurn.voteResult && voteTimer.isRunning && (
-                  <div className="bg-terminal-surface border-4 border-cyber-gold rounded-2xl p-6 shadow-glow-gold animate-pulse">
+                  <div className="bg-terminal-surface border-4 border-cyber-gold rounded-2xl p-6 shadow-glow-gold animate-pulse mb-6">
                     <div className="flex items-center justify-center gap-4">
                       <svg className="w-8 h-8 text-cyber-gold" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
@@ -434,7 +461,7 @@ export default function GameRoom() {
                   voted={!!myVote}
                   myVote={myVote?.votedFor || null}
                 />
-              </>
+              </div>
             )}
 
             {/* 투표 결과 및 다음 턴 */}

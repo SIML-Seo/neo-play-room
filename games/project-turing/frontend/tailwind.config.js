@@ -106,6 +106,11 @@ export default {
             filter: 'brightness(1)',
           },
         },
+        // Shimmer effect for progress bar
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
       },
       animation: {
         typewriter: 'typewriter 0.8s steps(20) forwards',
@@ -117,6 +122,7 @@ export default {
         matrixFall: 'matrixFall 3s linear infinite',
         slideInTerminal: 'slideInTerminal 0.4s ease-out forwards',
         scaleGlow: 'scaleGlow 0.5s ease-out forwards',
+        shimmer: 'shimmer 2s infinite',
       },
       boxShadow: {
         'glow-green': '0 0 10px #00FF4180, 0 0 20px #00FF4140, 0 0 30px #00FF4120',

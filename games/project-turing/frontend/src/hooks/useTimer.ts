@@ -13,7 +13,7 @@ export function useTimer(
 ) {
   const [timeLeft, setTimeLeft] = useState(initialTime)
   const [isRunning, setIsRunning] = useState(autoStart)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const onExpireRef = useRef(onExpire)
 
   // onExpire를 ref로 관리하여 최신 값 유지
