@@ -8,6 +8,7 @@ import { collection, doc, getDoc, setDoc, getDocs } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { firestore, functions } from '@/firebase'
 import type { ThemeWordPool } from '@/types/game.types'
+import { shuffle } from '@shared/utils/shuffle'
 
 const WORD_POOLS_COLLECTION = 'wordPools'
 
@@ -88,13 +89,14 @@ export function selectRandomWord(words: string[]): string {
 
 /**
  * 주제에서 중복 없이 여러 랜덤 단어 선택
+ * Fisher-Yates shuffle 알고리즘 사용 (균일한 랜덤 분포 보장)
  */
 export function selectRandomWords(words: string[], count: number): string[] {
   if (words.length < count) {
     throw new Error(`단어 목록(${words.length}개)이 요청 개수(${count}개)보다 적습니다.`)
   }
 
-  const shuffled = [...words].sort(() => Math.random() - 0.5)
+  const shuffled = shuffle(words)
   return shuffled.slice(0, count)
 }
 

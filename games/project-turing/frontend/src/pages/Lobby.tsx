@@ -2,8 +2,8 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useMatchmaking } from '@/hooks/useMatchmaking'
-import Button from '@/components/common/Button'
-import Loader from '@/components/common/Loader'
+import Button from '@shared/ui-components/Button'
+import Loader from '@shared/ui-components/Loader'
 
 export default function Lobby() {
   const navigate = useNavigate()

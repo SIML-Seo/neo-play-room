@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import Button from '@/components/common/Button'
-import Loader from '@/components/common/Loader'
+import Button from '@shared/ui-components/Button'
+import Loader from '@shared/ui-components/Loader'
 import { useEffect } from 'react'
 
 export default function Home() {

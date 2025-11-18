@@ -2,7 +2,7 @@ import { ref, onValue, set, remove, push, serverTimestamp } from 'firebase/datab
 import { database } from '@/firebase'
 import type { User } from 'firebase/auth'
 import type { Player } from '@/types/game.types'
-import { shuffle } from '@/utils/shuffle'
+import { shuffle } from '@shared/utils/shuffle'
 
 export interface WaitingPlayer {
   uid: string

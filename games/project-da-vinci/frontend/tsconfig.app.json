@@ -11,7 +11,8 @@
     /* Path alias */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["../../../shared/*"]
     },
 
     /* Bundler mode */

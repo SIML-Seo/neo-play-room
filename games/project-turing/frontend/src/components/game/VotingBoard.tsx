@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import Button from '@/components/common/Button'
+import Button from '@shared/ui-components/Button'
 import type { Answer } from '@/types/game.types'
 
 interface VotingBoardProps {

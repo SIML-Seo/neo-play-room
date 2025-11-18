@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import Button from '@/components/common/Button'
-import { sanitizeMessage } from '@/utils/sanitizer'
+import Button from '@shared/ui-components/Button'
+import { sanitizeMessage } from '@shared/utils/sanitizer'
 
 interface AnswerInputProps {
   question: string

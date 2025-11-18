@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getGameLog, type GameLog } from '@/services/gameLogs'
-import Button from '@/components/common/Button'
-import Loader from '@/components/common/Loader'
+import Button from '@shared/ui-components/Button'
+import Loader from '@shared/ui-components/Loader'
 
 export default function Results() {
   const { roomId } = useParams<{ roomId: string }>()
