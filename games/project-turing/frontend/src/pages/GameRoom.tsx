@@ -113,9 +113,10 @@ export default function GameRoom() {
     if (currentTurn.voteResult) return
 
     const voteCount = Object.keys(currentTurn.votes).length
+    const playerCount = Object.keys(gameRoom.players).length
 
-    // 모든 플레이어(5명)가 투표를 완료했고, 아직 집계하지 않았으면 집계 호출
-    if (voteCount === 5 && !voteResultChecked.current[gameRoom.currentTurn]) {
+    // 모든 플레이어가 투표를 완료했고, 아직 집계하지 않았으면 집계 호출
+    if (voteCount === playerCount && !voteResultChecked.current[gameRoom.currentTurn]) {
       voteResultChecked.current[gameRoom.currentTurn] = true
       console.log('[GameRoom] 투표 집계 호출:', { voteCount })
 
