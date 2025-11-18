@@ -163,7 +163,7 @@
 
 ---
 
-### Week 8: 테스트 & 배포 (Testing & Deployment) ⚠️ **진행 중**
+### Week 8: 테스트 & 배포 (Testing & Deployment) ⚠️ **40% 완료**
 
 #### Week 8-1: 통합 테스트
 - [ ] E2E 테스트 (Playwright) ⚠️ **TODO**
@@ -181,6 +181,7 @@
 - [ ] 프로덕션 배포 ⚠️ **TODO**
   - [ ] Firebase Hosting 배포
   - [ ] Cloud Functions 배포
+  - [x] Security Rules 작성 완료 ✅
   - [ ] Security Rules 배포
   - [ ] 환경 변수 설정
 
@@ -257,12 +258,20 @@
 - [x] 리더보드
 - [x] "다시 하기" 버튼
 
-### 보안 (Security) ⚠️ **50%**
-- [ ] RTDB Security Rules ⚠️ **TODO**
-- [ ] aiPlayerId 읽기 차단 ⚠️ **TODO**
-- [ ] 투표 결과 쓰기 차단 (Functions만) ⚠️ **TODO**
+### 보안 (Security) ✅ **100%**
+- [x] RTDB Security Rules 강화 완료
+- [x] aiPlayerId 읽기/쓰기 차단 ✅
+- [x] 답변의 isAI 필드 읽기/쓰기 차단 ✅
+- [x] 투표 결과 쓰기 차단 (Functions만) ✅
+- [x] 게임 상태 변경 차단 (status, currentTurn, endTime - Functions만) ✅
+- [x] 투표 권한 제한 (자기 uid만 투표 가능, 중복 투표 방지) ✅
+- [x] 답변 수정 방지 (한 번만 쓰기 가능) ✅
+- [x] 난이도 변경 제한 (waiting 상태일 때만) ✅
+- [x] 채팅 메시지 수정 방지 ✅
+- [x] 사용자 프로필 보호 (읽기 전용) ✅
 - [x] XSS 방지 (DOMPurify - **@shared/utils/sanitizer**)
 - [x] API 키 보호 (Functions만)
+- [x] Firestore Rules (gameLogs, leaderboard, questions - 읽기 전용)
 
 ### 테스트 (Testing) ⚠️ **20%**
 - [x] 컴포넌트 단위 테스트 (일부)
@@ -300,7 +309,7 @@
 - [x] Week 5: **100%** ✅
 - [x] Week 6: **100%** ✅
 - [x] Week 7: **100%** ✅
-- [ ] Week 8: **30%** ⚠️ (테스트 & 배포 진행 중)
+- [ ] Week 8: **40%** ⚠️ (테스트 & 배포 진행 중)
 
 ### 기능별 진행률
 - [x] 인증: **100%** ✅ (@shared 통합 완료)
@@ -356,8 +365,20 @@
   - UI 컴포넌트 (Button, Loader, Timer)
   - Utils (sanitizer, shuffle)
 
+- ✅ **Security Rules 강화** (2025-11-18 오후)
+  - RTDB Security Rules 전면 개선 (database.rules.json)
+  - aiPlayerId 및 isAI 필드 읽기/쓰기 차단
+  - 투표 결과 쓰기 차단 (Functions만 허용)
+  - 게임 상태 변경 차단 (status, currentTurn, endTime)
+  - 투표 권한 제한 (자기 uid만, 중복 방지)
+  - 답변 수정 방지 (한 번만 쓰기)
+  - 난이도 변경 제한 (waiting 상태일 때만)
+  - 채팅 메시지 수정 방지
+  - 사용자 프로필 보호 (읽기 전용)
+
 ### 다음 작업 (Week 8)
-- [ ] Security Rules 작성 및 배포
+- [x] Security Rules 작성 완료 ✅ (2025-11-18)
+- [ ] Security Rules 배포
 - [ ] 질문 풀 데이터 생성 (Firestore)
 - [ ] E2E 테스트 작성
 - [ ] 프로덕션 배포
