@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { sanitizeMessage } from '@shared/utils/sanitizer'
+import { sanitizeMessage } from '@/utils/sanitizer'
 
 interface AnswerInputProps {
   question: string
@@ -82,7 +82,7 @@ export default function AnswerInput({
                 isNearLimit ? 'text-cyber-gold' :
                 'text-white/50'
               }`}>
-                {characterCount}/{maxLength}
+                {characterCount}/{maxLength}자
               </span>
             </div>
             <textarea
@@ -114,7 +114,7 @@ export default function AnswerInput({
 
           <button
             onClick={handleSubmit}
-            disabled={disabled || answer.trim().length === 0 || isOverLimit}
+            disabled={disabled || answer.trim().length === 0}
             className="w-full px-8 py-5 md:py-6 bg-terminal-surface border-4 border-cyber-pink text-cyber-pink font-terminal font-bold text-xl md:text-2xl
                        hover:bg-cyber-pink hover:text-terminal-bg transition-all duration-300
                        shadow-glow-pink hover:shadow-glow-pink hover:scale-105

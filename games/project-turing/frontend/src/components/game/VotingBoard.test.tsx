@@ -57,23 +57,23 @@ describe('VotingBoard', () => {
   it('투표 버튼 클릭 시 onVote 호출됨', () => {
     const onVote = vi.fn()
     render(<VotingBoard {...defaultProps} onVote={onVote} />)
-    
+
     // player_1 선택
     const firstAnswer = screen.getByText('매우 좋아요!').closest('div')
     if (firstAnswer) {
       fireEvent.click(firstAnswer)
     }
-    
+
     // 투표 버튼 클릭
-    const voteButton = screen.getByText('투표하기')
+    const voteButton = screen.getByText('투표 확정하기')
     fireEvent.click(voteButton)
-    
+
     expect(onVote).toHaveBeenCalledWith('player_1')
   })
 
   it('선택하지 않으면 투표 버튼 비활성화', () => {
     render(<VotingBoard {...defaultProps} />)
-    const voteButton = screen.getByText('투표하기')
+    const voteButton = screen.getByText('투표 확정하기')
     expect(voteButton).toBeDisabled()
   })
 
