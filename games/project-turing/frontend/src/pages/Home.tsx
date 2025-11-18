@@ -50,14 +50,23 @@ export default function Home() {
           </div>
         )}
 
-        <div className="pt-4 animate-fadeIn" style={{ animationDelay: '0.3s' }}>
+        <div className="pt-4 space-y-4 animate-fadeIn" style={{ animationDelay: '0.3s' }}>
           <Button
             onClick={handleLogin}
             size="lg"
-            className="px-8 py-4 bg-white text-primary hover:bg-gray-100"
+            className="px-8 py-4 bg-white text-primary hover:bg-gray-100 w-full"
             disabled={loading}
           >
             {loading ? '로그인 중...' : 'Google로 로그인'}
+          </Button>
+
+          <Button
+            onClick={() => navigate('/leaderboard')}
+            size="lg"
+            variant="secondary"
+            className="px-8 py-4 bg-white/20 text-white border-2 border-white hover:bg-white/30 w-full"
+          >
+            🏆 리더보드 보기
           </Button>
         </div>
 

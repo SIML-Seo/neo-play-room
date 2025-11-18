@@ -1,0 +1,14 @@
+{
+  "name": "@neo-play-room/shared",
+  "version": "1.0.0",
+  "description": "Shared components and utilities for Neo Play Room games",
+  "type": "module",
+  "exports": {
+    "./ui/*": "./ui-components/*.tsx",
+    "./utils/*": "./utils/*.ts"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "dompurify": "^3.0.0"
+  }
+}
