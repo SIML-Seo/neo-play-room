@@ -7,7 +7,7 @@
       "waitingPlayers": {
         ".read": "auth != null",
         "$uid": {
-          ".write": "auth != null && auth.uid == $uid"
+          ".write": "auth != null"
         }
       }
     },
@@ -16,7 +16,7 @@
       ".read": "auth != null",
       "$roomId": {
         ".read": "auth != null",
-        ".write": false,
+        ".write": "auth != null && (data.exists() ? data.child('players').child(auth.uid).exists() : root.child('lobby').child('waitingPlayers').child(auth.uid).exists())",
 
         // AI 플레이어 ID는 절대 읽기/쓰기 불가 (게임 종료 전까지 숨김)
         "aiPlayerId": {

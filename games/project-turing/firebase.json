@@ -32,7 +32,8 @@
       "port": 9099
     },
     "database": {
-      "port": 9000
+      "port": 9000,
+      "rules": "database.rules.dev.json"
     },
     "firestore": {
       "port": 9299

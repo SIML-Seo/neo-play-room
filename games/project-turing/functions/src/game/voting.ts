@@ -5,7 +5,14 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import * as admin from 'firebase-admin'
 
-export const checkVoteResult = onCall(async (request) => {
+export const checkVoteResult = onCall(
+  {
+    region: 'asia-northeast3',
+    timeoutSeconds: 30,
+    memory: '512MiB',
+    cors: true,
+  },
+  async (request) => {
   // 1. 인증 확인
   if (!request.auth) {
     throw new HttpsError('unauthenticated', '로그인이 필요합니다.')

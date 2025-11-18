@@ -4,11 +4,18 @@
  */
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
-import * as admin from 'firebase-admin'
+import { getDatabase, ServerValue } from 'firebase-admin/database'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { buildPrompt } from './prompts'
 
-export const generateAIResponse = onCall(async (request) => {
+export const generateAIResponse = onCall(
+  {
+    region: 'asia-northeast3',
+    timeoutSeconds: 30,
+    memory: '512MiB',
+    cors: true,
+  },
+  async (request) => {
   // 1. 인증 확인
   if (!request.auth) {
     throw new HttpsError('unauthenticated', '로그인이 필요합니다.')
@@ -23,11 +30,18 @@ export const generateAIResponse = onCall(async (request) => {
 
   try {
     // 3. 게임 룸 데이터 가져오기
-    const gameRoomSnapshot = await admin
-      .database()
+    console.log('[generateAIResponse] 요청 데이터:', { roomId, turn })
+
+    const db = getDatabase()
+
+    console.log('[generateAIResponse] Database ref:', db.ref().toString())
+
+    const gameRoomSnapshot = await db
       .ref(`/gameRooms/${roomId}`)
       .once('value')
     const gameRoom = gameRoomSnapshot.val()
+
+    console.log('[generateAIResponse] gameRoom exists:', !!gameRoom)
 
     if (!gameRoom) {
       throw new HttpsError('not-found', '게임 룸을 찾을 수 없습니다.')
@@ -74,12 +88,11 @@ export const generateAIResponse = onCall(async (request) => {
     const answer = result.response.text().trim()
 
     // 8. RTDB에 답변 저장
-    await admin
-      .database()
+    await db
       .ref(`/gameRooms/${roomId}/turns/${turn}/answers/${aiPlayerId}`)
       .set({
         text: answer,
-        submittedAt: admin.database.ServerValue.TIMESTAMP,
+        submittedAt: ServerValue.TIMESTAMP,
         isAI: true, // 보안 규칙으로 읽기 차단
       })
 

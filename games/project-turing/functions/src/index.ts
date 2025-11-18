@@ -6,7 +6,9 @@
 import * as admin from 'firebase-admin'
 
 // Firebase Admin 초기화
-admin.initializeApp()
+admin.initializeApp({
+  databaseURL: 'http://127.0.0.1:9000/?ns=project-turing-4bc25-default-rtdb',
+})
 
 // AI Functions
 export { generateAIResponse } from './ai/respondAnswer'
