@@ -10,7 +10,8 @@ import Timer from '@shared/ui-components/Timer'
 import AnswerInput from '@/components/game/AnswerInput'
 import VotingBoard from '@/components/game/VotingBoard'
 
-// 타이머 설정 (초 단위)
+// 환경 변수 설정
+const MAX_PLAYERS = Number(import.meta.env.VITE_MAX_PLAYERS) || 5
 const ANSWER_TIME_LIMIT = Number(import.meta.env.VITE_ANSWER_TIME_LIMIT) || 90
 const VOTE_TIME_LIMIT = Number(import.meta.env.VITE_VOTE_TIME_LIMIT) || 60
 
@@ -74,31 +75,31 @@ export default function GameRoom() {
     }
   }, [isAuthenticated, navigate])
 
-  // AI 답변 생성 (답변 제출 후)
+  // AI 답변 자동 생성 (턴 시작 3초 후)
   useEffect(() => {
-    if (!gameRoom || !roomId || !user) return
+    if (!gameRoom || !roomId) return
     if (gameRoom.status !== 'in-progress') return
 
     const currentTurn = gameRoom.turns[gameRoom.currentTurn]
-    if (!currentTurn || !currentTurn.answers) return
+    if (!currentTurn) return
 
-    const answerCount = Object.keys(currentTurn.answers).length
-
-    // Easy/Normal: 모든 인간 플레이어(5명) 답변 제출 후 AI 답변 생성
-    // Hard: 4명 제출 후 AI 답변 생성
-    const requiredCount = gameRoom.difficulty === 'hard' ? 4 : 5
-
-    if (answerCount === requiredCount) {
-      // AI 답변이 아직 없으면 생성
-      const myAnonymousId = getMyAnonymousId(user.uid)
-      if (myAnonymousId && !currentTurn.answers[myAnonymousId]) {
-        console.log('[GameRoom] AI 답변 생성 호출:', { requiredCount, answerCount })
-        generateAIAnswer(roomId, gameRoom.currentTurn).catch((err) => {
-          console.error('AI 답변 생성 실패:', err)
-        })
-      }
+    // AI 답변이 이미 있으면 스킵
+    const aiPlayerId = gameRoom.aiPlayerId
+    if (currentTurn.answers && currentTurn.answers[aiPlayerId]) {
+      console.log('[GameRoom] AI 답변이 이미 존재함')
+      return
     }
-  }, [gameRoom, roomId, user, getMyAnonymousId])
+
+    // 턴 시작 3초 후 AI 답변 생성
+    const timer = setTimeout(() => {
+      console.log('[GameRoom] 3초 경과, AI 답변 생성 호출')
+      generateAIAnswer(roomId, gameRoom.currentTurn).catch((err) => {
+        console.error('[GameRoom] AI 답변 생성 실패:', err)
+      })
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [gameRoom?.currentTurn, gameRoom?.status, roomId])
 
   // 투표 결과 자동 집계 (모든 플레이어 투표 완료 후)
   useEffect(() => {
@@ -213,8 +214,8 @@ export default function GameRoom() {
   // 답변/투표 개수
   const answerCount = currentTurn?.answers ? Object.keys(currentTurn.answers).length : 0
   const voteCount = currentTurn?.votes ? Object.keys(currentTurn.votes).length : 0
-  const allAnswersSubmitted = answerCount === 6 // 5명 + AI
-  const allVotesSubmitted = voteCount === 5
+  const allAnswersSubmitted = answerCount === MAX_PLAYERS + 1 // MAX_PLAYERS명 + AI
+  const allVotesSubmitted = voteCount === MAX_PLAYERS
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -269,7 +270,7 @@ export default function GameRoom() {
 
             {/* 플레이어 준비 상태 */}
             <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-4">플레이어 ({Object.keys(gameRoom.players).length}/5)</h3>
+              <h3 className="text-lg font-semibold mb-4">플레이어 ({Object.keys(gameRoom.players).length}/{MAX_PLAYERS})</h3>
               <div className="space-y-2">
                 {Object.values(gameRoom.players).map((player) => (
                   <div key={player.uid} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -329,7 +330,7 @@ export default function GameRoom() {
                 <div className="text-right">
                   <p className="text-sm text-gray-600 mb-1">답변 제출</p>
                   <p className="text-2xl font-bold">
-                    {answerCount}/6
+                    {answerCount}/{MAX_PLAYERS + 1}
                   </p>
                 </div>
               </div>
@@ -395,7 +396,7 @@ export default function GameRoom() {
                 <div className="flex justify-between items-center">
                   <p className="text-lg font-semibold">투표 진행 상황</p>
                   <p className="text-2xl font-bold">
-                    {voteCount}/5
+                    {voteCount}/{MAX_PLAYERS}
                   </p>
                 </div>
               </div>
