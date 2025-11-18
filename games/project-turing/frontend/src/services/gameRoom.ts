@@ -28,16 +28,18 @@ export async function updatePlayerReady(
   playerId: string,
   ready: boolean
 ): Promise<void> {
-  const playerRef = ref(database, `gameRooms/${roomId}/players/${playerId}/ready`)
-  await set(playerRef, ready)
+  await update(ref(database, `gameRooms/${roomId}/players/${playerId}`), {
+    ready,
+  })
 }
 
 /**
  * 난이도 변경
  */
 export async function updateDifficulty(roomId: string, difficulty: Difficulty): Promise<void> {
-  const difficultyRef = ref(database, `gameRooms/${roomId}/difficulty`)
-  await set(difficultyRef, difficulty)
+  await update(ref(database, `gameRooms/${roomId}`), {
+    difficulty,
+  })
 }
 
 /**

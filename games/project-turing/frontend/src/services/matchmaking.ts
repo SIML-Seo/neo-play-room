@@ -1,4 +1,4 @@
-import { ref, onValue, set, remove, push } from 'firebase/database'
+import { ref, onValue, set, remove, push, serverTimestamp } from 'firebase/database'
 import { database } from '@/firebase'
 import type { User } from 'firebase/auth'
 import type { Player } from '@/types/game.types'
@@ -97,14 +97,20 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
   // 플레이어 데이터 구성
   const playersData: Record<string, Player> = {}
   players.forEach((player, index) => {
-    playersData[player.uid] = {
+    const playerData: Player = {
       uid: player.uid,
       name: player.name,
       email: player.email,
-      photoURL: player.photoURL || undefined,
       anonymousId: anonymousIds[index],
       ready: false,
     }
+
+    // photoURL이 있을 때만 추가 (undefined 방지)
+    if (player.photoURL) {
+      playerData.photoURL = player.photoURL
+    }
+
+    playersData[player.uid] = playerData
   })
 
   // 게임 룸 생성
@@ -115,7 +121,7 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
     currentTurn: 1,
     maxTurns: Number(import.meta.env.VITE_MAX_TURNS) || 5,
     aiPlayerId, // 보안 규칙으로 클라이언트에서 읽기 차단
-    startTime: null,
+    startTime: serverTimestamp(), // ✅ serverTimestamp 사용 (findMyGameRoom이 제대로 작동하도록)
     endTime: null,
     players: playersData,
     turns: {},
@@ -139,23 +145,32 @@ export async function findMyGameRoom(uid: string): Promise<string | null> {
   const snapshot = await get(roomsRef)
 
   if (!snapshot.exists()) {
+    console.log('[findMyGameRoom] gameRooms 없음')
     return null
   }
 
-  // 가장 최근에 생성된 방 중에서 내가 속한 방 찾기
+  // 내가 속한 방 찾기 (waiting 또는 in-progress 상태만)
   let foundRoomId: string | null = null
-  let latestStartTime = 0
 
   snapshot.forEach((child) => {
     const roomData = child.val()
-    if (roomData.players && roomData.players[uid]) {
-      const startTime = roomData.startTime || 0
-      if (startTime > latestStartTime) {
-        latestStartTime = startTime
-        foundRoomId = child.key
-      }
+    console.log('[findMyGameRoom] 방 체크:', {
+      roomId: child.key,
+      hasPlayers: !!roomData.players,
+      hasMe: roomData.players && !!roomData.players[uid],
+      status: roomData.status,
+    })
+
+    if (
+      roomData.players &&
+      roomData.players[uid] &&
+      (roomData.status === 'waiting' || roomData.status === 'in-progress')
+    ) {
+      foundRoomId = child.key
+      console.log('[findMyGameRoom] 찾음!', foundRoomId)
     }
   })
 
+  console.log('[findMyGameRoom] 최종 결과:', { uid, foundRoomId })
   return foundRoomId
 }

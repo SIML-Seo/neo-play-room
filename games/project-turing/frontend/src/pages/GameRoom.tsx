@@ -204,7 +204,7 @@ export default function GameRoom() {
   }
 
   const myAnonymousId = getMyAnonymousId(user.uid)
-  const currentTurn = gameRoom.turns[gameRoom.currentTurn]
+  const currentTurn = gameRoom.turns?.[gameRoom.currentTurn]
 
   // 현재 턴의 내 답변/투표 여부
   const myAnswer = currentTurn?.answers?.[myAnonymousId || '']

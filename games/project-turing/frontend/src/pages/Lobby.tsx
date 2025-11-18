@@ -16,12 +16,24 @@ export default function Lobby() {
     isInWaitingRoom,
   } = useMatchmaking()
 
+  // 환경 변수에서 게임 설정 가져오기
+  const MAX_PLAYERS = Number(import.meta.env.VITE_MAX_PLAYERS) || 5
+  const MAX_TURNS = Number(import.meta.env.VITE_MAX_TURNS) || 5
+
   // 로그인 안 되어 있으면 홈으로 리다이렉트
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/')
     }
   }, [isAuthenticated, navigate])
+
+  // 자동으로 대기열에 참가
+  useEffect(() => {
+    if (user && !isInWaitingRoom && !isJoining) {
+      console.log('[Lobby] 자동으로 대기열에 참가')
+      joinWaitingRoom()
+    }
+  }, [user, isInWaitingRoom, isJoining, joinWaitingRoom])
 
   const handleLogout = async () => {
     try {
@@ -46,7 +58,7 @@ export default function Lobby() {
     )
   }
 
-  const progressPercentage = (waitingPlayers.length / 5) * 100
+  const progressPercentage = (waitingPlayers.length / MAX_PLAYERS) * 100
 
   return (
     <div className="min-h-screen bg-terminal-bg p-4 md:p-8 noise-texture">
@@ -96,7 +108,7 @@ export default function Lobby() {
               <div className="flex items-baseline gap-3">
                 <span className="text-cyber-blue font-mono text-sm">[SYSTEM]</span>
                 <span className="text-phosphor-green font-terminal text-3xl glow-text">
-                  PLAYER QUEUE: {waitingPlayers.length}/5
+                  PLAYER QUEUE: {waitingPlayers.length}/{MAX_PLAYERS}
                 </span>
               </div>
 
@@ -116,8 +128,8 @@ export default function Lobby() {
               </div>
 
               <p className="text-white/70 font-mono text-xs pl-8">
-                {waitingPlayers.length < 5
-                  ? `▸ ${5 - waitingPlayers.length}명의 플레이어를 더 기다리는 중...`
+                {waitingPlayers.length < MAX_PLAYERS
+                  ? `▸ ${MAX_PLAYERS - waitingPlayers.length}명의 플레이어를 더 기다리는 중...`
                   : '▸ 게임 세션 초기화 중...'}
               </p>
             </div>
@@ -131,35 +143,26 @@ export default function Lobby() {
               </div>
             )}
 
-            {/* Join/Leave Controls */}
-            <div className="flex gap-4">
-              {!isInWaitingRoom ? (
-                <button
-                  onClick={joinWaitingRoom}
-                  disabled={isJoining}
-                  className="flex-1 px-6 py-3 bg-terminal-surface border-2 border-phosphor-green text-phosphor-green font-mono font-bold
-                             hover:bg-phosphor-green hover:text-terminal-bg transition-all duration-300
-                             shadow-glow-green hover:shadow-glow-green
-                             disabled:opacity-50 disabled:cursor-not-allowed
-                             glitch-hover"
-                >
-                  {isJoining ? '> JOINING...' : '> JOIN QUEUE'}
-                </button>
-              ) : (
-                <button
-                  onClick={leaveWaitingRoom}
-                  className="flex-1 px-6 py-3 bg-terminal-surface border-2 border-cyber-red text-cyber-red font-mono font-bold
-                             hover:bg-cyber-red hover:text-terminal-bg transition-all duration-300
-                             shadow-glow-red hover:shadow-glow-red
-                             glitch-hover"
-                >
-                  {'> LEAVE QUEUE'}
-                </button>
-              )}
+            {/* Status Info - 자동 매칭 안내 */}
+            <div className="p-4 bg-cyber-blue/10 border-2 border-cyber-blue/50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-cyber-blue font-mono text-sm font-bold glow-text animate-blink">
+                  [!] 자동 매칭 진행 중
+                </span>
+              </div>
+              <p className="text-white/80 font-mono text-xs">
+                ▸ 대기열에 자동으로 참가되었습니다
+              </p>
+              <p className="text-white/80 font-mono text-xs">
+                ▸ {MAX_PLAYERS}명이 모이면 자동으로 게임이 시작됩니다
+              </p>
+            </div>
 
+            {/* Navigation */}
+            <div className="flex gap-4">
               <button
                 onClick={() => navigate('/')}
-                className="px-6 py-3 bg-terminal-surface border-2 border-cyber-blue text-cyber-blue font-mono font-bold
+                className="flex-1 px-6 py-3 bg-terminal-surface border-2 border-cyber-blue text-cyber-blue font-mono font-bold
                            hover:bg-cyber-blue hover:text-terminal-bg transition-all duration-300
                            shadow-glow-blue
                            glitch-hover"
@@ -231,7 +234,7 @@ export default function Lobby() {
               )}
 
               {/* Empty Slots */}
-              {Array.from({ length: 5 - waitingPlayers.length }).map((_, index) => (
+              {Array.from({ length: MAX_PLAYERS - waitingPlayers.length }).map((_, index) => (
                 <div
                   key={`empty-${index}`}
                   className="p-4 bg-terminal-bg/30 border-2 border-dashed border-white/20"
@@ -266,7 +269,7 @@ export default function Lobby() {
               <ul className="space-y-2 text-xs font-mono text-white/80 leading-relaxed">
                 <li className="flex items-start gap-2">
                   <span className="text-cyber-blue">▸</span>
-                  <span>세션에 5명의 인간 + AI 1개가 매칭됩니다</span>
+                  <span>세션에 {MAX_PLAYERS}명의 인간 + AI 1개가 매칭됩니다</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-cyber-blue">▸</span>
@@ -278,7 +281,7 @@ export default function Lobby() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-cyber-yellow">▸</span>
-                  <span>성공 조건: 5턴 이내에 AI 찾기</span>
+                  <span>성공 조건: {MAX_TURNS}턴 이내에 AI 찾기</span>
                 </li>
               </ul>
             </div>

@@ -18,16 +18,31 @@ export function useMatchmaking() {
   const [error, setError] = useState<string | null>(null)
   const [wasInLobby, setWasInLobby] = useState(false)
 
-  // 게임 시작 처리 (Cloud Functions matchPlayers trigger가 게임 룸을 생성)
-  // 클라이언트는 단지 대기만 함
+  // 게임 시작 처리 (첫 번째 플레이어만 게임 룸 생성)
   const handleGameStart = useCallback(
-    (players: WaitingPlayer[]) => {
-      console.log('[useMatchmaking] 5명 모임, Cloud Functions가 게임 룸 생성 중...')
-      // Cloud Functions matchPlayers trigger가 자동으로 게임 룸을 생성하고
-      // 대기열에서 플레이어를 제거함
-      // 클라이언트는 subscribeToWaitingPlayers에서 제거를 감지하고 자동으로 navigate
+    async (players: WaitingPlayer[]) => {
+      console.log('[useMatchmaking] MAX_PLAYERS 모임, 게임 시작 중...')
+
+      try {
+        // 첫 번째 플레이어만 게임 룸 생성 (중복 방지)
+        const isFirstPlayer = user && players[0]?.uid === user.uid
+
+        if (isFirstPlayer) {
+          console.log('[useMatchmaking] 첫 번째 플레이어, 게임 룸 생성 중...')
+          const { createGameRoom } = await import('@/services/matchmaking')
+          const roomId = await createGameRoom(players)
+          console.log('[useMatchmaking] 게임 룸 생성 완료:', roomId)
+
+          // 게임 룸으로 이동
+          navigate(`/game/${roomId}`, { replace: true })
+        }
+        // 다른 플레이어들은 subscribeToWaitingPlayers에서 자동으로 navigate
+      } catch (err) {
+        console.error('[useMatchmaking] 게임 룸 생성 실패:', err)
+        setError('게임 룸 생성에 실패했습니다.')
+      }
     },
-    []
+    [user, navigate]
   )
 
   // 대기 중인 플레이어 목록 실시간 구독
@@ -45,12 +60,13 @@ export function useMatchmaking() {
         wasInLobby,
         isCurrentlyInLobby,
         playerCount: players.length,
+        playerUids: players.map((p) => p.uid),
       })
 
       // 이전에 대기실에 있었는데 지금은 없다면 = 게임 룸으로 이동됨
       if (wasInLobby && !isCurrentlyInLobby && user) {
         console.log('[useMatchmaking] 대기실에서 제거됨, 게임 룸 찾는 중...')
-        hasNavigated = true
+        hasNavigated = true // 네비게이션 플래그 설정
 
         // 내가 속한 게임 룸 찾아서 이동
         findMyGameRoom(user.uid)
@@ -60,22 +76,21 @@ export function useMatchmaking() {
               navigate(`/game/${roomId}`)
             } else {
               console.warn('[useMatchmaking] 게임 룸을 찾지 못함')
-              hasNavigated = false
+              hasNavigated = false // 실패시 플래그 리셋
             }
           })
           .catch((err) => {
             console.error('[useMatchmaking] 게임 룸 찾기 실패:', err)
-            hasNavigated = false
+            hasNavigated = false // 실패시 플래그 리셋
           })
-        return
+        return // 네비게이션 시작했으므로 이후 로직 실행 안함
       }
 
       setWasInLobby(isCurrentlyInLobby)
       setWaitingPlayers(players)
 
-      // 5명 모였는지 확인하고 게임 시작
+      // MAX_PLAYERS 모였는지 확인
       if (checkAndStartGame(players)) {
-        console.log('[useMatchmaking] 5명 모임, 게임 시작')
         handleGameStart(players)
       }
     })
@@ -83,7 +98,7 @@ export function useMatchmaking() {
     return () => {
       unsubscribe()
     }
-  }, [user, wasInLobby, navigate, handleGameStart])
+  }, [handleGameStart, user, wasInLobby, navigate])
 
   // 대기실 입장
   const joinWaitingRoom = useCallback(async () => {
@@ -93,7 +108,7 @@ export function useMatchmaking() {
       setIsJoining(true)
       setError(null)
       await joinLobby(user)
-      setWasInLobby(true)
+      setWasInLobby(true) // 입장 즉시 wasInLobby 설정
     } catch (err) {
       console.error('Failed to join lobby:', err)
       const errorMessage = err instanceof Error ? err.message : '대기실 입장에 실패했습니다.'
