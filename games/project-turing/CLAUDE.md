@@ -36,15 +36,15 @@ games/project-turing/
 │   │   ├── main.tsx             # 앱 진입점
 │   │   ├── App.tsx              # 라우팅
 │   │   ├── components/          # UI 컴포넌트
-│   │   │   ├── game/            # AnswerInput, VotingBoard, Discussion, ResultDisplay
-│   │   │   └── common/          # Button, Modal, Loader, Timer
-│   │   ├── pages/               # Home, Lobby, GameRoom, Results
-│   │   ├── hooks/               # useAuth, useGameRoom, useVoting, useTimer
-│   │   ├── stores/              # Zustand (authStore만 사용)
-│   │   ├── services/            # Firebase SDK 래퍼
+│   │   │   ├── game/            # AnswerInput, VotingBoard
+│   │   │   └── common/          # Modal (일부는 @shared로 이동)
+│   │   ├── pages/               # Home, Lobby, GameRoom, Results, Leaderboard
+│   │   ├── hooks/               # useAuth (→ @shared), useGameRoom, useTimer
+│   │   ├── stores/              # authStore (→ @shared)
+│   │   ├── services/            # Firebase SDK 래퍼, gameLogs
 │   │   ├── types/               # game.types.ts
-│   │   └── utils/               # timeFormatter, sanitizer
-│   ├── vite.config.ts           # Vite 설정
+│   │   └── utils/               # (대부분 @shared로 이동)
+│   ├── vite.config.ts           # Vite 설정 (@shared 경로 포함)
 │   └── package.json             # React 19, Zustand 5
 ├── functions/                   # Cloud Functions (Node 20)
 │   ├── src/
@@ -60,6 +60,14 @@ games/project-turing/
 ├── firebase.json                # Firebase 배포 설정
 └── database.rules.json          # RTDB 보안 규칙
 ```
+
+**⚠️ @shared 모듈 사용**
+다음 모듈들은 `@neo-play-room/shared`로 통합되었습니다:
+- **UI 컴포넌트**: Button, Loader, Timer (`@shared/ui-components/`)
+- **인증**: useAuth, authStore (`@shared/hooks/`, `@shared/store/`)
+- **유틸리티**: sanitizer, shuffle (`@shared/utils/`)
+
+자세한 사용법은 `/shared/README.md` 및 루트 `/CLAUDE.md`의 "📦 Shared 모듈 사용 가이드" 참조.
 
 ---
 
@@ -149,26 +157,34 @@ firebase deploy --only hosting
 
 **새로운 기능 구현 시 반드시 다음을 확인:**
 
-1. **기존 유사 기능이 있는지 먼저 확인**
-   - 예: AI 기능 추가 시 → `functions/src/ai/respondAnswer.ts` 확인 필수
-   - 예: Firebase 인증 추가 시 → `frontend/src/hooks/useAuth.ts` 확인 필수
-   - 예: 투표 로직 추가 시 → `frontend/src/hooks/useVoting.ts` 확인 필수
+1. **@shared 모듈 먼저 확인**
+   - ✅ **필수**: 루트 `/shared/` 디렉토리에 공통 모듈이 있는지 확인
+   - 예: 인증 기능 → `@shared/hooks/useAuth`, `@shared/store/authStore`
+   - 예: UI 컴포넌트 → `@shared/ui-components/Button`, `Loader`, `Timer`
+   - 예: 유틸리티 → `@shared/utils/sanitizer`, `shuffle`
+   - ❌ **금지**: @shared에 있는 기능을 중복 구현
 
-2. **기존 패턴을 반드시 따를 것**
+2. **기존 유사 기능이 있는지 확인**
+   - 예: AI 기능 추가 시 → `functions/src/ai/respondAnswer.ts` 확인 필수
+   - 예: Firebase 인증 추가 시 → `@shared/hooks/useAuth` 확인 필수
+   - 예: 투표 로직 추가 시 → `frontend/src/hooks/useGameRoom.ts` 확인 필수
+
+3. **기존 패턴을 반드시 따를 것**
    - ❌ **절대 금지**: Frontend에서 직접 외부 API 키 사용
    - ✅ **올바른 방법**: Cloud Functions를 통해 API 호출
    - ❌ **절대 금지**: 다른 모델/라이브러리 버전 사용
    - ✅ **올바른 방법**: 기존 구현과 동일한 모델/버전 사용 (gemini-2.5-flash-lite)
 
-3. **보안 원칙 (Security First)**
+4. **보안 원칙 (Security First)**
    - **API 키는 절대 Frontend에 노출 금지**
    - **모든 민감한 로직은 Cloud Functions에서 실행**
    - **환경 변수 위치:**
      - Frontend: `frontend/.env` → `VITE_` 접두사 (public 데이터만)
      - Functions: `functions/.env` → 민감한 키 (API 키 등)
 
-4. **기존 코드 참조 체크리스트**
+5. **기존 코드 참조 체크리스트**
    ```
+   [ ] @shared 모듈에 유사 기능이 있는지 확인했는가?
    [ ] 유사 기능이 이미 구현되어 있는지 확인했는가?
    [ ] 기존 구현의 모델/라이브러리 버전을 확인했는가?
    [ ] 기존 구현의 보안 패턴을 확인했는가?
@@ -346,25 +362,28 @@ firebase deploy --only hosting
 | **GameRoom.tsx** | `/game/:roomId` | **waiting**: 난이도 협의 + 채팅 + 준비 완료 대기실<br>**in-progress**: 메인 게임 (질문 → 답변 → 토론 → 투표) |
 | **Results.tsx** | `/results` | 게임 종료 후 결과 화면 (리더보드) |
 
-#### 커스텀 훅 (src/hooks/)
-| 훅 | 기능 | 반환값 |
-|----|------|--------|
-| **useAuth()** | Firebase Auth 상태 관리 | `{ user, loading, signIn, signOut }` + @neolab.net 검증 |
-| **useGameRoom(roomId)** | 게임 룸 실시간 구독 + 상태 관리 | `{ gameRoom, submitAnswer, submitVote, handlePlayerReady, handleDifficultyChange, handleStartGame }` |
-| **useTimer(duration)** | 타이머 제어 | `{ timeLeft, isRunning, start, pause, reset }` |
-| **useVoting(roomId)** | 투표 로직 | `{ vote, hasVoted, voteResult }` |
-| **useMatchmaking()** | Lobby 플레이어 매칭 | `{ players, joinLobby, leaveLobby, startGame }` |
+#### 커스텀 훅 (src/hooks/ 및 @shared/hooks/)
+| 훅 | 기능 | 반환값 | 위치 |
+|----|------|--------|------|
+| **useAuth()** | Firebase Auth 상태 관리 | `{ user, loading, signIn, signOut }` + @neolab.net 검증 | ⚠️ `@shared/hooks/useAuth` (Factory) |
+| **useGameRoom(roomId)** | 게임 룸 실시간 구독 + 상태 관리 | `{ gameRoom, submitAnswer, submitVote, handlePlayerReady, handleDifficultyChange, handleStartGame }` | Local |
+| **useTimer(duration)** | 타이머 제어 | `{ timeLeft, isRunning, start, pause, reset }` | Local |
+| **useVoting(roomId)** | 투표 로직 | `{ vote, hasVoted, voteResult }` | Local |
+| **useMatchmaking()** | Lobby 플레이어 매칭 | `{ players, joinLobby, leaveLobby, startGame }` | Local |
 
-#### 게임 컴포넌트 (src/components/game/)
-| 컴포넌트 | 기능 |
-|---------|------|
-| **AnswerInput.tsx** | 답변 입력 폼 (타이머 + 텍스트 입력) |
-| **AnswerList.tsx** | 제출된 답변 목록 표시 (익명, 랜덤 순서) |
-| **VotingBoard.tsx** | 투표 UI (6개 답변 중 1개 선택) |
-| **Discussion.tsx** | 토론 시간 채팅 |
-| **TurnIndicator.tsx** | 현재 턴, 질문, 타이머 표시 |
-| **PlayerList.tsx** | 5명 팀원 목록 (프로필 사진, 이름, 부서) |
-| **ResultDisplay.tsx** | 투표 결과 및 AI 공개 |
+#### 게임 컴포넌트 (src/components/game/ 및 @shared/ui-components/)
+| 컴포넌트 | 기능 | 위치 |
+|---------|------|------|
+| **AnswerInput.tsx** | 답변 입력 폼 (타이머 + 텍스트 입력) | Local (uses @shared/Timer, Button) |
+| **AnswerList.tsx** | 제출된 답변 목록 표시 (익명, 랜덤 순서) | Local |
+| **VotingBoard.tsx** | 투표 UI (6개 답변 중 1개 선택) | Local (uses @shared/Button) |
+| **Discussion.tsx** | 토론 시간 채팅 | Local |
+| **TurnIndicator.tsx** | 현재 턴, 질문, 타이머 표시 | Local |
+| **PlayerList.tsx** | 5명 팀원 목록 (프로필 사진, 이름, 부서) | Local |
+| **ResultDisplay.tsx** | 투표 결과 및 AI 공개 | Local |
+| **Button.tsx** | 공통 버튼 (variant, size) | ⚠️ `@shared/ui-components/Button` |
+| **Loader.tsx** | 로딩 스피너 | ⚠️ `@shared/ui-components/Loader` |
+| **Timer.tsx** | 카운트다운 타이머 표시 | ⚠️ `@shared/ui-components/Timer` |
 
 #### Services (src/services/)
 | 파일 | 역할 |
@@ -374,13 +393,13 @@ firebase deploy --only hosting
 | **matchmaking.ts** | Lobby 로직 (`joinLobby`, `createGameRoom(players, difficulty)`) |
 | **ai.ts** | Cloud Function 호출 (`generateAIResponse` httpsCallable) |
 
-#### 유틸리티 (src/utils/)
-| 파일 | 역할 |
-|-----|------|
-| **difficulty.ts** | 난이도 설정 관리 (`DIFFICULTY_CONFIG`, `getDifficultyConfig`, `getDifficultyLabel`) |
-| **timeFormatter.ts** | 시간 포맷팅 유틸리티 |
-| **sanitizer.ts** | XSS 방지 (DOMPurify 래퍼) |
-| **shuffle.ts** | 배열 랜덤 섞기 (답변 공개 시 사용) |
+#### 유틸리티 (src/utils/ 및 @shared/utils/)
+| 파일 | 역할 | 위치 |
+|-----|------|------|
+| **difficulty.ts** | 난이도 설정 관리 (`DIFFICULTY_CONFIG`, `getDifficultyConfig`, `getDifficultyLabel`) | Local |
+| **timeFormatter.ts** | 시간 포맷팅 유틸리티 | Local |
+| **sanitizer.ts** | XSS 방지 (DOMPurify 래퍼) | ⚠️ `@shared/utils/sanitizer` |
+| **shuffle.ts** | Fisher-Yates 배열 랜덤 섞기 (답변 공개 시 사용) | ⚠️ `@shared/utils/shuffle` |
 
 ### Cloud Functions 주요 파일
 
