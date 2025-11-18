@@ -93,7 +93,7 @@ function buildHardPrompt(question: string, otherAnswers: Answer[]): string {
 
   // 패턴 분석
   const avgLength = Math.round(answerTexts.join('').length / answerTexts.length)
-  const hasEmoji = answerTexts.some((a) => /[😀-🙏]/.test(a))
+  const hasEmoji = answerTexts.some((a) => /[\u{1F300}-\u{1F9FF}]/u.test(a))
   const hasCasualEnding = answerTexts.some((a) => /요$|어$|아$/.test(a))
   const avgExclamation = answerTexts.filter((a) => a.includes('!')).length / answerTexts.length
 
