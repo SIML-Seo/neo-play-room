@@ -251,7 +251,7 @@ export default function GameRoom() {
         {/* Waiting 상태 */}
         {gameRoom.status === 'waiting' && (
           <div className="bg-terminal-surface border-4 border-cyber-blue rounded-2xl p-8 shadow-glow-blue">
-            <h2 className="text-3xl font-terminal font-bold mb-8 text-center text-cyber-pink glow-text">게임 준비</h2>
+            <h2 className="text-3xl font-terminal font-bold mb-8 text-center text-cyber-pink">게임 준비</h2>
 
             {/* 난이도 선택 */}
             <div className="mb-8">
