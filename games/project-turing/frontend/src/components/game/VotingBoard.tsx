@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Button from '@shared/ui-components/Button'
 import type { Answer } from '@/types/game.types'
 
 interface VotingBoardProps {
@@ -27,106 +26,101 @@ export default function VotingBoard({ answers, onVote, voted = false, myVote = n
   answersList.sort((a, b) => a.submittedAt - b.submittedAt)
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h3 className="text-2xl font-bold mb-6">
-        {voted ? '투표 완료' : 'AI를 찾아주세요!'}
-      </h3>
+    <div className="space-y-6">
+      {/* 답변 카드 그리드 (3x2) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {answersList.map(({ anonymousId, text }) => {
+          const isSelected = selectedPlayer === anonymousId
+          const isMyVote = voted && myVote === anonymousId
 
-      {/* 답변 목록 */}
-      <div className="space-y-4 mb-6">
-        {answersList.map(({ anonymousId, text }) => (
-          <div
-            key={anonymousId}
-            onClick={() => !voted && setSelectedPlayer(anonymousId)}
-            className={`
-              p-4 border-2 rounded-lg cursor-pointer transition-all
-              ${
-                selectedPlayer === anonymousId
-                  ? 'border-primary bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400'
-              }
-              ${voted && myVote === anonymousId ? 'border-success bg-green-50' : ''}
-              ${voted && myVote !== anonymousId ? 'opacity-50' : ''}
-            `}
-          >
-            <div className="flex items-start gap-4">
-              {/* 익명 ID */}
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white font-bold">
-                  {anonymousId.split('_')[1]}
-                </div>
-              </div>
-
-              {/* 답변 */}
-              <div className="flex-1">
-                <p className="font-semibold text-gray-700 mb-1">{anonymousId}</p>
-                <p className="text-gray-900">{text}</p>
-              </div>
-
-              {/* 선택 표시 */}
-              {selectedPlayer === anonymousId && !voted && (
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
+          return (
+            <div
+              key={anonymousId}
+              onClick={() => !voted && setSelectedPlayer(anonymousId)}
+              className={`
+                relative p-4 rounded-2xl transition-all duration-300 cursor-pointer
+                ${voted && !isMyVote ? 'opacity-50' : ''}
+                ${!voted ? 'hover:scale-105' : ''}
+              `}
+              style={{
+                border: isSelected || isMyVote
+                  ? '4px solid #FFA500'
+                  : '4px solid #00D9FF',
+                backgroundColor: '#1A1F3A',
+              }}
+            >
+              {/* Check icon for selected */}
+              {(isSelected || isMyVote) && (
+                <div className="absolute -top-2 -right-2 w-8 h-8 bg-cyber-gold rounded-full flex items-center justify-center border-2 border-terminal-bg shadow-glow-gold">
+                  <svg className="w-5 h-5 text-terminal-bg" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
                 </div>
               )}
 
-              {/* 내 투표 표시 */}
-              {voted && myVote === anonymousId && (
-                <div className="flex-shrink-0">
-                  <span className="px-3 py-1 bg-success text-white text-sm font-semibold rounded-full">
+              {/* Avatar with gradient */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                     style={{
+                       background: 'linear-gradient(135deg, #FF0080 0%, #A855F7 50%, #00D9FF 100%)'
+                     }}>
+                  {anonymousId.split('_')[1]}
+                </div>
+                <p className="font-mono font-bold text-cyber-blue">{anonymousId}</p>
+              </div>
+
+              {/* Answer text */}
+              <div className="bg-terminal-bg/50 rounded-lg p-3 min-h-[80px]">
+                <p className="text-sm text-white/90 font-mono leading-relaxed">
+                  답변: <span className="text-white">{text}</span>
+                </p>
+              </div>
+
+              {/* My vote badge */}
+              {isMyVote && (
+                <div className="mt-2 flex justify-center">
+                  <span className="px-3 py-1 bg-cyber-gold/20 border border-cyber-gold text-cyber-gold text-xs font-mono font-bold rounded">
                     내 투표
                   </span>
                 </div>
               )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      {/* 투표 버튼 */}
+      {/* Vote button */}
       {!voted ? (
-        <Button
-          onClick={handleVote}
-          disabled={!selectedPlayer}
-          size="lg"
-          className="w-full"
-          variant="primary"
-        >
-          투표하기
-        </Button>
+        <div className="flex justify-center">
+          <button
+            onClick={handleVote}
+            disabled={!selectedPlayer}
+            className="px-12 py-5 bg-terminal-surface border-4 border-cyber-gold text-cyber-gold font-mono font-bold text-xl
+                       hover:bg-cyber-gold hover:text-terminal-bg transition-all duration-300
+                       shadow-glow-gold hover:shadow-glow-gold hover:scale-105
+                       disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100
+                       rounded-xl min-w-[300px]"
+          >
+            투표 확정하기
+          </button>
+        </div>
       ) : (
-        <div className="text-center py-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-success rounded-full mb-4">
+        <div className="text-center py-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-cyber-gold/20 border-4 border-cyber-gold rounded-full mb-4 shadow-glow-gold">
             <svg
-              className="w-8 h-8 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+              className="w-10 h-10 text-cyber-gold"
+              fill="currentColor"
+              viewBox="0 0 20 20"
             >
               <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
               />
             </svg>
           </div>
-          <p className="text-xl font-semibold text-gray-900">투표 완료!</p>
-          <p className="text-gray-600 mt-2">다른 플레이어의 투표를 기다리는 중...</p>
+          <p className="text-2xl font-bold text-cyber-gold font-mono mb-2">투표 완료!</p>
+          <p className="text-cyber-blue font-mono">다른 플레이어의 투표를 기다리는 중...</p>
         </div>
       )}
     </div>
