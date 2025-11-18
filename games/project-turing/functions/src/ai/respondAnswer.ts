@@ -42,6 +42,12 @@ export const generateAIResponse = onCall(async (request) => {
       throw new HttpsError('not-found', '해당 턴을 찾을 수 없습니다.')
     }
 
+    // 5-1. 중복 호출 방지: AI 답변이 이미 있으면 스킵
+    if (currentTurn.answers && currentTurn.answers[aiPlayerId]) {
+      console.log('[generateAIResponse] AI 답변이 이미 존재함. 스킵.', { roomId, turn })
+      return { success: true, answerId: aiPlayerId, message: 'AI 답변이 이미 존재합니다.' }
+    }
+
     const question = currentTurn.question
     const difficulty = gameRoom.difficulty
     const otherAnswers = currentTurn.answers || {}

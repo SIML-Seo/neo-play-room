@@ -4,7 +4,6 @@ import {
   joinLobby,
   leaveLobby,
   subscribeToWaitingPlayers,
-  createGameRoom,
   findMyGameRoom,
   checkAndStartGame,
   type WaitingPlayer,
@@ -19,26 +18,16 @@ export function useMatchmaking() {
   const [error, setError] = useState<string | null>(null)
   const [wasInLobby, setWasInLobby] = useState(false)
 
-  // 게임 시작 처리
+  // 게임 시작 처리 (Cloud Functions matchPlayers trigger가 게임 룸을 생성)
+  // 클라이언트는 단지 대기만 함
   const handleGameStart = useCallback(
-    async (players: WaitingPlayer[]) => {
-      try {
-        // 첫 번째 플레이어만 게임 룸 생성 (중복 방지)
-        const isFirstPlayer = user && players[0]?.uid === user.uid
-
-        if (isFirstPlayer) {
-          console.log('[useMatchmaking] 게임 룸 생성 시작 (첫 번째 플레이어)')
-          const roomId = await createGameRoom(players)
-          navigate(`/game/${roomId}`)
-        }
-        // 다른 플레이어들은 subscribeToWaitingPlayers에서 자동으로 navigate
-      } catch (err) {
-        console.error('Failed to start game:', err)
-        const errorMessage = err instanceof Error ? err.message : '게임 시작에 실패했습니다.'
-        setError(errorMessage)
-      }
+    (players: WaitingPlayer[]) => {
+      console.log('[useMatchmaking] 5명 모임, Cloud Functions가 게임 룸 생성 중...')
+      // Cloud Functions matchPlayers trigger가 자동으로 게임 룸을 생성하고
+      // 대기열에서 플레이어를 제거함
+      // 클라이언트는 subscribeToWaitingPlayers에서 제거를 감지하고 자동으로 navigate
     },
-    [user, navigate]
+    []
   )
 
   // 대기 중인 플레이어 목록 실시간 구독

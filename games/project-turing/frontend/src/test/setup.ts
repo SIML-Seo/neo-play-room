@@ -1,19 +1,8 @@
 import '@testing-library/jest-dom'
-import { expect, afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
+import { afterEach } from 'vitest'
 
 // Cleanup after each test
 afterEach(() => {
   cleanup()
 })
-
-// Mock Firebase in tests
-vi.mock('@/firebase', () => ({
-  auth: {},
-  database: {},
-  firestore: {},
-  functions: {},
-}))
-
-// Extend vitest expect with jest-dom matchers
-expect.extend({})

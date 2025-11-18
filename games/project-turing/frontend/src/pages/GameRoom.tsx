@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useGameRoom } from '@/hooks/useGameRoom'
-import { generateAIAnswer } from '@/services/ai'
+import { generateAIAnswer, checkVoteResult } from '@/services/ai'
 import Button from '@/components/common/Button'
 import Loader from '@/components/common/Loader'
 import Timer from '@/components/common/Timer'
@@ -29,6 +29,9 @@ export default function GameRoom() {
 
   const [submittedAnswer, setSubmittedAnswer] = useState(false)
   const [submittedVote, setSubmittedVote] = useState(false)
+
+  // 투표 집계 호출 여부 추적 (중복 호출 방지)
+  const voteResultChecked = useRef<Record<number, boolean>>({})
 
   // 로그인 안 되어 있으면 홈으로
   useEffect(() => {
@@ -62,6 +65,32 @@ export default function GameRoom() {
       }
     }
   }, [gameRoom, roomId, user, getMyAnonymousId])
+
+  // 투표 결과 자동 집계 (모든 플레이어 투표 완료 후)
+  useEffect(() => {
+    if (!gameRoom || !roomId) return
+    if (gameRoom.status !== 'in-progress') return
+
+    const currentTurn = gameRoom.turns[gameRoom.currentTurn]
+    if (!currentTurn || !currentTurn.votes) return
+
+    // 이미 투표 결과가 있으면 스킵
+    if (currentTurn.voteResult) return
+
+    const voteCount = Object.keys(currentTurn.votes).length
+
+    // 모든 플레이어(5명)가 투표를 완료했고, 아직 집계하지 않았으면 집계 호출
+    if (voteCount === 5 && !voteResultChecked.current[gameRoom.currentTurn]) {
+      voteResultChecked.current[gameRoom.currentTurn] = true
+      console.log('[GameRoom] 투표 집계 호출:', { voteCount })
+
+      checkVoteResult(roomId, gameRoom.currentTurn).catch((err) => {
+        console.error('투표 집계 실패:', err)
+        // 실패 시 재시도 가능하도록 플래그 초기화
+        voteResultChecked.current[gameRoom.currentTurn] = false
+      })
+    }
+  }, [gameRoom, roomId])
 
   if (loading || !user) {
     return (
