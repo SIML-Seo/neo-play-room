@@ -3,6 +3,7 @@
  */
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
+import { getDatabase, ServerValue } from 'firebase-admin/database'
 import * as admin from 'firebase-admin'
 
 export const checkVoteResult = onCall(
@@ -25,9 +26,10 @@ export const checkVoteResult = onCall(
   }
 
   try {
+    const db = getDatabase()
+
     // 2. 투표 데이터 가져오기
-    const votesSnapshot = await admin
-      .database()
+    const votesSnapshot = await db
       .ref(`/gameRooms/${roomId}/turns/${turn}/votes`)
       .once('value')
     const votes = votesSnapshot.val()
@@ -54,8 +56,7 @@ export const checkVoteResult = onCall(
     })
 
     // 5. AI 여부 확인
-    const gameRoomSnapshot = await admin
-      .database()
+    const gameRoomSnapshot = await db
       .ref(`/gameRooms/${roomId}`)
       .once('value')
     const gameRoom = gameRoomSnapshot.val()
@@ -67,30 +68,28 @@ export const checkVoteResult = onCall(
     const gameEnded = isAI || gameRoom.currentTurn >= gameRoom.maxTurns
 
     // 7. 투표 결과 저장
-    await admin
-      .database()
+    await db
       .ref(`/gameRooms/${roomId}/turns/${turn}/voteResult`)
       .set({
         mostVotedPlayer,
         voteCount: maxVotes,
         isAI,
         gameEnded,
-        timestamp: admin.database.ServerValue.TIMESTAMP,
+        timestamp: ServerValue.TIMESTAMP,
       })
 
     // 8. 게임 상태 업데이트
     if (gameEnded) {
-      await admin.database().ref(`/gameRooms/${roomId}`).update({
+      await db.ref(`/gameRooms/${roomId}`).update({
         status: 'finished',
-        endTime: admin.database.ServerValue.TIMESTAMP,
+        endTime: ServerValue.TIMESTAMP,
       })
 
       // 게임 로그 저장 (Firestore)
       await finalizeGame(roomId, gameRoom)
     } else {
       // 다음 턴 시작
-      await admin
-        .database()
+      await db
         .ref(`/gameRooms/${roomId}/currentTurn`)
         .set(gameRoom.currentTurn + 1)
     }
