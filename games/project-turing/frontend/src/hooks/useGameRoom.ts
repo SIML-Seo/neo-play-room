@@ -6,6 +6,7 @@ import {
   startGame,
   submitAnswer,
   submitVote,
+  markNextTurnReady,
   nextTurn,
 } from '@/services/gameRoom'
 import type { GameRoom, Difficulty } from '@/types/game.types'
@@ -116,7 +117,23 @@ export function useGameRoom(roomId: string | undefined) {
     [roomId]
   )
 
-  // 다음 턴
+  // 다음 턴 준비 표시
+  const handleNextTurnReady = useCallback(
+    async (turnNumber: number, uid: string) => {
+      if (!roomId) return
+
+      try {
+        await markNextTurnReady(roomId, turnNumber, uid)
+      } catch (err) {
+        console.error('Failed to mark next turn ready:', err)
+        const errorMessage = err instanceof Error ? err.message : '다음 턴 준비 실패'
+        setError(errorMessage)
+      }
+    },
+    [roomId]
+  )
+
+  // 다음 턴 시작 (모든 플레이어 준비 완료 시 자동 실행)
   const handleNextTurn = useCallback(async () => {
     if (!roomId) return
 
@@ -155,6 +172,7 @@ export function useGameRoom(roomId: string | undefined) {
     handleStartGame,
     handleSubmitAnswer,
     handleSubmitVote,
+    handleNextTurnReady,
     handleNextTurn,
     getMyAnonymousId,
     allPlayersReady,

@@ -150,7 +150,16 @@ export async function getAnswerCount(roomId: string, turnNumber: number): Promis
 }
 
 /**
- * 다음 턴 시작
+ * 다음 턴 준비 표시
+ */
+export async function markNextTurnReady(roomId: string, turnNumber: number, uid: string): Promise<void> {
+  const readyRef = ref(database, `gameRooms/${roomId}/turns/${turnNumber}/nextTurnReady/${uid}`)
+  await set(readyRef, true)
+  console.log('[markNextTurnReady] 다음 턴 준비 완료:', { roomId, turnNumber, uid })
+}
+
+/**
+ * 다음 턴 시작 (모든 플레이어 준비 완료 시 자동 실행)
  */
 export async function nextTurn(roomId: string): Promise<void> {
   const roomRef = ref(database, `gameRooms/${roomId}`)

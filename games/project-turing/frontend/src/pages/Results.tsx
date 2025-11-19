@@ -191,7 +191,7 @@ export default function Results() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                   {Object.entries(turn.answers).map(([anonymousId, answer]) => {
                     const isAI = anonymousId === gameLog.aiPlayerId
-                    const wasVoted = turn.voteResult?.mostVotedPlayer === anonymousId
+                    const wasVoted = turn.voteResult?.mostVotedPlayers?.includes(anonymousId) || turn.voteResult?.mostVotedPlayer === anonymousId
 
                     return (
                       <div
@@ -228,8 +228,37 @@ export default function Results() {
                   <div className="bg-terminal-bg border-2 border-cyber-purple rounded-lg p-4">
                     <p className="text-sm font-mono font-semibold text-cyber-purple mb-1">투표 결과:</p>
                     <p className="text-white font-mono text-sm">
-                      <span className="text-cyber-pink font-bold">{turn.voteResult.mostVotedPlayer}</span>님이{' '}
-                      <span className="text-cyber-gold font-bold">{turn.voteResult.voteCount}표</span>를 받았습니다
+                      {(() => {
+                        const players = Array.isArray(turn.voteResult.mostVotedPlayers)
+                          ? turn.voteResult.mostVotedPlayers
+                          : turn.voteResult.mostVotedPlayer
+                          ? [turn.voteResult.mostVotedPlayer]
+                          : []
+
+                        if (players.length === 0) return '알 수 없음'
+
+                        if (players.length === 1) {
+                          return (
+                            <>
+                              <span className="text-cyber-pink font-bold">{players[0]}</span>님이{' '}
+                              <span className="text-cyber-gold font-bold">{turn.voteResult.voteCount}표</span>를 받았습니다
+                            </>
+                          )
+                        }
+
+                        // 동점자 여러 명
+                        return (
+                          <>
+                            {players.map((player, index) => (
+                              <span key={player}>
+                                <span className="text-cyber-pink font-bold">{player}</span>님이{' '}
+                                <span className="text-cyber-gold font-bold">{turn.voteResult.voteCount}표</span>
+                                {index < players.length - 1 ? ', ' : '를 받았습니다'}
+                              </span>
+                            ))}
+                          </>
+                        )
+                      })()}
                       {turn.voteResult.isAI ? (
                         <span className="text-phosphor-green font-bold"> (✓ AI 맞음!)</span>
                       ) : (

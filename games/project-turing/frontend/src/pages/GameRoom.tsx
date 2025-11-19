@@ -28,6 +28,7 @@ export default function GameRoom() {
     handleStartGame,
     handleSubmitAnswer,
     handleSubmitVote,
+    handleNextTurnReady,
     handleNextTurn,
     getMyAnonymousId,
     allPlayersReady,
@@ -128,6 +129,25 @@ export default function GameRoom() {
     }
   }, [gameRoom, roomId])
 
+  // 모든 플레이어가 "다음 턴" 준비 완료 시 자동으로 다음 턴 시작
+  useEffect(() => {
+    if (!gameRoom || !roomId) return
+    if (gameRoom.status !== 'in-progress') return
+
+    const currentTurn = gameRoom.turns[gameRoom.currentTurn]
+    if (!currentTurn?.voteResult || currentTurn.voteResult.gameEnded) return
+    if (!currentTurn.nextTurnReady) return
+
+    const readyCount = Object.keys(currentTurn.nextTurnReady).length
+    const playerCount = Object.keys(gameRoom.players).length
+
+    // 모든 플레이어가 준비 완료 시 다음 턴 시작
+    if (readyCount === playerCount) {
+      console.log('[GameRoom] 모든 플레이어 다음 턴 준비 완료, 다음 턴 시작')
+      handleNextTurn()
+    }
+  }, [gameRoom, roomId, handleNextTurn])
+
   // 턴 변경 시 상태 초기화
   useEffect(() => {
     if (gameRoom && gameRoom.status === 'in-progress') {
@@ -210,12 +230,16 @@ export default function GameRoom() {
   // 현재 턴의 내 답변/투표 여부
   const myAnswer = currentTurn?.answers?.[myAnonymousId || '']
   const myVote = currentTurn?.votes?.[user.uid]
+  const myNextTurnReady = currentTurn?.nextTurnReady?.[user.uid]
 
   // 답변/투표 개수
   const answerCount = currentTurn?.answers ? Object.keys(currentTurn.answers).length : 0
   const voteCount = currentTurn?.votes ? Object.keys(currentTurn.votes).length : 0
+  const nextTurnReadyCount = currentTurn?.nextTurnReady ? Object.keys(currentTurn.nextTurnReady).length : 0
+  const playerCount = Object.keys(gameRoom.players).length
   const allAnswersSubmitted = answerCount === MAX_PLAYERS + 1 // MAX_PLAYERS명 + AI
   const allVotesSubmitted = voteCount === MAX_PLAYERS
+  const allPlayersNextTurnReady = nextTurnReadyCount === playerCount
 
   return (
     <div className="min-h-screen bg-terminal-bg p-4 md:p-8 noise-texture">
@@ -489,9 +513,11 @@ export default function GameRoom() {
                   </h2>
                   <div className="bg-terminal-bg border-2 border-cyber-blue rounded-xl p-4 inline-block">
                     <p className="text-sm text-cyber-blue font-mono mb-1">최다 득표</p>
-                    <p className="text-2xl font-terminal font-bold text-cyber-gold">
-                      {currentTurn.voteResult.mostVotedPlayer}
-                    </p>
+                    <div className="text-2xl font-terminal font-bold text-cyber-gold">
+                      {Array.isArray(currentTurn.voteResult.mostVotedPlayers)
+                        ? currentTurn.voteResult.mostVotedPlayers.join(', ')
+                        : currentTurn.voteResult.mostVotedPlayer || currentTurn.voteResult.mostVotedPlayers?.[0] || '알 수 없음'}
+                    </div>
                     <p className="text-lg font-mono text-white/70 mt-1">
                       {currentTurn.voteResult.voteCount}표
                     </p>
@@ -508,18 +534,28 @@ export default function GameRoom() {
                     결과 보기
                   </button>
                 ) : (
-                  <button
-                    onClick={() => {
-                      handleNextTurn()
-                      setSubmittedAnswer(false)
-                      setSubmittedVote(false)
-                    }}
-                    className="w-full px-8 py-6 bg-terminal-surface border-4 border-cyber-blue text-cyber-blue font-terminal font-bold text-2xl
-                               hover:bg-cyber-blue hover:text-terminal-bg transition-all duration-300
-                               shadow-glow-blue hover:shadow-glow-blue hover:scale-105 rounded-xl"
-                  >
-                    다음 턴
-                  </button>
+                  <div className="space-y-4 w-full">
+                    <button
+                      onClick={() => {
+                        handleNextTurnReady(gameRoom.currentTurn, user.uid)
+                        setSubmittedAnswer(false)
+                        setSubmittedVote(false)
+                      }}
+                      disabled={myNextTurnReady}
+                      className={`w-full px-8 py-6 font-terminal font-bold text-2xl rounded-xl transition-all duration-300 ${
+                        myNextTurnReady
+                          ? 'bg-terminal-surface/50 border-4 border-phosphor-green/50 text-phosphor-green/50 cursor-not-allowed'
+                          : 'bg-terminal-surface border-4 border-cyber-blue text-cyber-blue hover:bg-cyber-blue hover:text-terminal-bg shadow-glow-blue hover:shadow-glow-blue hover:scale-105'
+                      }`}
+                    >
+                      {myNextTurnReady ? '다음 턴 준비 완료 ✓' : '다음 턴 준비'}
+                    </button>
+                    {nextTurnReadyCount > 0 && (
+                      <p className="text-center text-cyber-blue font-mono">
+                        {nextTurnReadyCount} / {playerCount} 명 준비 완료
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
