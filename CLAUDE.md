@@ -64,7 +64,7 @@ neo-play-room/
 #### 2. **project-turing** (Cycle 2)
 - **게임**: 5인 협동 AI 찾기 (튜링 테스트)
 - **기술 스택**: React 19 + Firebase + Gemini AI
-- **상태**: 📋 설계 완료 (구현 대기)
+- **상태**: 🟢 개발 중
 - **문서**: `games/project-turing/CLAUDE.md`
 - **특징**:
   - AI가 사람처럼 답변, 참가자들이 AI 찾기
@@ -454,6 +454,7 @@ git commit -m "chore(shared): 공통 유틸리티 패키지 추가"
 
 ### 게임 프로젝트
 - **games/project-da-vinci/**: `games/project-da-vinci/CLAUDE.md` 참조
+- **games/project-turing/**: `games/project-turing/CLAUDE.md` 참조
 
 ### 외부 문서
 - [Git Conventional Commits](https://www.conventionalcommits.org/)

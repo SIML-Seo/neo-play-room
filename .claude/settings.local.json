@@ -21,7 +21,10 @@
       "mcp__serena__list_dir",
       "Bash(cmd //c \"taskkill //PID 34176 //F\")",
       "Bash(cat:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

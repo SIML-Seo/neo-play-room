@@ -2,25 +2,65 @@
 
 echo "🧪 Running pre-push tests..."
 
-# Frontend 디렉토리로 이동
-cd games/project-da-vinci/frontend || exit 1
+# 현재 브랜치에서 변경된 파일 확인 (origin과 비교)
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+CHANGED_FILES=$(git diff --name-only origin/$CURRENT_BRANCH..HEAD 2>/dev/null || git diff --name-only HEAD)
 
-# 1. 전체 단위 테스트 실행
-echo "📦 Running unit tests..."
-npm run test:run
+DA_VINCI_CHANGED=$(echo "$CHANGED_FILES" | grep "^games/project-da-vinci/frontend/" || true)
+TURING_CHANGED=$(echo "$CHANGED_FILES" | grep "^games/project-turing/frontend/" || true)
 
-if [ $? -ne 0 ]; then
-  echo "❌ Unit tests failed. Push aborted."
-  exit 1
+# 변경된 프로젝트가 없으면 통과
+if [ -z "$DA_VINCI_CHANGED" ] && [ -z "$TURING_CHANGED" ]; then
+  echo "ℹ️ No frontend files changed. Skipping tests."
+  exit 0
 fi
 
-# 2. 빌드 테스트
-echo "🏗️ Testing build..."
-npm run build
+# project-da-vinci 테스트
+if [ -n "$DA_VINCI_CHANGED" ]; then
+  echo "📦 Testing project-da-vinci..."
+  cd games/project-da-vinci/frontend || exit 1
 
-if [ $? -ne 0 ]; then
-  echo "❌ Build failed. Push aborted."
-  exit 1
+  echo "🧪 Running unit tests..."
+  npm run test:run
+
+  if [ $? -ne 0 ]; then
+    echo "❌ Da-Vinci unit tests failed. Push aborted."
+    exit 1
+  fi
+
+  echo "🏗️ Testing build..."
+  npm run build
+
+  if [ $? -ne 0 ]; then
+    echo "❌ Da-Vinci build failed. Push aborted."
+    exit 1
+  fi
+
+  cd ../../.. || exit 1
+fi
+
+# project-turing 테스트
+if [ -n "$TURING_CHANGED" ]; then
+  echo "🧠 Testing project-turing..."
+  cd games/project-turing/frontend || exit 1
+
+  echo "🧪 Running unit tests..."
+  npm run test:run
+
+  if [ $? -ne 0 ]; then
+    echo "❌ Turing unit tests failed. Push aborted."
+    exit 1
+  fi
+
+  echo "🏗️ Testing build..."
+  npm run build
+
+  if [ $? -ne 0 ]; then
+    echo "❌ Turing build failed. Push aborted."
+    exit 1
+  fi
+
+  cd ../../.. || exit 1
 fi
 
 echo "✅ All pre-push checks passed! Pushing to remote..."
