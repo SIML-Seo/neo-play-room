@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import Button from '@shared/ui-components/Button'
 import Loader from '@shared/ui-components/Loader'
 import { useEffect, useState } from 'react'
 

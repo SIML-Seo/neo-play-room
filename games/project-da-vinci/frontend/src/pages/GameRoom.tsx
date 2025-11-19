@@ -141,23 +141,30 @@ export default function GameRoom() {
 
   if (authLoading || roomLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-600 text-xl">로딩 중...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-gold-frame border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-gallery-cream text-xl font-crimson">갤러리 입장 중...</p>
+        </div>
       </div>
     )
   }
 
   if (roomError || !gameRoom) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">오류 발생</h2>
-          <p className="text-gray-600 mb-6">{roomError || '게임 룸을 찾을 수 없습니다.'}</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="max-w-md w-full gallery-frame bg-wood-dark shadow-gallery p-8 text-center animate-scaleIn">
+          <div className="w-20 h-20 mx-auto mb-6 bg-velvet-red/20 rounded-full flex items-center justify-center border-4 border-velvet-red">
+            <span className="text-4xl">⚠️</span>
+          </div>
+          <h2 className="text-2xl font-playfair font-bold text-gold-frame mb-4">오류 발생</h2>
+          <p className="gallery-text text-gallery-cream mb-6">{roomError || '전시실을 찾을 수 없습니다.'}</p>
           <button
             onClick={() => navigate('/lobby')}
-            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="w-full px-6 py-3 bg-gold-frame text-gallery-floor font-playfair font-bold text-lg
+                       rounded-lg hover:bg-gold-light transition-all shadow-frame-gold hover:scale-105"
           >
-            로비로 돌아가기
+            대기실로 돌아가기
           </button>
         </div>
       </div>
@@ -174,30 +181,31 @@ export default function GameRoom() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-wood-dark border-b-4 border-gold-frame shadow-gallery">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-gray-900">Project Da Vinci</h1>
-              <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-playfair font-bold text-gold-frame gold-glow">Project Da Vinci</h1>
+              <span className="gallery-placard text-xs py-1 px-3">
                 {gameRoom.theme}
               </span>
               {/* 난이도 배지 */}
               {gameRoom.difficulty && (
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-                    getDifficultyConfig(gameRoom.difficulty).bgColor
-                  } ${getDifficultyConfig(gameRoom.difficulty).color}`}
+                  className={`px-3 py-1 rounded-lg text-xs font-crimson font-bold flex items-center gap-1 border-2
+                    ${gameRoom.difficulty === 'easy' ? 'bg-gold-frame/20 border-gold-frame text-gold-light' :
+                      gameRoom.difficulty === 'normal' ? 'bg-gold-dark/20 border-gold-dark text-gold-frame' :
+                      'bg-velvet-red/20 border-velvet-red text-velvet-burgundy'}`}
                 >
                   <span>{getDifficultyConfig(gameRoom.difficulty).icon}</span>
                   <span>{getDifficultyConfig(gameRoom.difficulty).label}</span>
                 </span>
               )}
               {gameRoom.status === 'waiting' && (
-                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
-                  대기 중
+                <span className="px-3 py-1 bg-gold-dark/20 border-2 border-gold-dark text-gold-light rounded-lg text-xs font-crimson font-bold">
+                  준비 중
                 </span>
               )}
             </div>
@@ -207,11 +215,11 @@ export default function GameRoom() {
                 <img
                   src={user.photoURL}
                   alt={user.displayName || ''}
-                  className="w-8 h-8 rounded-full"
+                  className="w-10 h-10 rounded-full border-2 border-gold-frame"
                 />
               )}
               <div className="text-sm">
-                <div className="font-medium text-gray-900">{user.displayName}</div>
+                <div className="font-crimson font-semibold text-gallery-cream">{user.displayName}</div>
               </div>
             </div>
           </div>

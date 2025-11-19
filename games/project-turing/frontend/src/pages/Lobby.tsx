@@ -18,7 +18,6 @@ export default function Lobby() {
 
   // 환경 변수에서 게임 설정 가져오기
   const MAX_PLAYERS = Number(import.meta.env.VITE_MAX_PLAYERS) || 5
-  const MAX_TURNS = Number(import.meta.env.VITE_MAX_TURNS) || 5
 
   // 로그인 안 되어 있으면 홈으로 리다이렉트
   useEffect(() => {

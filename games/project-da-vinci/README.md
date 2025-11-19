@@ -183,8 +183,9 @@
 ### 프론트엔드
 - **프레임워크**: React (Vite)
 - **캔버스 라이브러리**: Fabric.js
-- **스타일링**: Tailwind CSS
+- **스타일링**: Tailwind CSS (미술관/갤러리 테마)
 - **상태 관리**: Zustand (경량 상태 관리)
+- **폰트**: Playfair Display, Cormorant Garamond, Crimson Text (세리프 폰트)
 
 ### 백엔드 (서버리스)
 - **플랫폼**: Firebase
@@ -198,6 +199,43 @@
 - **모델**: Google Gemini 1.5 Flash (Vision API)
 - **오케스트레이션**: Firebase Genkit
 - **프롬프트 전략**: Zero-shot 추론 (정답 미제공)
+
+---
+
+## 🎨 UI/UX 디자인 컨셉
+
+### 미술관/갤러리 테마
+
+Project Da Vinci는 **참가자들이 그린 그림이 액자로 전시되는 우아한 갤러리**라는 컨셉으로 디자인되었습니다.
+
+#### 디자인 시스템
+- **색상 팔레트**:
+  - Dark Wood (#2B2520): 갤러리 벽/배경
+  - Gold Frame (#D4AF37): 액자 테두리, 강조 요소
+  - Velvet Red (#8B0000): 벨벳 커튼 헤더
+  - Ivory (#FFFEF0): 주요 텍스트, 캔버스 배경
+
+- **타이포그래피**:
+  - **Playfair Display**: 타이틀 및 헤딩 (우아한 세리프)
+  - **Cormorant Garamond**: 본문 텍스트 (가독성 높은 세리프)
+  - **Crimson Text**: 라벨 및 캡션 (뮤지엄 라벨 스타일)
+
+- **주요 UI 요소**:
+  - `gallery-frame`: 금색 액자 효과 (다층 그림자, 스포트라이트 효과)
+  - `gallery-placard`: 미술관 작품 설명 라벨 스타일
+  - `velvet-bg`: 애니메이션이 있는 벨벳 커튼 배경
+  - 커스텀 금색 스크롤바
+
+#### 페이지별 컨셉
+- **Home (미술관 입구)**: 벨벳 커튼 헤더, 로마 숫자 전시 관람 안내
+- **Lobby (작가 대기실)**: 참여 작가 목록, 금색 그라데이션 매칭 진행 바
+- **GameRoom (전시실)**: 캔버스를 중심으로 한 액자 전시 레이아웃
+- **Results (전시회)**: 최종 작품 갤러리 전시
+
+### 반응형 디자인
+- 모바일(375px) ~ 데스크탑(1920px) 완벽 지원
+- Tailwind breakpoints: `md` (768px), `lg` (1024px)
+- 터치 디바이스 대응 캔버스 인터랙션
 
 ---
 

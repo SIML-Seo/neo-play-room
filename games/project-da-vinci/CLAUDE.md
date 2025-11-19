@@ -327,6 +327,204 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 
 ---
 
+## 🎨 UI/UX 디자인 시스템
+
+### 미술관/갤러리 테마 컨셉
+
+Project Da Vinci는 **참가자들이 그린 그림이 액자로 전시되는 우아한 갤러리**라는 컨셉으로 디자인되었습니다. 클래식하고 고딕스러운 미술관 분위기로, 게임의 협동 창작 정신을 시각적으로 표현합니다.
+
+### Tailwind 설정 (frontend/tailwind.config.js)
+
+#### 색상 팔레트
+```javascript
+colors: {
+  gallery: {
+    wall: '#2B2520',        // Dark wood/museum wall (배경)
+    'wall-light': '#3A332E', // Lighter wall tone
+    floor: '#1A1512',       // Dark floor
+    cream: '#F5F5DC',       // Cream/Beige
+    ivory: '#FFFEF0',       // Ivory white (주요 텍스트)
+  },
+  gold: {
+    frame: '#D4AF37',       // Gold frame (액자 테두리, 강조)
+    dark: '#B8860B',        // Dark gold
+    light: '#FFD700',       // Bright gold
+  },
+  wood: {
+    dark: '#3E2723',        // Dark brown
+    medium: '#5D4037',      // Medium brown
+    light: '#6D4C41',       // Light brown
+  },
+  velvet: {
+    red: '#8B0000',         // Deep red velvet (헤더)
+    burgundy: '#A52A2A',    // Burgundy
+  },
+}
+```
+
+#### 타이포그래피
+```javascript
+fontFamily: {
+  playfair: ['Playfair Display', 'serif'],    // 타이틀, 헤딩 (우아한 세리프)
+  cormorant: ['Cormorant Garamond', 'serif'], // 본문 텍스트 (가독성)
+  crimson: ['Crimson Text', 'serif'],         // 라벨, 캡션 (뮤지엄 스타일)
+}
+```
+
+**Google Fonts Import** (`frontend/src/index.css`):
+```css
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Cormorant+Garamond:wght@300;400;600;700&family=Crimson+Text:wght@400;600;700&display=swap');
+```
+
+#### 애니메이션
+```javascript
+keyframes: {
+  fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+  scaleIn: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+  slideIn: { '0%': { opacity: '0', transform: 'translateY(-10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+  frameReveal: { '0%': { opacity: '0', transform: 'scale(0.9) rotateZ(-2deg)' }, '100%': { opacity: '1', transform: 'scale(1) rotateZ(0)' } },
+  spotlight: { '0%, 100%': { transform: 'translate(0, 0)' }, '50%': { transform: 'translate(10px, 10px)' } },
+}
+```
+
+#### 커스텀 그림자
+```javascript
+boxShadow: {
+  'frame-gold': '0 0 0 8px #D4AF37, 0 0 0 12px #B8860B, 0 15px 40px rgba(0, 0, 0, 0.4)',
+  'frame-wood': '0 0 0 10px #6D4C41, 0 0 0 14px #5D4037, 0 15px 40px rgba(0, 0, 0, 0.5)',
+  'canvas': 'inset 0 0 0 1px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)',
+  'gallery': '0 20px 60px rgba(0, 0, 0, 0.3)',
+}
+```
+
+### 주요 UI 클래스 (`frontend/src/index.css`)
+
+#### 1. gallery-frame
+금색 액자 효과 (다층 그림자, 스포트라이트)
+```css
+.gallery-frame {
+  position: relative;
+  padding: 16px;
+  background: linear-gradient(135deg, #D4AF37, #B8860B, #D4AF37);
+  box-shadow:
+    0 0 0 8px #2B2520,
+    0 0 0 12px #D4AF37,
+    0 0 0 16px #B8860B,
+    0 15px 40px rgba(0, 0, 0, 0.6),
+    inset 0 0 30px rgba(212, 175, 55, 0.2);
+}
+```
+
+#### 2. gallery-placard
+미술관 작품 설명 라벨 스타일
+```css
+.gallery-placard {
+  background-color: #3E2723;
+  color: #F5F5DC;
+  padding: 0.75rem 1.5rem;
+  font-family: 'Crimson Text', serif;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+```
+
+#### 3. velvet-bg
+애니메이션이 있는 벨벳 커튼 배경
+```css
+.velvet-bg {
+  background: linear-gradient(180deg, #8B0000 0%, #6B0000 50%, #8B0000 100%);
+  background-size: 100% 200%;
+  animation: velvet-shimmer 4s ease-in-out infinite;
+}
+```
+
+#### 4. gold-glow
+금색 텍스트 글로우 효과
+```css
+.gold-glow {
+  text-shadow:
+    0 0 10px rgba(212, 175, 55, 0.5),
+    0 0 20px rgba(212, 175, 55, 0.3),
+    0 0 30px rgba(212, 175, 55, 0.2);
+}
+```
+
+#### 5. museum-label
+뮤지엄 라벨 타이포그래피
+```css
+.museum-label {
+  font-family: 'Crimson Text', serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: rgba(245, 245, 220, 0.8);
+}
+```
+
+### 페이지별 컨셉
+
+#### Home (미술관 입구)
+- 벨벳 커튼 헤더 (`velvet-bg`) with gold border
+- 로마 숫자 전시 관람 안내 (I, II, III, IV)
+- "Google로 갤러리 입장" 버튼 (금색, 그림자 효과)
+- 하단: "NEOLAB CONVERGENCE DIGITAL GALLERY • EST. 2025" (`museum-label`)
+
+#### Lobby (작가 대기실)
+- 참여 작가 목록을 `gallery-frame` 스타일로 표시
+- 금색 그라데이션 매칭 진행 바 (`from-gold-dark to-gold-frame`)
+- 전시 정보 카드 (필요 작가, 현재 대기, 최대 턴, 턴당 시간)
+- 협동 창작 규칙 섹션 (`gallery-placard`)
+
+#### GameRoom (전시실)
+- Header: Dark wood (`bg-wood-dark`) with gold border (`border-gold-frame`)
+- 대기 화면: 난이도 선택, 플레이어 준비 상태
+- 게임 진행: 캔버스를 중심으로 한 액자 전시 레이아웃
+- 난이도 배지: Easy=gold, Normal=gold-dark, Hard=velvet-red
+
+#### Results (전시회)
+- 최종 작품 갤러리 전시
+- 턴별 이미지를 액자로 표시 (`gallery-frame`)
+- 성공/실패 아이콘 with 애니메이션
+- 리더보드 (금색 강조)
+
+### 반응형 디자인 원칙
+
+```javascript
+// Tailwind breakpoints
+screens: {
+  sm: '640px',  // 모바일 가로/소형 태블릿
+  md: '768px',  // 태블릿
+  lg: '1024px', // 데스크탑
+  xl: '1280px', // 대형 데스크탑
+}
+```
+
+**적용 예시:**
+```tsx
+<h1 className="text-5xl md:text-7xl font-playfair">
+  Project Da Vinci
+</h1>
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {/* 모바일: 1열, 태블릿: 2열, 데스크탑: 3열 */}
+</div>
+```
+
+### UI 개발 시 주의사항
+
+1. **테마 일관성**: 모든 페이지는 미술관/갤러리 테마를 따를 것
+2. **폰트 사용**:
+   - 타이틀: `font-playfair`
+   - 본문: `font-cormorant` (또는 기본 `gallery-text` 클래스)
+   - 라벨: `font-crimson` (또는 `museum-label` 클래스)
+3. **색상 사용**:
+   - 주요 배경: `bg-gallery-wall`, `bg-wood-dark`
+   - 강조: `text-gold-frame`, `border-gold-frame`
+   - 텍스트: `text-gallery-ivory`, `text-gallery-cream`
+4. **애니메이션**: 과도하지 않게, 우아하게 (`animate-fadeIn`, `animate-scaleIn`)
+5. **접근성**: 금색과 배경의 대비 유지 (WCAG AA 준수)
+
+---
+
 ## 📂 핵심 파일 & 모듈 가이드
 
 ### Frontend 주요 파일
