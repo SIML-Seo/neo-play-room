@@ -360,7 +360,9 @@ firebase deploy --only hosting
 | **Home.tsx** | `/` | Google SSO 로그인 페이지 |
 | **Lobby.tsx** | `/lobby` | 5명 매칭 대기실 (매칭 완료 시 GameRoom 생성) |
 | **GameRoom.tsx** | `/game/:roomId` | **waiting**: 난이도 협의 + 채팅 + 준비 완료 대기실<br>**in-progress**: 메인 게임 (질문 → 답변 → 토론 → 투표) |
-| **Results.tsx** | `/results` | 게임 종료 후 결과 화면 (리더보드) |
+| **Results.tsx** | `/results/:roomId` | 게임 종료 후 결과 화면 (리더보드) |
+| **Leaderboard.tsx** | `/leaderboard` | 전체 게임 기록 및 순위 |
+| **Admin.tsx** | `/admin` | ⚠️ **Master 전용**: 게임 통계 대시보드 + 스케줄 관리 (swh1182@neolab.net만 접근 가능) |
 
 #### 커스텀 훅 (src/hooks/ 및 @shared/hooks/)
 | 훅 | 기능 | 반환값 | 위치 |
@@ -392,6 +394,8 @@ firebase deploy --only hosting
 | **gameRoom.ts** | 게임 룸 CRUD (`subscribeToGameRoom`, `submitAnswer`, `submitVote`, `updatePlayerReady`, `updateDifficulty`, `startGame`) |
 | **matchmaking.ts** | Lobby 로직 (`joinLobby`, `createGameRoom(players, difficulty)`) |
 | **ai.ts** | Cloud Function 호출 (`generateAIResponse` httpsCallable) |
+| **analytics.ts** | ⚠️ **Master 전용**: 게임 통계 조회 (`getRecentGameLogs`, `getDailyAnalytics`, `getQuestionAnalytics`, `getOverallStats`) |
+| **schedule.ts** | ⚠️ **Master 전용**: 게임 스케줄 관리 (`getGameSchedule`, `updateGameSchedule`, `isGameAllowed`, `getNextOpenTime`) |
 
 #### 유틸리티 (src/utils/ 및 @shared/utils/)
 | 파일 | 역할 | 위치 |
@@ -607,6 +611,216 @@ const model = genAI.getGenerativeModel({
 | **단위 테스트** | 80% | 매 커밋 (pre-commit hook) |
 | **통합 테스트** | 60% | PR 생성 시 (CI/CD) |
 | **E2E 테스트** | 주요 시나리오 10개 | 배포 전 (주 1회) |
+
+---
+
+## 👑 Master 계정 기능
+
+**⚠️ 접근 제한**: Master 계정 기능은 `swh1182@neolab.net` 계정만 접근 가능합니다.
+
+### 개요
+
+Master 계정은 게임 운영 관리를 위한 특별 권한 계정입니다. 게임 통계 조회, 스케줄 관리 등의 관리자 기능에 접근할 수 있습니다.
+
+### 주요 기능
+
+#### 1. 게임 통계 대시보드 (`/admin`)
+
+**Admin.tsx** 페이지에서 제공하는 통계:
+
+- **전체 통계**:
+  - 총 게임 수
+  - 성공률 (%)
+  - 평균 소요 턴
+  - 평균 소요 시간
+
+- **최고 난이도 질문 Top 10**:
+  - 질문별 시도 횟수
+  - 성공률
+  - 평균 턴 수
+  - 평균 AI 확신도
+
+- **일별 통계** (최근 7일):
+  - 날짜별 게임 수
+  - 성공/실패 건수
+  - 평균 턴 수 및 시간
+
+- **최근 게임 기록** (최근 20게임):
+  - 게임 ID, 날이도, 질문
+  - 결과 (성공/실패)
+  - 소요 턴 및 시간
+
+#### 2. 게임 스케줄 관리
+
+**Schedule Management** 섹션에서 게임 허용 시간대를 설정:
+
+- **날짜별 시간 범위 설정**:
+  - 날짜 (YYYY-MM-DD)
+  - 시작 시간 (HH:mm)
+  - 종료 시간 (HH:mm)
+  - 설명 (선택사항)
+  - 테마 (선택사항)
+
+- **실시간 적용**:
+  - 스케줄 변경 시 즉시 모든 클라이언트에 반영
+  - 허용 시간대가 아닐 경우 Lobby 접근 제한
+  - 다음 개관 시간 자동 표시
+
+### 데이터 구조
+
+#### analytics.ts Service
+
+```typescript
+// 주요 함수
+getRecentGameLogs(limitCount: number): Promise<GameLog[]>
+getDailyAnalytics(days: number): Promise<DailyAnalytics[]>
+getQuestionAnalytics(): Promise<QuestionAnalytics[]>
+getHardestQuestions(topN: number): Promise<QuestionAnalytics[]>
+getOverallStats(): Promise<OverallStats>
+```
+
+**데이터 소스**: Firestore `gameLogs` 컬렉션
+
+#### schedule.ts Service
+
+```typescript
+// 주요 함수
+getGameSchedule(): Promise<GameScheduleConfig | null>
+updateGameSchedule(dateRanges: GameScheduleDateRange[], updatedBy: string): Promise<void>
+subscribeToGameSchedule(callback: (schedule: GameScheduleConfig | null) => void): () => void
+isGameAllowed(schedule: GameScheduleConfig | null): boolean
+getNextOpenTime(schedule: GameScheduleConfig | null): Date | null
+formatTimeUntil(targetDate: Date): string
+```
+
+**데이터 소스**: Firestore `config/gameSchedule` 문서
+
+#### 타입 정의 (game.types.ts)
+
+```typescript
+// 일별 통계
+export interface DailyAnalytics {
+  date: string // YYYY-MM-DD
+  totalGames: number
+  successCount: number
+  failureCount: number
+  totalTurns: number
+  avgTurns: number
+  avgTime: number
+}
+
+// 질문별 통계
+export interface QuestionAnalytics {
+  question: string
+  attempts: number
+  successCount: number
+  successRate: number
+  avgTurns: number
+  avgConfidence: number
+}
+
+// 스케줄 날짜 범위
+export interface GameScheduleDateRange {
+  id?: string
+  date: string // YYYY-MM-DD
+  start: string // HH:mm
+  end: string // HH:mm
+  description?: string
+  theme?: string
+}
+
+// 스케줄 설정
+export interface GameScheduleConfig {
+  dateRanges: GameScheduleDateRange[]
+  updatedBy: string
+  updatedAt: unknown // Firestore Timestamp
+}
+```
+
+### Firestore 데이터 구조
+
+```json
+{
+  "gameLogs": {
+    "{logId}": {
+      "roomId": "room123",
+      "difficulty": "normal",
+      "question": "최근에 본 영화는?",
+      "result": "success",
+      "turnCount": 3,
+      "totalTime": 120500,
+      "aiGuessList": [...],
+      "finishedAt": "(Firestore Timestamp)",
+      "createdAt": "(Firestore Timestamp)"
+    }
+  },
+  "config": {
+    "gameSchedule": {
+      "dateRanges": [
+        {
+          "id": "range1",
+          "date": "2025-01-20",
+          "start": "12:00",
+          "end": "13:00",
+          "description": "점심시간 게임",
+          "theme": "개인적 경험"
+        },
+        {
+          "id": "range2",
+          "date": "2025-01-20",
+          "start": "18:00",
+          "end": "19:00",
+          "description": "퇴근 전 게임"
+        }
+      ],
+      "updatedBy": "swh1182@neolab.net",
+      "updatedAt": "(Firestore Timestamp)"
+    }
+  }
+}
+```
+
+### 보안 규칙
+
+**Firestore Rules** (`firestore.rules`):
+
+```javascript
+// gameLogs: 인증된 사용자는 읽기만 가능, Functions만 쓰기
+match /gameLogs/{logId} {
+  allow read: if request.auth != null;
+  allow write: if false; // Functions only
+}
+
+// config/gameSchedule: 모든 사용자 읽기 가능, Master만 쓰기
+match /config/gameSchedule {
+  allow read: if request.auth != null;
+  allow write: if request.auth.token.email == 'swh1182@neolab.net';
+}
+```
+
+### UI/UX
+
+**Admin 페이지 접근**:
+- Lobby 페이지 헤더에 "관리자" 버튼 표시 (Master 계정만)
+- `/admin` 경로 직접 접근 시도 → Master 계정이 아니면 Lobby로 리다이렉트
+
+**스케줄 제한 메시지**:
+- 허용 시간대가 아닐 경우 Lobby에서 "전시회 휴관 중" 메시지 표시
+- 다음 개관 시간 및 남은 시간 표시
+
+### 개발 시 주의사항
+
+1. **보안**:
+   - Master 계정 검증은 클라이언트와 Firestore Rules 양쪽에서 수행
+   - 민감한 통계는 Firestore Rules로 읽기 제한
+
+2. **성능**:
+   - `gameLogs` 컬렉션이 커질 경우 인덱스 최적화 필요
+   - 통계 쿼리는 Firestore 복합 인덱스 활용
+
+3. **확장성**:
+   - 향후 여러 Master 계정 지원 시 `config/masterAccounts` 컬렉션 추가 고려
+   - 통계 집계 로직을 Cloud Functions로 이동하여 실시간 집계 가능
 
 ---
 
