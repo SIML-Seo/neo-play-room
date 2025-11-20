@@ -443,12 +443,33 @@ export default function GameRoom() {
               </div>
             </div>
 
-            {/* 오른쪽: 게임 룰 & 채팅 */}
+            {/* 오른쪽: 스마트펜 테스트 & 게임 룰 & 채팅 */}
             <div className="lg:col-span-1 space-y-6">
+              {/* 스마트펜 테스트 캔버스 */}
+              <div
+                className="gallery-frame bg-wood-dark shadow-gallery p-4 animate-scaleIn"
+                style={{ animationDelay: '0.3s' }}
+              >
+                <h3 className="text-xl font-playfair font-bold text-gold-frame mb-3 gold-glow">
+                  🖊️ 스마트펜 테스트
+                </h3>
+                <p className="text-sm text-gallery-cream/80 font-crimson mb-3">
+                  게임 시작 전에 스마트펜을 연결하고 테스트해보세요!
+                </p>
+                <div className="canvas-frame" style={{ height: '300px' }}>
+                  <Canvas
+                    ref={canvasRef}
+                    isDrawingEnabled={true}
+                    onCanvasChange={() => {}}
+                    enableSmartPen={true}
+                  />
+                </div>
+              </div>
+
               {/* AI 누적 추론 안내 */}
               <div
                 className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn"
-                style={{ animationDelay: '0.3s' }}
+                style={{ animationDelay: '0.4s' }}
               >
                 <h3 className="text-xl font-playfair font-bold text-gold-frame mb-3 gold-glow">
                   🎯 AI 누적 추론
@@ -486,7 +507,7 @@ export default function GameRoom() {
               {/* 채팅 */}
               <div
                 className="gallery-frame bg-wood-dark shadow-gallery p-6 h-96 flex flex-col animate-scaleIn"
-                style={{ animationDelay: '0.4s' }}
+                style={{ animationDelay: '0.5s' }}
               >
                 <h3 className="text-xl font-playfair font-bold text-gold-frame mb-4 gold-glow">
                   대화

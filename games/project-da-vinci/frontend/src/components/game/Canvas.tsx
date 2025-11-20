@@ -47,8 +47,8 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
     const [isEraser, setIsEraser] = useState(false)
     const [canvasSize, setCanvasSize] = useState({ width: width || 800, height: height || 600 })
 
-    // 스마트펜 스트로크 저장
-    const currentStrokePoints = useRef<{ x: number; y: number }[]>([])
+    // 스마트펜 스트로크 저장 (압력 정보 포함)
+    const currentStrokePoints = useRef<{ x: number; y: number; force?: number }[]>([])
 
     // Debounced canvas change handler
     const debouncedCanvasChange = useRef<((canvasData: string) => void) | null>(null)
@@ -273,33 +273,54 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       }
     }
 
-    // 스마트펜 스트로크를 Fabric.js Path로 추가
-    const addSmartPenStroke = (points: { x: number; y: number }[]) => {
+    // 스마트펜 스트로크를 Fabric.js Path로 추가 (압력 기반 두께 조절)
+    const addSmartPenStroke = (points: { x: number; y: number; force?: number }[]) => {
       if (!fabricCanvasRef.current || points.length < 2) return
 
-      // SVG Path 문자열 생성
-      const pathString = points
-        .map((point, index) => {
-          if (index === 0) {
-            return `M ${point.x} ${point.y}`
-          } else {
-            return `L ${point.x} ${point.y}`
-          }
+      // 압력 기반 두께 조절: force 값을 사용하여 동적으로 strokeWidth 계산
+      // force 범위: 0-255 (일반적인 스마트펜 압력 값)
+      // 두께 범위: brushWidth * 0.3 ~ brushWidth * 2.0
+      const getStrokeWidth = (force: number | undefined) => {
+        if (force === undefined) return brushWidth
+
+        // force를 0-1 범위로 정규화 (0-255 → 0-1)
+        const normalizedForce = Math.max(0, Math.min(1, force / 255))
+
+        // 압력에 따라 0.3배 ~ 2.0배 두께 조절
+        const minWidth = brushWidth * 0.3
+        const maxWidth = brushWidth * 2.0
+        return minWidth + normalizedForce * (maxWidth - minWidth)
+      }
+
+      // 압력에 따라 동적으로 두께가 변하는 스트로크를 표현하기 위해
+      // 각 세그먼트를 별도의 Path로 생성
+      for (let i = 0; i < points.length - 1; i++) {
+        const startPoint = points[i]
+        const endPoint = points[i + 1]
+
+        // 시작점과 끝점의 평균 압력으로 두께 계산
+        const avgForce = (startPoint.force ?? 128) + (endPoint.force ?? 128) / 2
+        const strokeWidth = getStrokeWidth(avgForce)
+
+        // 부드러운 곡선을 위해 중간점 계산 (Quadratic Bezier Curve)
+        const pathString =
+          i === 0
+            ? `M ${startPoint.x} ${startPoint.y} L ${endPoint.x} ${endPoint.y}`
+            : `M ${startPoint.x} ${startPoint.y} Q ${startPoint.x} ${startPoint.y} ${endPoint.x} ${endPoint.y}`
+
+        const path = new fabric.Path(pathString, {
+          stroke: currentColor,
+          strokeWidth: strokeWidth,
+          fill: undefined,
+          strokeLineCap: 'round',
+          strokeLineJoin: 'round',
+          selectable: false,
+          evented: false,
         })
-        .join(' ')
 
-      // Fabric.js Path 객체 생성
-      const path = new fabric.Path(pathString, {
-        stroke: currentColor,
-        strokeWidth: brushWidth,
-        fill: undefined,
-        strokeLineCap: 'round',
-        strokeLineJoin: 'round',
-        selectable: false,
-        evented: false,
-      })
+        fabricCanvasRef.current.add(path)
+      }
 
-      fabricCanvasRef.current.add(path)
       fabricCanvasRef.current.renderAll()
 
       // Firebase 동기화
@@ -313,17 +334,17 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
     const smartPen = useSmartPen({
       onStrokeStart: (dot: ScreenDot) => {
         console.log('[Canvas] SmartPen Stroke Start:', dot)
-        currentStrokePoints.current = [{ x: dot.x, y: dot.y }]
+        currentStrokePoints.current = [{ x: dot.x, y: dot.y, force: dot.f }]
       },
       onStrokeMove: (dot: ScreenDot) => {
         console.log('[Canvas] SmartPen Stroke Move:', dot)
-        currentStrokePoints.current.push({ x: dot.x, y: dot.y })
+        currentStrokePoints.current.push({ x: dot.x, y: dot.y, force: dot.f })
       },
       onStrokeEnd: (dot: ScreenDot) => {
         console.log('[Canvas] SmartPen Stroke End:', dot)
-        currentStrokePoints.current.push({ x: dot.x, y: dot.y })
+        currentStrokePoints.current.push({ x: dot.x, y: dot.y, force: dot.f })
 
-        // 스트로크를 Canvas에 추가
+        // 스트로크를 Canvas에 추가 (압력 정보 포함)
         addSmartPenStroke(currentStrokePoints.current)
 
         // 스트로크 포인트 초기화
