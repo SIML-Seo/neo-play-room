@@ -105,7 +105,7 @@ neo-play-room/
 
 ## 👥 팀 구성
 
-- **기획/개발**: 소통위원회 (4년차 웹 개발자)
+- **기획/개발**: 소통위원회
 - **참가자**: 네오랩컨버전스 전 임직원 (희망자)
 - **협력**: 임원진 (예산 지원 및 리워드 승인)
 
@@ -135,7 +135,6 @@ games/{project-name}/
 
 ## 🔗 관련 링크
 
-- [소통위원회 회의록](https://internal-notion-link) (회사 내부 링크)
 - [Firebase Console](https://console.firebase.google.com)
 - [Gemini API 문서](https://ai.google.dev/gemini-api/docs)
 
@@ -151,7 +150,7 @@ games/{project-name}/
 
 - **담당자**: 소통위원회 2기
 - **이슈 등록**: [GitHub Issues](https://github.com/neo-lab/neo-play-room/issues)
-- **사내 채널**: #소통위원회 (Slack/Teams)
+- **사내 채널**: #네오톡톡
 
 ---
 

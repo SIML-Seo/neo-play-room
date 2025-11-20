@@ -2,19 +2,51 @@
 
 echo "🔍 Running pre-commit checks..."
 
-# Frontend 디렉토리로 이동
-cd games/project-da-vinci/frontend || exit 1
+# 변경된 파일에서 프로젝트 탐지
+CHANGED_FILES=$(git diff --cached --name-only)
+DA_VINCI_CHANGED=$(echo "$CHANGED_FILES" | grep "^games/project-da-vinci/frontend/" || true)
+TURING_CHANGED=$(echo "$CHANGED_FILES" | grep "^games/project-turing/frontend/" || true)
 
-# 1. Lint-staged 실행 (변경된 파일만)
-npx lint-staged
+# 변경된 프로젝트가 없으면 통과
+if [ -z "$DA_VINCI_CHANGED" ] && [ -z "$TURING_CHANGED" ]; then
+  echo "ℹ️ No frontend files changed. Skipping checks."
+  exit 0
+fi
 
-# 2. TypeScript 타입 체크
-echo "🔎 Type checking..."
-npx tsc --noEmit
+# project-da-vinci 체크
+if [ -n "$DA_VINCI_CHANGED" ]; then
+  echo "📦 Checking project-da-vinci..."
+  cd games/project-da-vinci/frontend || exit 1
 
-if [ $? -ne 0 ]; then
-  echo "❌ Type check failed. Please fix TypeScript errors."
-  exit 1
+  npx lint-staged
+
+  echo "🔎 Type checking da-vinci..."
+  npx tsc --noEmit
+
+  if [ $? -ne 0 ]; then
+    echo "❌ Da-Vinci type check failed."
+    exit 1
+  fi
+
+  cd ../../.. || exit 1
+fi
+
+# project-turing 체크
+if [ -n "$TURING_CHANGED" ]; then
+  echo "🧠 Checking project-turing..."
+  cd games/project-turing/frontend || exit 1
+
+  npx lint-staged
+
+  echo "🔎 Type checking turing..."
+  npx tsc --noEmit
+
+  if [ $? -ne 0 ]; then
+    echo "❌ Turing type check failed."
+    exit 1
+  fi
+
+  cd ../../.. || exit 1
 fi
 
 echo "✅ Pre-commit checks passed!"

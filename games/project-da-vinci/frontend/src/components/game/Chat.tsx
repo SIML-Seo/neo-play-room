@@ -109,7 +109,7 @@ export default function Chat({ roomId, user, gameRoom }: ChatProps) {
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="메시지를 입력하세요..."
-            className="flex-1 px-3 py-2 border-2 border-gold-dark/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-frame focus:border-transparent text-sm text-gallery-floor bg-gallery-ivory"
+            className="flex-1 px-3 py-2 border-2 border-gold-dark/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-frame focus:border-transparent text-sm text-gallery-floor bg-gallery-ivory text-gray-900"
             maxLength={200}
             disabled={isSending}
           />
