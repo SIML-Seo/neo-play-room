@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import * as fabric from 'fabric'
+import { useSmartPen } from '@/hooks/useSmartPen'
+import type { ScreenDot } from '@/types/smartpen.types'
 
 interface CanvasProps {
   width?: number
   height?: number
   isDrawingEnabled?: boolean
   onCanvasChange?: (canvasData: string) => void
+  enableSmartPen?: boolean // 스마트펜 활성화 옵션
 }
 
 export interface CanvasHandle {
@@ -35,7 +38,7 @@ function debounce<T extends (...args: never[]) => void>(
 }
 
 const Canvas = forwardRef<CanvasHandle, CanvasProps>(
-  ({ width, height, isDrawingEnabled = true, onCanvasChange }, ref) => {
+  ({ width, height, isDrawingEnabled = true, onCanvasChange, enableSmartPen = false }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const fabricCanvasRef = useRef<fabric.Canvas | null>(null)
@@ -43,6 +46,9 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
     const [brushWidth, setBrushWidth] = useState(5)
     const [isEraser, setIsEraser] = useState(false)
     const [canvasSize, setCanvasSize] = useState({ width: width || 800, height: height || 600 })
+
+    // 스마트펜 스트로크 저장
+    const currentStrokePoints = useRef<{ x: number; y: number }[]>([])
 
     // Debounced canvas change handler
     const debouncedCanvasChange = useRef<((canvasData: string) => void) | null>(null)
@@ -267,6 +273,71 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       }
     }
 
+    // 스마트펜 스트로크를 Fabric.js Path로 추가
+    const addSmartPenStroke = (points: { x: number; y: number }[]) => {
+      if (!fabricCanvasRef.current || points.length < 2) return
+
+      // SVG Path 문자열 생성
+      const pathString = points
+        .map((point, index) => {
+          if (index === 0) {
+            return `M ${point.x} ${point.y}`
+          } else {
+            return `L ${point.x} ${point.y}`
+          }
+        })
+        .join(' ')
+
+      // Fabric.js Path 객체 생성
+      const path = new fabric.Path(pathString, {
+        stroke: currentColor,
+        strokeWidth: brushWidth,
+        fill: undefined,
+        strokeLineCap: 'round',
+        strokeLineJoin: 'round',
+        selectable: false,
+        evented: false,
+      })
+
+      fabricCanvasRef.current.add(path)
+      fabricCanvasRef.current.renderAll()
+
+      // Firebase 동기화
+      if (debouncedCanvasChange.current) {
+        const canvasData = JSON.stringify(fabricCanvasRef.current.toJSON())
+        debouncedCanvasChange.current(canvasData)
+      }
+    }
+
+    // 스마트펜 통합
+    const smartPen = useSmartPen({
+      onStrokeStart: (dot: ScreenDot) => {
+        console.log('[Canvas] SmartPen Stroke Start:', dot)
+        currentStrokePoints.current = [{ x: dot.x, y: dot.y }]
+      },
+      onStrokeMove: (dot: ScreenDot) => {
+        console.log('[Canvas] SmartPen Stroke Move:', dot)
+        currentStrokePoints.current.push({ x: dot.x, y: dot.y })
+      },
+      onStrokeEnd: (dot: ScreenDot) => {
+        console.log('[Canvas] SmartPen Stroke End:', dot)
+        currentStrokePoints.current.push({ x: dot.x, y: dot.y })
+
+        // 스트로크를 Canvas에 추가
+        addSmartPenStroke(currentStrokePoints.current)
+
+        // 스트로크 포인트 초기화
+        currentStrokePoints.current = []
+      },
+      onConnect: () => {
+        console.log('[Canvas] SmartPen Connected')
+      },
+      onDisconnect: () => {
+        console.log('[Canvas] SmartPen Disconnected')
+      },
+      canvasSize,
+    })
+
     // 색상 팔레트
     const colors = [
       '#000000',
@@ -339,6 +410,76 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
               >
                 전체 지우기
               </button>
+
+              {/* 스마트펜 연결 (enableSmartPen이 true일 때만 표시) */}
+              {enableSmartPen && (
+                <div className="flex items-center gap-2 ml-auto border-l pl-6">
+                  {smartPen.state.isConnected ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                        <span className="text-sm font-medium text-green-700">
+                          🖊️ 스마트펜 연결됨
+                        </span>
+                        {smartPen.state.battery < 100 && (
+                          <span className="text-xs text-gray-500">
+                            ({smartPen.state.battery}%)
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={smartPen.disconnect}
+                        className="px-3 py-1 rounded-lg text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                      >
+                        연결 해제
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={smartPen.scanDevices}
+                        disabled={smartPen.state.isScanning}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
+                      >
+                        {smartPen.state.isScanning ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>검색 중...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>🖊️</span>
+                            <span>스마트펜 연결</span>
+                          </>
+                        )}
+                      </button>
+                      {smartPen.state.devices.length > 0 && (
+                        <select
+                          onChange={(e) => {
+                            const device = smartPen.state.devices[parseInt(e.target.value)]
+                            if (device) {
+                              smartPen.connectDevice(device)
+                            }
+                          }}
+                          className="px-3 py-2 rounded-lg text-sm border border-gray-300"
+                        >
+                          <option value="">장치 선택...</option>
+                          {smartPen.state.devices.map((device, index) => (
+                            <option key={device.mac} value={index}>
+                              {device.name} ({device.mac})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </>
+                  )}
+                  {smartPen.state.error && (
+                    <span className="text-xs text-red-600 max-w-xs truncate">
+                      {smartPen.state.error}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

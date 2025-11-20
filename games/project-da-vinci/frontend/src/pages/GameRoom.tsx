@@ -529,6 +529,7 @@ export default function GameRoom() {
                     ref={canvasRef}
                     isDrawingEnabled={isDrawing && gameRoom.status === 'in-progress'}
                     onCanvasChange={handleCanvasChange}
+                    enableSmartPen={isDrawing && gameRoom.status === 'in-progress'}
                   />
                 </div>
               </div>
