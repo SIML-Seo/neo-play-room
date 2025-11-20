@@ -7,7 +7,7 @@
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
 import { firestore } from '@/firebase'
 import type { GameScheduleConfig, GameScheduleDateRange } from '@/types/game.types'
-import { getWordPoolByTheme, generateAndSaveWordPool } from '@/services/wordPools'
+import { getWordPoolByTheme, generateAndSaveWordPool, getAllWordPools, deleteWordPool } from '@/services/wordPools'
 
 /**
  * 게임 스케줄 설정 조회
@@ -30,6 +30,7 @@ export async function getGameSchedule(): Promise<GameScheduleConfig | null> {
 /**
  * 게임 스케줄 설정 업데이트 (마스터 계정만)
  * 주제가 새로 추가되면 자동으로 문제 풀 생성
+ * 사용되지 않는 주제는 워드풀에서 자동 삭제
  */
 export async function updateGameSchedule(
   dateRanges: GameScheduleDateRange[],
@@ -37,11 +38,12 @@ export async function updateGameSchedule(
   autoGenerateWords: boolean = true
 ): Promise<void> {
   try {
-    // 새로운 주제 찾기
-    if (autoGenerateWords) {
-      const uniqueThemes = [...new Set(dateRanges.map((range) => range.theme))]
+    // 현재 스케줄에 있는 고유 주제 목록
+    const scheduledThemes = new Set(dateRanges.map((range) => range.theme))
 
-      for (const theme of uniqueThemes) {
+    // 새로운 주제 찾기 및 워드풀 생성
+    if (autoGenerateWords) {
+      for (const theme of scheduledThemes) {
         // 이미 문제 풀이 있는지 확인
         const existingPool = await getWordPoolByTheme(theme)
 
@@ -62,6 +64,21 @@ export async function updateGameSchedule(
           }
         } else {
           console.log(`[updateGameSchedule] "${theme}" 주제 문제 풀이 이미 존재 (${existingPool.words.length}개 단어)`)
+        }
+      }
+
+      // 사용되지 않는 워드풀 삭제
+      const allWordPools = await getAllWordPools()
+      for (const pool of allWordPools) {
+        if (!scheduledThemes.has(pool.theme)) {
+          console.log(`[updateGameSchedule] "${pool.theme}" 주제가 스케줄에서 제거됨. 워드풀 삭제 중...`)
+          try {
+            await deleteWordPool(pool.theme)
+            console.log(`[updateGameSchedule] ✅ "${pool.theme}" 워드풀 삭제 완료`)
+          } catch (error) {
+            console.error(`[updateGameSchedule] ❌ "${pool.theme}" 워드풀 삭제 실패:`, error)
+            // 삭제 실패해도 계속 진행
+          }
         }
       }
     }
