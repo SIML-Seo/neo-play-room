@@ -73,10 +73,18 @@ export const judgeDrawing = onCall<JudgeRequest, Promise<JudgeResponse>>(
     }
     const targetWord: string = targetWordSnapshot.val()
 
-    // 2. 프롬프트 생성 (난이도 적용)
+    // 2. 프롬프트 생성 (난이도 적용 + 이전 추측 히스토리)
     const difficulty = (gameRoom.difficulty as AIDifficulty) || AIDifficulty.NORMAL
-    const prompt = buildPromptByDifficulty(gameRoom.theme, difficulty)
-    logger.info(`프롬프트 생성 완료 (테마: ${gameRoom.theme}, 난이도: ${difficulty})`)
+
+    // 이전 추측 히스토리 변환 (AIGuessHistory 형식)
+    const previousGuesses = (gameRoom.aiGuesses || []).map((g: any) => ({
+      turn: g.turn,
+      guess: g.guess,
+      confidence: g.confidence,
+    }))
+
+    const prompt = buildPromptByDifficulty(gameRoom.theme, difficulty, previousGuesses)
+    logger.info(`프롬프트 생성 완료 (테마: ${gameRoom.theme}, 난이도: ${difficulty}, 이전 추측: ${previousGuesses.length}개)`)
 
     // 3. Gemini API 호출
     const apiKey = process.env.GEMINI_API_KEY

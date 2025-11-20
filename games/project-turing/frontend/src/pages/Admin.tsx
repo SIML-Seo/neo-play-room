@@ -6,11 +6,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
-import { Timestamp } from 'firebase/firestore'
 import {
   getOverallStats,
   getDailyAnalytics,
-  getHardestWords,
+  getHardestQuestions,
   getRecentGameLogs,
 } from '@/services/analytics'
 import { getGameSchedule, updateGameSchedule } from '@/services/schedule'
@@ -36,7 +35,7 @@ export default function Admin() {
     avgTime: 0,
   })
   const [dailyAnalytics, setDailyAnalytics] = useState<DailyAnalytics[]>([])
-  const [hardestWords, setHardestWords] = useState<WordAnalytics[]>([])
+  const [hardestQuestions, setHardestQuestions] = useState<WordAnalytics[]>([])
   const [recentGames, setRecentGames] = useState<GameLog[]>([])
   const [schedule, setSchedule] = useState<GameScheduleConfig | null>(null)
   const [dataLoading, setDataLoading] = useState(true)
@@ -46,7 +45,6 @@ export default function Admin() {
   const [newDate, setNewDate] = useState('')
   const [newStartTime, setNewStartTime] = useState('12:00')
   const [newEndTime, setNewEndTime] = useState('13:00')
-  const [newTheme, setNewTheme] = useState('')
   const [newDescription, setNewDescription] = useState('')
 
   // 마스터 권한 확인
@@ -69,17 +67,17 @@ export default function Admin() {
     const loadData = async () => {
       setDataLoading(true)
       try {
-        const [stats, daily, words, games, scheduleData] = await Promise.all([
+        const [stats, daily, questions, games, scheduleData] = await Promise.all([
           getOverallStats(),
           getDailyAnalytics(30),
-          getHardestWords(10),
+          getHardestQuestions(10),
           getRecentGameLogs(20),
           getGameSchedule(),
         ])
 
         setOverallStats(stats)
         setDailyAnalytics(daily)
-        setHardestWords(words)
+        setHardestQuestions(questions)
         setRecentGames(games)
         setSchedule(scheduleData)
         setScheduleEnabled(scheduleData !== null && scheduleData.dateRanges.length > 0)
@@ -104,11 +102,6 @@ export default function Admin() {
       return
     }
 
-    if (!newTheme) {
-      alert('주제를 입력해주세요.')
-      return
-    }
-
     if (newStartTime >= newEndTime) {
       alert('종료 시간은 시작 시간보다 늦어야 합니다.')
       return
@@ -120,7 +113,6 @@ export default function Admin() {
         date: newDate,
         start: newStartTime,
         end: newEndTime,
-        theme: newTheme,
         ...(newDescription && { description: newDescription }), // description이 있을 때만 추가
       }
 
@@ -134,7 +126,7 @@ export default function Admin() {
       setSchedule({
         dateRanges: updatedRanges,
         updatedBy: user?.email || 'admin',
-        updatedAt: Timestamp.now(),
+        updatedAt: new Date(),
       })
       setScheduleEnabled(true)
 
@@ -142,7 +134,6 @@ export default function Admin() {
       setNewDate('')
       setNewStartTime('12:00')
       setNewEndTime('13:00')
-      setNewTheme('')
       setNewDescription('')
 
       alert('게임 시간이 추가되었습니다.')
@@ -166,7 +157,7 @@ export default function Admin() {
       setSchedule({
         dateRanges: updatedRanges,
         updatedBy: user?.email || 'admin',
-        updatedAt: Timestamp.now(),
+        updatedAt: new Date(),
       })
       setScheduleEnabled(updatedRanges.length > 0)
 
@@ -208,7 +199,7 @@ export default function Admin() {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-gray-900">Project Da Vinci</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Project Turing</h1>
               <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">
                 ADMIN
               </span>
@@ -217,11 +208,7 @@ export default function Admin() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 {user.photoURL && (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || ''}
-                    className="w-8 h-8 rounded-full"
-                  />
+                  <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full" />
                 )}
                 <div className="text-sm">
                   <div className="font-medium text-gray-900">{user.displayName}</div>
@@ -264,7 +251,7 @@ export default function Admin() {
                 <div className="text-3xl font-bold text-gray-900">{overallStats.totalGames}</div>
               </div>
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="text-sm text-gray-600 mb-1">성공률</div>
+                <div className="text-sm text-gray-600 mb-1">AI 탐지 성공률</div>
                 <div className="text-3xl font-bold text-green-600">
                   {overallStats.successRate.toFixed(1)}%
                 </div>
@@ -283,31 +270,26 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* 가장 어려운 단어 TOP 10 */}
+            {/* 가장 어려운 질문 TOP 10 */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">가장 어려운 단어 TOP 10</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">가장 어려운 질문 TOP 10</h2>
               <div className="space-y-3">
-                {hardestWords.length === 0 ? (
+                {hardestQuestions.length === 0 ? (
                   <p className="text-gray-500 text-sm">데이터가 없습니다.</p>
                 ) : (
-                  hardestWords.map((word, idx) => (
-                    <div
-                      key={word.word}
-                      className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg"
-                    >
+                  hardestQuestions.map((question, idx) => (
+                    <div key={question.word} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
                       <div className="w-8 h-8 bg-red-100 text-red-700 rounded-full flex items-center justify-center font-bold text-sm">
                         {idx + 1}
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">{word.word}</div>
+                        <div className="font-medium text-gray-900">{question.word}</div>
                         <div className="text-xs text-gray-500">
-                          시도: {word.attempts}회 / 평균 턴: {word.avgTurns.toFixed(1)}
+                          시도: {question.attempts}회 / 평균 턴: {question.avgTurns.toFixed(1)}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-red-600">
-                          {word.successRate.toFixed(0)}%
-                        </div>
+                        <div className="text-lg font-bold text-red-600">{question.successRate.toFixed(0)}%</div>
                         <div className="text-xs text-gray-500">성공률</div>
                       </div>
                     </div>
@@ -333,13 +315,11 @@ export default function Admin() {
                   <tbody>
                     {dailyAnalytics.slice(0, 7).map((day) => (
                       <tr key={day.date} className="border-b border-gray-100">
-                        <td className="py-3 px-4 text-black">{day.date}</td>
-                        <td className="text-right py-3 px-4 text-black">{day.totalGames}</td>
+                        <td className="py-3 px-4">{day.date}</td>
+                        <td className="text-right py-3 px-4">{day.totalGames}</td>
                         <td className="text-right py-3 px-4 text-green-600">{day.successCount}</td>
                         <td className="text-right py-3 px-4 text-red-600">{day.failureCount}</td>
-                        <td className="text-right py-3 px-4 text-black">
-                          {day.avgTurns.toFixed(1)}
-                        </td>
+                        <td className="text-right py-3 px-4">{day.avgTurns.toFixed(1)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -355,10 +335,7 @@ export default function Admin() {
                   <p className="text-gray-500 text-sm">데이터가 없습니다.</p>
                 ) : (
                   recentGames.map((game) => (
-                    <div
-                      key={game.logId}
-                      className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm"
-                    >
+                    <div key={game.roomId} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm">
                       <div
                         className={`px-3 py-1 rounded-full text-xs font-bold ${
                           game.result === 'success'
@@ -366,16 +343,17 @@ export default function Admin() {
                             : 'bg-red-100 text-red-700'
                         }`}
                       >
-                        {game.result === 'success' ? '성공' : '실패'}
+                        {game.result === 'success' ? 'AI 탐지 성공' : 'AI 탐지 실패'}
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">{game.targetWord}</div>
+                        <div className="font-medium text-gray-900">Room ID: {game.roomId.slice(0, 8)}...</div>
                         <div className="text-xs text-gray-500">
-                          테마: {game.theme} / 난이도: {game.difficulty}
+                          난이도: {game.difficulty}
                         </div>
                       </div>
                       <div className="text-right text-gray-600">
-                        {game.finalTurnCount}턴 / {(game.finalTime / 1000 / 60).toFixed(1)}분
+                        {game.finalTurnCount}턴 /{' '}
+                        {(game.finalTime / 1000 / 60).toFixed(1)}분
                       </div>
                     </div>
                   ))
@@ -398,16 +376,16 @@ export default function Admin() {
               </div>
 
               {/* 새 스케줄 추가 폼 */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 ">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="text-sm font-medium text-blue-900 mb-3">새 게임 시간 추가</div>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs text-blue-800 mb-1">날짜 *</label>
                     <input
                       type="date"
                       value={newDate}
                       onChange={(e) => setNewDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm text-blue-900"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
                     />
                   </div>
                   <div>
@@ -416,7 +394,7 @@ export default function Admin() {
                       type="time"
                       value={newStartTime}
                       onChange={(e) => setNewStartTime(e.target.value)}
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm text-blue-900"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
                     />
                   </div>
                   <div>
@@ -425,19 +403,7 @@ export default function Admin() {
                       type="time"
                       value={newEndTime}
                       onChange={(e) => setNewEndTime(e.target.value)}
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm text-blue-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-blue-800 mb-1">
-                      주제 * (AI 자동 생성)
-                    </label>
-                    <input
-                      type="text"
-                      value={newTheme}
-                      onChange={(e) => setNewTheme(e.target.value)}
-                      placeholder="예: 우주, 음악, 동화"
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm text-blue-900"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
                     />
                   </div>
                   <div>
@@ -446,8 +412,8 @@ export default function Admin() {
                       type="text"
                       value={newDescription}
                       onChange={(e) => setNewDescription(e.target.value)}
-                      placeholder="예: 우주 탐험 이벤트"
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm text-blue-900"
+                      placeholder="예: 팀 빌딩 이벤트"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
                     />
                   </div>
                 </div>
@@ -466,26 +432,21 @@ export default function Admin() {
                     <strong>등록된 게임 시간:</strong> 아래 날짜/시간대에만 게임이 가능합니다.
                   </div>
                   {schedule.dateRanges.map((range, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm border border-gray-200"
-                    >
+                    <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm border border-gray-200">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <div className="font-medium text-gray-900">
-                            {range.date} (
-                            {new Date(range.date).toLocaleDateString('ko-KR', { weekday: 'short' })}
-                            )
+                            {range.date} ({new Date(range.date).toLocaleDateString('ko-KR', { weekday: 'short' })})
                           </div>
-                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                            주제: {range.theme}
-                          </span>
+                          {range.theme && (
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                              주제: {range.theme}
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-gray-600 mt-1">
                           {range.start} ~ {range.end}
-                          {range.description && (
-                            <span className="ml-2 text-blue-600">({range.description})</span>
-                          )}
+                          {range.description && <span className="ml-2 text-blue-600">({range.description})</span>}
                         </div>
                       </div>
                       <button
@@ -503,8 +464,7 @@ export default function Admin() {
               ) : (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="text-sm text-yellow-800">
-                    <strong>현재 상태:</strong> 등록된 게임 시간이 없습니다. 모든 시간에 게임이
-                    가능합니다.
+                    <strong>현재 상태:</strong> 등록된 게임 시간이 없습니다. 모든 시간에 게임이 가능합니다.
                   </div>
                   <div className="text-xs text-yellow-700 mt-2">
                     위 폼에서 날짜와 시간을 선택하여 게임 가능 시간을 추가하세요.

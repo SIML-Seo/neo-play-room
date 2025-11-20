@@ -37,12 +37,8 @@ frontend/
 │   │   │   ├── Header.tsx              # 공통 헤더
 │   │   │   └── Layout.tsx              # 페이지 레이아웃
 │   │   ├── game/
-│   │   │   ├── Canvas.tsx              # Fabric.js 캔버스 래퍼
-│   │   │   ├── DrawingTools.tsx        # 드로잉 도구 (색상, 두께)
-│   │   │   ├── TurnIndicator.tsx       # 현재 턴 표시
-│   │   │   ├── PlayerList.tsx          # 팀원 목록
-│   │   │   ├── Chat.tsx                # 실시간 채팅
-│   │   │   └── AIGuessDisplay.tsx      # AI 추론 결과 표시
+│   │   │   ├── Canvas.tsx              # Fabric.js 캔버스 래퍼 (드로잉 도구 포함)
+│   │   │   └── Chat.tsx                # 실시간 채팅
 │   │   └── common/
 │   │       ├── Button.tsx              # 공통 버튼
 │   │       ├── Modal.tsx               # 모달 다이얼로그
@@ -51,25 +47,24 @@ frontend/
 │   ├── pages/                          # 페이지 컴포넌트
 │   │   ├── Home.tsx                    # 로그인 페이지
 │   │   ├── Lobby.tsx                   # 대기실 (팀 확인)
-│   │   ├── GameRoom.tsx                # 게임 룸 (메인 게임 화면)
+│   │   ├── GameRoom.tsx                # 게임 룸 (메인 게임 화면 - UI 통합)
 │   │   └── Results.tsx                 # 결과 및 리더보드
 │   │
 │   ├── hooks/                          # 커스텀 훅
 │   │   ├── useAuth.ts                  # Firebase Auth 연동
 │   │   ├── useGameRoom.ts              # 게임 룸 실시간 구독
-│   │   ├── useCanvas.ts                # Fabric.js 캔버스 제어
 │   │   ├── useChat.ts                  # 채팅 메시지 구독
 │   │   └── useAIJudge.ts               # AI 추론 Cloud Function 호출
 │   │
 │   ├── store/                          # Zustand 스토어
 │   │   ├── authStore.ts                # 인증 상태
-│   │   ├── gameStore.ts                # 게임 상태 (turnCount, status 등)
-│   │   └── canvasStore.ts              # 캔버스 상태 (로컬 전용)
+│   │   └── gameStore.ts                # 게임 상태 (turnCount, status 등)
 │   │
 │   ├── services/                       # Firebase SDK 래퍼
 │   │   ├── auth.service.ts             # 인증 관련
 │   │   ├── database.service.ts         # RTDB 읽기/쓰기
-│   │   └── functions.service.ts        # Cloud Functions 호출
+│   │   ├── functions.service.ts        # Cloud Functions 호출
+│   │   └── matchmaking.ts              # 게임 매칭 및 룸 생성 (클라이언트 사이드)
 │   │
 │   ├── utils/                          # 유틸리티 함수
 │   │   ├── canvasSerializer.ts         # Fabric.js JSON 직렬화/역직렬화
@@ -92,172 +87,123 @@ frontend/
 
 ## 🎨 핵심 컴포넌트 설계
 
-### 1. Canvas.tsx (Fabric.js 래퍼)
+### 1. Canvas.tsx (Fabric.js 래퍼 + 도구 통합)
 
 **역할:**
 - HTML5 Canvas를 Fabric.js로 초기화
+- 드로잉 도구(색상, 두께, 지우개) UI 포함
 - 현재 턴 플레이어만 그리기 가능, 나머지는 읽기 전용
-- Firebase RTDB와 실시간 동기화
+- Firebase RTDB와 실시간 동기화 (Debounce 적용)
+- `forwardRef`를 통해 `getCanvasAsBase64`, `loadCanvasData` 등의 메서드 노출
 
 **주요 기능:**
 ```typescript
 // src/components/game/Canvas.tsx
-import { useEffect, useRef } from 'react';
-import { fabric } from 'fabric';
-import { useCanvas } from '@/hooks/useCanvas';
-import { useGameRoom } from '@/hooks/useGameRoom';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import * as fabric from 'fabric';
 
-interface CanvasProps {
-  roomId: string;
-  isMyTurn: boolean;  // 현재 내 턴인지 여부
-}
+// ... (인터페이스 정의)
 
-export default function Canvas({ roomId, isMyTurn }: CanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { canvas, initCanvas, syncCanvas } = useCanvas();
-  const { canvasState } = useGameRoom(roomId);
+const Canvas = forwardRef<CanvasHandle, CanvasProps>(
+  ({ width, height, isDrawingEnabled = true, onCanvasChange }, ref) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
+    
+    // 상태 관리: 색상, 두께, 지우개 모드
+    const [currentColor, setCurrentColor] = useState('#000000');
+    const [brushWidth, setBrushWidth] = useState(5);
+    const [isEraser, setIsEraser] = useState(false);
 
-  // 1. Canvas 초기화
-  useEffect(() => {
-    if (canvasRef.current) {
-      const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-        width: 800,
-        height: 600,
-        isDrawingMode: isMyTurn,  // 내 턴일 때만 드로잉 모드
-        backgroundColor: '#ffffff',
-      });
+    // ... (초기화 및 이벤트 리스너 로직)
 
-      // 브러시 설정
-      fabricCanvas.freeDrawingBrush.width = 5;
-      fabricCanvas.freeDrawingBrush.color = '#000000';
+    // 부모 컴포넌트에서 접근 가능한 메서드
+    useImperativeHandle(ref, () => ({
+      getCanvasAsBase64: () => { /* ... */ },
+      loadCanvasData: (data) => { /* ... */ },
+      clearCanvas: () => { /* ... */ }
+    }));
 
-      initCanvas(fabricCanvas);
-    }
-  }, []);
-
-  // 2. 턴 변경 시 드로잉 모드 토글
-  useEffect(() => {
-    if (canvas) {
-      canvas.isDrawingMode = isMyTurn;
-      canvas.selection = isMyTurn;  // 객체 선택 가능 여부
-    }
-  }, [isMyTurn, canvas]);
-
-  // 3. Firebase RTDB에서 캔버스 상태 동기화
-  useEffect(() => {
-    if (canvas && canvasState && !isMyTurn) {
-      // 다른 플레이어가 그린 내용을 내 캔버스에 반영
-      canvas.loadFromJSON(canvasState, () => {
-        canvas.renderAll();
-      });
-    }
-  }, [canvasState, canvas, isMyTurn]);
-
-  // 4. 내가 그릴 때 Firebase에 업데이트
-  useEffect(() => {
-    if (canvas && isMyTurn) {
-      const handleMouseUp = () => {
-        const json = canvas.toJSON();
-        syncCanvas(roomId, json);  // RTDB에 저장
-      };
-
-      canvas.on('mouse:up', handleMouseUp);
-      return () => canvas.off('mouse:up', handleMouseUp);
-    }
-  }, [canvas, isMyTurn, roomId]);
-
-  return (
-    <div className="relative border-4 border-gray-800 rounded-lg shadow-lg">
-      <canvas ref={canvasRef} />
-      {!isMyTurn && (
-        <div className="absolute inset-0 bg-gray-900 bg-opacity-10 pointer-events-none flex items-center justify-center">
-          <p className="text-2xl font-bold text-gray-700">관전 중...</p>
+    return (
+      <div className="flex flex-col gap-4">
+        {/* 툴바 (그리기 모드일 때만 표시) */}
+        {isDrawingEnabled && (
+          <div className="bg-gallery-cream ...">
+            {/* 색상 선택, 두께 조절, 지우개 버튼 */}
+          </div>
+        )}
+        
+        {/* 캔버스 영역 */}
+        <div className="bg-gallery-ivory ...">
+          <canvas ref={canvasRef} />
         </div>
-      )}
-    </div>
-  );
-}
+      </div>
+    );
+  }
+);
 ```
 
 **최적화 포인트:**
-- `isMyTurn === false`일 때는 `mouse:up` 리스너 등록 제거
-- JSON 크기가 100KB 초과 시 경고 (성능 저하 방지)
+- `debounce`를 사용하여 RTDB 업데이트 빈도 제한 (500ms)
+- `resizeObserver`를 통한 반응형 캔버스 크기 조정
+- `loadFromJSON` 시 불필요한 리렌더링 방지
 
 ---
 
-### 2. DrawingTools.tsx (드로잉 도구)
+### 2. GameRoom.tsx (메인 게임 화면 및 UI 통합)
 
 **역할:**
-- 브러시 색상, 두께 조절
-- 지우개, 실행 취소 기능
+- 게임의 메인 레이아웃 및 상태 관리 오케스트레이터
+- 하위 컴포넌트들을 직접 렌더링하거나 통합하여 관리
+- `useGameRoom` 훅을 통해 데이터 구독 및 로직 처리
 
+**통합된 UI 요소:**
+- **TurnIndicator**: 현재 턴, 남은 시간, 턴 수를 표시하는 상단/중앙 UI
+- **PlayerList**: 참가자 목록 및 현재 상태(준비, 창작 중 등) 표시
+- **AIGuessDisplay**: AI의 추론 결과 히스토리 및 최신 결과 표시
+- **DrawingTools**: `Canvas.tsx` 내부에 통합됨
+
+**구조:**
 ```typescript
-// src/components/game/DrawingTools.tsx
-interface DrawingToolsProps {
-  canvas: fabric.Canvas | null;
-  disabled: boolean;  // 내 턴이 아닐 때 비활성화
-}
+// src/pages/GameRoom.tsx
 
-export default function DrawingTools({ canvas, disabled }: DrawingToolsProps) {
-  const colors = ['#000000', '#FF0000', '#0000FF', '#00FF00', '#FFFF00'];
-  const sizes = [2, 5, 10, 15];
-
-  const changeColor = (color: string) => {
-    if (canvas?.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = color;
-    }
-  };
-
-  const changeSize = (size: number) => {
-    if (canvas?.freeDrawingBrush) {
-      canvas.freeDrawingBrush.width = size;
-    }
-  };
-
-  const clearCanvas = () => {
-    if (canvas) {
-      canvas.clear();
-      canvas.backgroundColor = '#ffffff';
-    }
-  };
+export default function GameRoom() {
+  // 훅을 통해 게임 상태 및 로직 가져오기
+  const { gameRoom, remainingTime, ... } = useGameRoom(roomId);
+  
+  // ...
 
   return (
-    <div className="flex gap-4 p-4 bg-gray-100 rounded-lg">
-      {/* 색상 선택 */}
-      <div className="flex gap-2">
-        {colors.map((color) => (
-          <button
-            key={color}
-            onClick={() => changeColor(color)}
-            disabled={disabled}
-            className="w-10 h-10 rounded-full border-2 border-gray-400"
-            style={{ backgroundColor: color }}
-          />
-        ))}
-      </div>
+    <div className="min-h-screen">
+      <Header />
+      <main>
+        {/* 대기 상태 UI */}
+        {gameRoom.status === 'waiting' && (
+           // 난이도 선택, 플레이어 목록, 준비 버튼 등
+        )}
 
-      {/* 브러시 크기 */}
-      <div className="flex gap-2">
-        {sizes.map((size) => (
-          <button
-            key={size}
-            onClick={() => changeSize(size)}
-            disabled={disabled}
-            className="px-3 py-1 bg-white rounded border"
-          >
-            {size}px
-          </button>
-        ))}
-      </div>
+        {/* 게임 진행 상태 UI */}
+        {gameRoom.status === 'in-progress' && (
+          <div className="grid ...">
+            {/* 좌측: 캔버스 및 컨트롤 */}
+            <div>
+              <Canvas ref={canvasRef} ... />
+              <button onClick={handleSubmitToAI}>AI에게 제출</button>
+            </div>
 
-      {/* 전체 지우기 (팀원 합의 필요) */}
-      <button
-        onClick={clearCanvas}
-        disabled={disabled}
-        className="px-4 py-2 bg-red-500 text-white rounded"
-      >
-        전체 지우기
-      </button>
+            {/* 중앙: 턴 정보 및 플레이어 */}
+            <div>
+              <TurnIndicator ... /> 
+              <PlayerList ... />
+            </div>
+
+            {/* 우측: AI 기록 및 채팅 */}
+            <div>
+              <AIGuessDisplay ... />
+              <Chat ... />
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
@@ -265,177 +211,16 @@ export default function DrawingTools({ canvas, disabled }: DrawingToolsProps) {
 
 ---
 
-### 3. TurnIndicator.tsx (턴 표시)
-
-**역할:**
-- 현재 턴 플레이어 강조 표시
-- 남은 턴 수 및 타이머 표시
-
-```typescript
-// src/components/game/TurnIndicator.tsx
-interface TurnIndicatorProps {
-  currentPlayerName: string;
-  turnCount: number;
-  maxTurns: number;
-  elapsedTime: number;  // 초 단위
-}
-
-export default function TurnIndicator({
-  currentPlayerName,
-  turnCount,
-  maxTurns,
-  elapsedTime
-}: TurnIndicatorProps) {
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-lg shadow-xl">
-      <div className="flex justify-between items-center">
-        <div>
-          <p className="text-sm opacity-80">현재 턴</p>
-          <p className="text-3xl font-bold">{currentPlayerName}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-sm opacity-80">턴 수</p>
-          <p className="text-3xl font-bold">{turnCount} / {maxTurns}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-sm opacity-80">경과 시간</p>
-          <p className="text-3xl font-bold">{formatTime(elapsedTime)}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-```
-
----
-
-### 4. Chat.tsx (실시간 채팅)
+### 3. Chat.tsx (실시간 채팅)
 
 **역할:**
 - 팀원 간 전략 논의
 - Firebase RTDB `chatMessages/{roomId}` 구독
+- XSS 방지 (DOMPurify) 적용
 
 ```typescript
 // src/components/game/Chat.tsx
-import { useState } from 'react';
-import { useChat } from '@/hooks/useChat';
-
-interface ChatProps {
-  roomId: string;
-}
-
-export default function Chat({ roomId }: ChatProps) {
-  const [message, setMessage] = useState('');
-  const { messages, sendMessage } = useChat(roomId);
-
-  const handleSend = () => {
-    if (message.trim()) {
-      sendMessage(message);
-      setMessage('');
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-96 bg-white rounded-lg shadow-lg">
-      {/* 메시지 목록 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {messages.map((msg) => (
-          <div key={msg.id} className="flex gap-2">
-            <span className="font-bold text-blue-600">{msg.displayName}:</span>
-            <span className="text-gray-800">{msg.text}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* 입력창 */}
-      <div className="flex gap-2 p-4 border-t">
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="전략을 논의하세요..."
-          className="flex-1 px-3 py-2 border rounded"
-        />
-        <button
-          onClick={handleSend}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          전송
-        </button>
-      </div>
-    </div>
-  );
-}
-```
-
----
-
-### 5. AIGuessDisplay.tsx (AI 추론 결과)
-
-**역할:**
-- AI의 추론 결과를 실시간으로 표시
-- 정답/오답 시 애니메이션
-
-```typescript
-// src/components/game/AIGuessDisplay.tsx
-interface AIGuess {
-  turn: number;
-  guess: string;
-  confidence: number;
-  timestamp: number;
-}
-
-interface AIGuessDisplayProps {
-  guesses: AIGuess[];
-  targetWord: string;  // 정답 (게임 종료 후에만 표시)
-  gameStatus: 'in-progress' | 'finished';
-}
-
-export default function AIGuessDisplay({
-  guesses,
-  targetWord,
-  gameStatus
-}: AIGuessDisplayProps) {
-  const latestGuess = guesses[guesses.length - 1];
-
-  return (
-    <div className="space-y-4">
-      {/* 최신 추론 */}
-      {latestGuess && (
-        <div className={`p-6 rounded-lg shadow-lg ${
-          gameStatus === 'finished' && latestGuess.guess === targetWord
-            ? 'bg-green-100 border-4 border-green-500'
-            : 'bg-yellow-100 border-4 border-yellow-500'
-        }`}>
-          <p className="text-sm text-gray-600">AI의 추론</p>
-          <p className="text-4xl font-bold text-gray-800">{latestGuess.guess}</p>
-          <p className="text-sm text-gray-500">
-            신뢰도: {(latestGuess.confidence * 100).toFixed(1)}%
-          </p>
-        </div>
-      )}
-
-      {/* 추론 히스토리 */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <p className="font-bold mb-2">추론 기록</p>
-        <ul className="space-y-1">
-          {guesses.map((guess) => (
-            <li key={guess.turn} className="text-sm">
-              <span className="font-bold">턴 {guess.turn}:</span> {guess.guess}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
+// ... (기존 설계와 유사하게 유지됨)
 ```
 
 ---
@@ -480,36 +265,15 @@ export function useGameRoom(roomId: string) {
 
 ### 2. useCanvas.ts (Fabric.js 캔버스 제어)
 
+> **Note**: 현재 구현에서는 `useCanvas` 훅 대신 `Canvas.tsx` 내부의 `forwardRef` 패턴을 사용하여 캔버스를 제어합니다. 이는 Fabric.js 인스턴스와 React 컴포넌트 생명주기를 더 긴밀하게 연결하기 위함입니다.
+
 ```typescript
-// src/hooks/useCanvas.ts
-import { useState, useCallback } from 'react';
-import { fabric } from 'fabric';
-import { ref, set } from 'firebase/database';
-import { database } from '@/firebase';
-
-export function useCanvas() {
-  const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
-
-  const initCanvas = useCallback((fabricCanvas: fabric.Canvas) => {
-    setCanvas(fabricCanvas);
-  }, []);
-
-  const syncCanvas = useCallback(async (roomId: string, canvasJSON: any) => {
-    const canvasRef = ref(database, `/liveDrawings/${roomId}/canvasState`);
-    await set(canvasRef, JSON.stringify(canvasJSON));
-  }, []);
-
-  const exportImage = useCallback((): string | null => {
-    if (!canvas) return null;
-    return canvas.toDataURL({
-      format: 'jpeg',
-      quality: 0.8,
-      multiplier: 1,
-    });
-  }, [canvas]);
-
-  return { canvas, initCanvas, syncCanvas, exportImage };
-}
+// Canvas.tsx 내부 구현 (개념적)
+useImperativeHandle(ref, () => ({
+  getCanvasAsBase64: () => { ... },
+  loadCanvasData: (data) => { ... },
+  clearCanvas: () => { ... }
+}));
 ```
 
 ### 3. useAIJudge.ts (AI 추론 호출)

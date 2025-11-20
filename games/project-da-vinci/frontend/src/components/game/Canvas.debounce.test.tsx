@@ -51,9 +51,7 @@ describe('Canvas Debounce 동작', () => {
     render(<Canvas isDrawingEnabled={true} onCanvasChange={onCanvasChange} />)
 
     // path:created 이벤트 핸들러 가져오기
-    const pathCreatedHandler = mockOn.mock.calls.find(
-      (call) => call[0] === 'path:created'
-    )?.[1]
+    const pathCreatedHandler = mockOn.mock.calls.find((call) => call[0] === 'path:created')?.[1]
 
     expect(pathCreatedHandler).toBeDefined()
 
@@ -78,9 +76,7 @@ describe('Canvas Debounce 동작', () => {
 
     render(<Canvas isDrawingEnabled={true} onCanvasChange={onCanvasChange} />)
 
-    const pathCreatedHandler = mockOn.mock.calls.find(
-      (call) => call[0] === 'path:created'
-    )?.[1]
+    const pathCreatedHandler = mockOn.mock.calls.find((call) => call[0] === 'path:created')?.[1]
 
     // 첫 이벤트
     pathCreatedHandler()
@@ -110,9 +106,7 @@ describe('Canvas Debounce 동작', () => {
 
     render(<Canvas isDrawingEnabled={true} onCanvasChange={onCanvasChange} />)
 
-    const pathCreatedHandler = mockOn.mock.calls.find(
-      (call) => call[0] === 'path:created'
-    )?.[1]
+    const pathCreatedHandler = mockOn.mock.calls.find((call) => call[0] === 'path:created')?.[1]
 
     pathCreatedHandler()
     await vi.advanceTimersByTimeAsync(500)
@@ -125,9 +119,7 @@ describe('Canvas Debounce 동작', () => {
 
     render(<Canvas isDrawingEnabled={true} onCanvasChange={onCanvasChange} />)
 
-    const pathCreatedHandler = mockOn.mock.calls.find(
-      (call) => call[0] === 'path:created'
-    )?.[1]
+    const pathCreatedHandler = mockOn.mock.calls.find((call) => call[0] === 'path:created')?.[1]
 
     // 3번 그리기
     mockToJSON.mockReturnValueOnce({ objects: [{ id: 1 }] })
@@ -146,8 +138,6 @@ describe('Canvas Debounce 동작', () => {
 
     // 1회만 호출되고, 마지막 상태(3개 객체)만 전달
     expect(onCanvasChange).toHaveBeenCalledTimes(1)
-    expect(onCanvasChange).toHaveBeenCalledWith(
-      expect.stringContaining('id')
-    )
+    expect(onCanvasChange).toHaveBeenCalledWith(expect.stringContaining('id'))
   })
 })

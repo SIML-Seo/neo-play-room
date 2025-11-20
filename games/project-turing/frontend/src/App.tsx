@@ -4,6 +4,7 @@ import Lobby from '@/pages/Lobby'
 import GameRoom from '@/pages/GameRoom'
 import Results from '@/pages/Results'
 import Leaderboard from '@/pages/Leaderboard'
+import Admin from '@/pages/Admin'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/game/:roomId" element={<GameRoom />} />
         <Route path="/results/:roomId" element={<Results />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </BrowserRouter>
   )

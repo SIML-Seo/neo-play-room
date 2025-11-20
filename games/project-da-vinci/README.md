@@ -86,6 +86,11 @@
 
 - **추론 시점**: 각 플레이어가 턴을 종료할 때마다
 - **추론 방식**: AI가 현재 캔버스 이미지를 보고 단어 추측 (정답 모름)
+- **🎯 누적 추론 (Cooperative Clue System)**:
+  - AI는 이전 턴의 추측을 **기억**합니다
+  - 새로운 그림과 이전 단서를 **조합**하여 정답 추론
+  - 예: "산" + "나무꾼" + "요정" → "선녀와나무꾼" ✅
+  - 팀원들이 단서를 하나씩 쌓아가며 AI를 가이드 가능
 - **판정**: AI의 추론이 정답 단어와 일치하면 게임 종료
 - **난이도별 AI 정확도**:
   - Easy: ~80% (힌트 많음, Few-shot 예시 제공)
@@ -276,11 +281,24 @@ project-da-vinci/
 
 각 영역별 상세 설계 문서는 `docs/` 디렉토리에서 확인하세요:
 
+### 핵심 설계 문서
 - **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)**: 전체 시스템 아키텍처 및 데이터 흐름
 - **[FRONTEND.md](./docs/FRONTEND.md)**: React 컴포넌트 설계 및 실시간 동기화 로직
 - **[BACKEND.md](./docs/BACKEND.md)**: Firebase 설정, 데이터 모델, Cloud Functions
 - **[AI.md](./docs/AI.md)**: Gemini API 연동 및 프롬프트 엔지니어링
 - **[TODO.md](./docs/TODO.md)**: 개발 일정 및 체크리스트
+
+### 가이드 및 설정
+- **[SETUP.md](./docs/SETUP.md)**: 상세 개발 환경 설정 가이드
+- **[CONFIGURATION.md](./docs/CONFIGURATION.md)**: 환경 변수 및 게임 설정 가이드
+- **[CI_CD_SETUP.md](./docs/CI_CD_SETUP.md)**: GitHub Actions CI/CD 파이프라인 설정
+- **[THEME_WORD_POOL_GUIDE.md](./docs/THEME_WORD_POOL_GUIDE.md)**: 테마 및 단어 풀 관리 가이드
+
+### AI 및 기능 심화
+- **[AI_WORD_GENERATION.md](./docs/AI_WORD_GENERATION.md)**: AI 기반 단어 생성 로직
+- **[QUICK_START_AI_GENERATION.md](./docs/QUICK_START_AI_GENERATION.md)**: AI 단어 생성 빠른 시작 가이드
+- **[FEATURES_DYNAMIC_THEMES.md](./docs/FEATURES_DYNAMIC_THEMES.md)**: 동적 테마 시스템 상세
+- **[SUPABASE_COMPARISON.md](./docs/SUPABASE_COMPARISON.md)**: Firebase vs Supabase 기술 선정 비교
 
 ---
 

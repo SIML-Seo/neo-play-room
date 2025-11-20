@@ -1,18 +1,11 @@
 /**
  * 게임 스케줄 관리 서비스
  * Firestore를 사용하여 게임 가능 시간대 관리
- * 주제 등록 시 자동으로 문제 풀 생성
  */
 
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
 import { firestore } from '@/firebase'
 import type { GameScheduleConfig, GameScheduleDateRange } from '@/types/game.types'
-import {
-  getWordPoolByTheme,
-  generateAndSaveWordPool,
-  getAllWordPools,
-  deleteWordPool,
-} from '@/services/wordPools'
 
 /**
  * 게임 스케줄 설정 조회
@@ -34,66 +27,12 @@ export async function getGameSchedule(): Promise<GameScheduleConfig | null> {
 
 /**
  * 게임 스케줄 설정 업데이트 (마스터 계정만)
- * 주제가 새로 추가되면 자동으로 문제 풀 생성
- * 사용되지 않는 주제는 워드풀에서 자동 삭제
  */
 export async function updateGameSchedule(
   dateRanges: GameScheduleDateRange[],
-  updatedBy: string,
-  autoGenerateWords: boolean = true
+  updatedBy: string
 ): Promise<void> {
   try {
-    // 현재 스케줄에 있는 고유 주제 목록
-    const scheduledThemes = new Set(dateRanges.map((range) => range.theme))
-
-    // 새로운 주제 찾기 및 워드풀 생성
-    if (autoGenerateWords) {
-      for (const theme of scheduledThemes) {
-        // 이미 문제 풀이 있는지 확인
-        const existingPool = await getWordPoolByTheme(theme)
-
-        if (!existingPool) {
-          console.log(
-            `[updateGameSchedule] "${theme}" 주제의 문제 풀이 없습니다. 자동 생성 시작...`
-          )
-
-          try {
-            await generateAndSaveWordPool(
-              theme,
-              `${theme} 주제 (자동 생성)`,
-              updatedBy,
-              20 // 기본 20개 단어 생성
-            )
-            console.log(`[updateGameSchedule] ✅ "${theme}" 주제 문제 풀 생성 완료`)
-          } catch (error) {
-            console.error(`[updateGameSchedule] ❌ "${theme}" 주제 생성 실패:`, error)
-            // 생성 실패해도 스케줄은 저장
-          }
-        } else {
-          console.log(
-            `[updateGameSchedule] "${theme}" 주제 문제 풀이 이미 존재 (${existingPool.words.length}개 단어)`
-          )
-        }
-      }
-
-      // 사용되지 않는 워드풀 삭제
-      const allWordPools = await getAllWordPools()
-      for (const pool of allWordPools) {
-        if (!scheduledThemes.has(pool.theme)) {
-          console.log(
-            `[updateGameSchedule] "${pool.theme}" 주제가 스케줄에서 제거됨. 워드풀 삭제 중...`
-          )
-          try {
-            await deleteWordPool(pool.theme)
-            console.log(`[updateGameSchedule] ✅ "${pool.theme}" 워드풀 삭제 완료`)
-          } catch (error) {
-            console.error(`[updateGameSchedule] ❌ "${pool.theme}" 워드풀 삭제 실패:`, error)
-            // 삭제 실패해도 계속 진행
-          }
-        }
-      }
-    }
-
     // 스케줄 저장
     const docRef = doc(firestore, 'gameSchedules', 'config')
     await setDoc(docRef, {
@@ -237,7 +176,7 @@ export function getCurrentTheme(schedule: GameScheduleConfig | null): string | n
     const endMinutes = endHour * 60 + endMin
 
     if (currentTimeMinutes >= startMinutes && currentTimeMinutes < endMinutes) {
-      return timeSlot.theme
+      return timeSlot.theme || null
     }
   }
 

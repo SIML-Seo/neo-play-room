@@ -4,7 +4,7 @@
  * Cloud Functions를 통한 AI 단어 자동 생성
  */
 
-import { collection, doc, getDoc, setDoc, getDocs } from 'firebase/firestore'
+import { collection, doc, getDoc, setDoc, getDocs, deleteDoc, Timestamp } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { firestore, functions } from '@/firebase'
 import type { ThemeWordPool } from '@/types/game.types'
@@ -60,18 +60,32 @@ export async function updateWordPool(
       theme,
       words,
       description,
-      updatedAt: new Date(),
+      updatedAt: Timestamp.now(),
       createdBy,
     }
 
     if (!existingDoc.exists()) {
-      wordPoolData.createdAt = new Date()
+      wordPoolData.createdAt = Timestamp.now()
     }
 
     await setDoc(docRef, wordPoolData)
     console.log(`[updateWordPool] ${theme} 업데이트 완료`)
   } catch (error) {
     console.error(`[updateWordPool] ${theme} 업데이트 실패:`, error)
+    throw error
+  }
+}
+
+/**
+ * 주제별 문제 풀 삭제 (마스터 계정만)
+ */
+export async function deleteWordPool(theme: string): Promise<void> {
+  try {
+    const docRef = doc(firestore, WORD_POOLS_COLLECTION, theme)
+    await deleteDoc(docRef)
+    console.log(`[deleteWordPool] ${theme} 삭제 완료`)
+  } catch (error) {
+    console.error(`[deleteWordPool] ${theme} 삭제 실패:`, error)
     throw error
   }
 }
@@ -103,10 +117,7 @@ export function selectRandomWords(words: string[], count: number): string[] {
 /**
  * Cloud Function을 통해 주제에 맞는 단어 자동 생성
  */
-export async function generateWordsForTheme(
-  theme: string,
-  count: number = 20
-): Promise<string[]> {
+export async function generateWordsForTheme(theme: string, count: number = 20): Promise<string[]> {
   try {
     const generateWords = httpsCallable<
       { theme: string; count?: number },
@@ -122,7 +133,6 @@ export async function generateWordsForTheme(
     throw error
   }
 }
-
 
 /**
  * 주제별 문제 풀 자동 생성 (Cloud Function 호출)
@@ -145,8 +155,8 @@ export async function generateAndSaveWordPool(
     theme,
     words,
     description,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
     createdBy,
   }
 }

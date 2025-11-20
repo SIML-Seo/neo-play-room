@@ -203,7 +203,7 @@ describe('useGameRoom', () => {
     })
 
     const remaining = result.current.getRemainingTime()
-    
+
     // 60초 - 45초 = 15초 (약간의 오차 허용)
     expect(remaining).toBeGreaterThan(10)
     expect(remaining).toBeLessThan(20)

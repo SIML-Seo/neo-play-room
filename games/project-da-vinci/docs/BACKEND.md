@@ -36,8 +36,6 @@ functions/
 │   │   └── judge.flow.ts               # AI 추론 Genkit Flow
 │   │
 │   ├── game/
-│   │   ├── matching.function.ts        # 팀 매칭 로직
-│   │   ├── turn.function.ts            # 턴 관리 로직
 │   │   └── finalize.function.ts        # 게임 종료 처리
 │   │
 │   ├── types/
@@ -245,96 +243,16 @@ export interface GameLog {
 
 ## ⚡ Cloud Functions 구현
 
-### 1. 팀 매칭 함수 (Scheduled Function)
+### 1. 팀 매칭 (Client-Side Service)
 
-**트리거:** 매주 월요일 09:00 (또는 수동 호출)
+> **변경 사항**: 초기 설계에서는 Cloud Function(`matchPlayers`)을 사용할 계획이었으나, MVP 단계에서는 프론트엔드 서비스(`src/services/matchmaking.ts`)에서 직접 RTDB를 조작하여 매칭을 처리하도록 변경되었습니다. 이는 개발 복잡도를 낮추고 즉각적인 반응성을 확보하기 위함입니다.
 
-```typescript
-// functions/src/game/matching.function.ts
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { getDatabase } from 'firebase-admin/database';
-import { logger } from 'firebase-functions';
+**로직 흐름:**
+1. 사용자가 로비에 입장하면 `waitingPlayers` 경로에 등록
+2. 대기자가 5명이 되면 `createGameRoom` 함수 호출 (클라이언트)
+3. `gameRooms/{roomId}` 생성 및 플레이어 이동
 
-interface Participant {
-  uid: string;
-  displayName: string;
-  email: string;
-  department: string;
-}
-
-export const matchPlayers = onSchedule({
-  schedule: '0 9 * * 1',  // 매주 월요일 09:00 (KST)
-  timeZone: 'Asia/Seoul',
-  region: 'asia-northeast3',
-}, async (event) => {
-  const db = getDatabase();
-
-  // 1. 참가자 목록 가져오기
-  const participantsSnapshot = await db.ref('/participants').once('value');
-  const participants: Participant[] = Object.values(participantsSnapshot.val() || {});
-
-  if (participants.length < 5) {
-    logger.warn('참가자가 5명 미만입니다. 매칭을 건너뜁니다.');
-    return;
-  }
-
-  // 2. 참가자 무작위 섞기
-  const shuffled = participants.sort(() => Math.random() - 0.5);
-
-  // 3. 5명씩 팀 구성
-  const teams: Participant[][] = [];
-  for (let i = 0; i < shuffled.length; i += 5) {
-    teams.push(shuffled.slice(i, i + 5));
-  }
-
-  // 4. 게임 룸 생성
-  const themes = ['동화', '영화', '음식', '동물', '스포츠'];
-  const words = {
-    '동화': ['백설공주', '신데렐라', '피노키오', '인어공주'],
-    '영화': ['기생충', '어벤져스', '타이타닉', '겨울왕국'],
-    // ...
-  };
-
-  for (let i = 0; i < teams.length; i++) {
-    const team = teams[i];
-    if (team.length !== 5) continue;  // 5명이 아닌 팀은 건너뛰기 (또는 4-6명 허용)
-
-    const roomId = `room-${Date.now()}-${i}`;
-    const theme = themes[Math.floor(Math.random() * themes.length)];
-    const targetWord = words[theme][Math.floor(Math.random() * words[theme].length)];
-
-    const gameRoom: GameRoom = {
-      roomId,
-      status: 'waiting',
-      theme,
-      targetWord,
-      currentTurn: team[0].uid,
-      turnOrder: team.map(p => p.uid),
-      currentTurnIndex: 0,
-      maxTurns: 10,
-      turnCount: 0,
-      startTime: Date.now(),
-      players: team.reduce((acc, p) => {
-        acc[p.uid] = {
-          name: p.displayName,
-          team: roomId,
-          ready: false,
-          joinedAt: Date.now(),
-        };
-        return acc;
-      }, {} as any),
-      aiGuesses: [],
-    };
-
-    await db.ref(`/gameRooms/${roomId}`).set(gameRoom);
-    logger.info(`게임 룸 생성: ${roomId}, 팀원: ${team.map(p => p.displayName).join(', ')}`);
-  }
-
-  // 5. 참가자 목록 초기화
-  await db.ref('/participants').remove();
-  logger.info('팀 매칭 완료');
-});
-```
+---
 
 ### 2. AI 추론 함수 (Callable Function)
 

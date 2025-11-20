@@ -10,6 +10,8 @@ import {
 } from '@/services/gameRoom'
 import type { GameRoom, GameDifficulty } from '@/types/game.types'
 import { ENV } from '@/config/env'
+import { httpsCallable } from 'firebase/functions'
+import { functions } from '@/firebase'
 
 export function useGameRoom(roomId: string | undefined) {
   const [gameRoom, setGameRoom] = useState<GameRoom | null>(null)
@@ -51,9 +53,25 @@ export function useGameRoom(roomId: string | undefined) {
     // turnCount가 maxTurns를 초과하면 게임 종료
     if (gameRoom.turnCount >= gameRoom.maxTurns) {
       console.log('⚠️ 최대 턴 수 초과! 게임을 종료합니다.')
-      endGameByTurnLimit(roomId).catch((err) => {
-        console.error('Failed to end game:', err)
-      })
+
+      // 게임 상태 업데이트
+      endGameByTurnLimit(roomId)
+        .then(async () => {
+          // Emulator Trigger 버그 대응: 게임 로그 수동 저장
+          try {
+            const finalizeGameManual = httpsCallable<
+              { roomId: string },
+              { success: boolean; message: string }
+            >(functions, 'finalizeGameManual')
+            const result = await finalizeGameManual({ roomId })
+            console.log('✅ 게임 로그 수동 저장 완료:', result.data)
+          } catch (error) {
+            console.error('❌ 게임 로그 수동 저장 실패:', error)
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to end game:', err)
+        })
     }
   }, [gameRoom, roomId])
 

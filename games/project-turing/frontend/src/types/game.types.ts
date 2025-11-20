@@ -87,3 +87,39 @@ export interface Question {
   text: string
   createdAt: number
 }
+
+// Firestore 분석 데이터 타입
+export interface DailyAnalytics {
+  date: string // YYYY-MM-DD
+  totalGames: number
+  successCount: number
+  failureCount: number
+  totalTurns: number
+  avgTurns: number
+  avgTime: number
+}
+
+export interface WordAnalytics {
+  word: string
+  attempts: number
+  successCount: number
+  successRate: number
+  avgTurns: number
+  avgConfidence: number
+}
+
+// 게임 스케줄 타입 (특정 날짜/시간대)
+export interface GameScheduleDateRange {
+  id?: string // Firestore 문서 ID
+  date: string // YYYY-MM-DD 형식
+  start: string // HH:mm 형식
+  end: string // HH:mm 형식
+  description?: string // 선택적 설명 (예: "팀 빌딩 이벤트")
+  theme?: string // 게임 주제 (선택)
+}
+
+export interface GameScheduleConfig {
+  dateRanges: GameScheduleDateRange[]
+  updatedBy: string
+  updatedAt: unknown // Firestore Timestamp
+}

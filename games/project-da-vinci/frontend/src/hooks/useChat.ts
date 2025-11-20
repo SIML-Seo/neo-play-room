@@ -7,6 +7,7 @@ export interface ChatMessage {
   id: string
   uid: string
   displayName: string | null
+  artistName?: string
   text: string
   timestamp: number
 }
@@ -43,7 +44,7 @@ export function useChat(roomId: string | undefined, user: User | null) {
 
   // 메시지 전송
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, artistName?: string) => {
       if (!roomId || !user || !text.trim()) return
 
       try {
@@ -54,6 +55,7 @@ export function useChat(roomId: string | undefined, user: User | null) {
         await push(messagesRef, {
           uid: user.uid,
           displayName: user.displayName || '익명',
+          artistName: artistName || undefined,
           text: text.trim(),
           timestamp: serverTimestamp(),
         })

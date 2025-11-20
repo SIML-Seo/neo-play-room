@@ -49,9 +49,7 @@ export default function Home() {
           <h1 className="gallery-title text-5xl md:text-7xl text-gallery-ivory mb-2 gold-glow animate-fadeIn">
             Project Da Vinci
           </h1>
-          <p className="gallery-text text-xl md:text-2xl text-gallery-cream/90">
-            협동 창작 갤러리
-          </p>
+          <p className="gallery-text text-xl md:text-2xl text-gallery-cream/90">협동 창작 갤러리</p>
         </div>
 
         {/* Main content frame */}
@@ -63,9 +61,8 @@ export default function Home() {
                 인간과 AI의 협동 창작 실험
               </h2>
               <p className="gallery-text text-gallery-cream leading-relaxed">
-                5명의 예술가가 한 팀이 되어 캔버스에 작품을 그립니다.
-                AI 큐레이터가 작품을 감상하고 주제를 추론합니다.
-                최소한의 턴으로 정확한 해석을 이끌어내는 것이 목표입니다.
+                5명의 예술가가 한 팀이 되어 캔버스에 작품을 그립니다. AI 큐레이터가 작품을 감상하고
+                주제를 추론합니다. 최소한의 턴으로 정확한 해석을 이끌어내는 것이 목표입니다.
               </p>
             </div>
 
@@ -139,8 +136,12 @@ export default function Home() {
                   <div className="flex items-start gap-3">
                     <span className="text-3xl text-gold-frame">III</span>
                     <div>
-                      <h4 className="font-playfair font-bold text-gold-light mb-1">AI 감상</h4>
-                      <p className="text-sm gallery-text">AI 큐레이터가 작품을 해석합니다</p>
+                      <h4 className="font-playfair font-bold text-gold-light mb-1">
+                        🎯 AI 누적 감상
+                      </h4>
+                      <p className="text-sm gallery-text">
+                        AI 큐레이터가 이전 추측을 기억하며 단서를 조합하여 작품을 해석합니다
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -161,9 +162,7 @@ export default function Home() {
 
         {/* Bottom placard */}
         <div className="mt-4 text-center">
-          <p className="museum-label text-xs">
-            NEOLAB CONVERGENCE DIGITAL GALLERY • EST. 2025
-          </p>
+          <p className="museum-label text-xs">NEOLAB CONVERGENCE DIGITAL GALLERY • EST. 2025</p>
         </div>
       </div>
     </div>

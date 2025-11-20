@@ -3,7 +3,16 @@
  * Firestore에서 게임 통계 및 분석 데이터 조회
  */
 
-import { collection, query, where, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore'
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+  doc,
+  getDoc,
+} from 'firebase/firestore'
 import { firestore } from '@/firebase'
 import type { GameLog, DailyAnalytics, WordAnalytics } from '@/types/game.types'
 
@@ -16,7 +25,21 @@ export async function getRecentGameLogs(limitCount: number = 50): Promise<GameLo
     const q = query(logsRef, orderBy('finishedAt', 'desc'), limit(limitCount))
 
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ logId: doc.id, ...doc.data() }) as GameLog)
+    return snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        roomId: data.roomId || '',
+        difficulty: data.difficulty || 'normal',
+        finalTurnCount: data.finalTurnCount || 0,
+        finalTime: data.finalTime || 0,
+        result: data.result || 'failure',
+        aiPlayerId: data.aiPlayerId || '',
+        score: data.score || 0,
+        turnsHistory: data.turnsHistory || [],
+        completedAt: data.completedAt || 0,
+        finishedAt: data.finishedAt,
+      } as GameLog
+    })
   } catch (error) {
     console.error('[getRecentGameLogs] 조회 실패:', error)
     return []
@@ -40,7 +63,21 @@ export async function getGameLogsByDifficulty(
     )
 
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ logId: doc.id, ...doc.data() }) as GameLog)
+    return snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        roomId: data.roomId || '',
+        difficulty: data.difficulty || 'normal',
+        finalTurnCount: data.finalTurnCount || 0,
+        finalTime: data.finalTime || 0,
+        result: data.result || 'failure',
+        aiPlayerId: data.aiPlayerId || '',
+        score: data.score || 0,
+        turnsHistory: data.turnsHistory || [],
+        completedAt: data.completedAt || 0,
+        finishedAt: data.finishedAt,
+      } as GameLog
+    })
   } catch (error) {
     console.error('[getGameLogsByDifficulty] 조회 실패:', error)
     return []
@@ -61,7 +98,21 @@ export async function getFailedGameLogs(limitCount: number = 50): Promise<GameLo
     )
 
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ logId: doc.id, ...doc.data() }) as GameLog)
+    return snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        roomId: data.roomId || '',
+        difficulty: data.difficulty || 'normal',
+        finalTurnCount: data.finalTurnCount || 0,
+        finalTime: data.finalTime || 0,
+        result: data.result || 'failure',
+        aiPlayerId: data.aiPlayerId || '',
+        score: data.score || 0,
+        turnsHistory: data.turnsHistory || [],
+        completedAt: data.completedAt || 0,
+        finishedAt: data.finishedAt,
+      } as GameLog
+    })
   } catch (error) {
     console.error('[getFailedGameLogs] 조회 실패:', error)
     return []
@@ -108,19 +159,19 @@ export async function getDailyAnalytics(days: number = 30): Promise<DailyAnalyti
 }
 
 /**
- * 단어별 통계 조회 (전체)
+ * 질문별 통계 조회 (전체)
  */
-export async function getWordAnalytics(): Promise<WordAnalytics[]> {
+export async function getQuestionAnalytics(): Promise<WordAnalytics[]> {
   try {
     const analyticsRef = collection(firestore, 'analytics')
-    const q = query(analyticsRef, where('word', '!=', null))
+    const q = query(analyticsRef, where('question', '!=', null))
 
     const snapshot = await getDocs(q)
     return snapshot.docs
       .map((doc) => {
         const data = doc.data()
         return {
-          word: data.word || '',
+          word: data.question || '',
           attempts: data.attempts || 0,
           successCount: data.successCount || 0,
           successRate: data.attempts > 0 ? (data.successCount / data.attempts) * 100 : 0,
@@ -128,20 +179,20 @@ export async function getWordAnalytics(): Promise<WordAnalytics[]> {
           avgConfidence: data.attempts > 0 ? (data.totalConfidence || 0) / data.attempts : 0,
         } as WordAnalytics
       })
-      .filter((w) => w.word) // word가 빈 문자열인 경우 제외
+      .filter((w) => w.word) // question이 빈 문자열인 경우 제외
   } catch (error) {
-    console.error('[getWordAnalytics] 조회 실패:', error)
+    console.error('[getQuestionAnalytics] 조회 실패:', error)
     return []
   }
 }
 
 /**
- * 가장 어려운 단어 TOP N (성공률 낮은 순)
+ * 가장 어려운 질문 TOP N (성공률 낮은 순)
  */
-export async function getHardestWords(topN: number = 10): Promise<WordAnalytics[]> {
-  const allWords = await getWordAnalytics()
-  return allWords
-    .filter((w) => w.attempts >= 3) // 최소 3번 이상 시도된 단어만
+export async function getHardestQuestions(topN: number = 10): Promise<WordAnalytics[]> {
+  const allQuestions = await getQuestionAnalytics()
+  return allQuestions
+    .filter((q) => q.attempts >= 3) // 최소 3번 이상 시도된 질문만
     .sort((a, b) => a.successRate - b.successRate)
     .slice(0, topN)
 }

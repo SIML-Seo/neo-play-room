@@ -14,5 +14,6 @@ export { judgeDrawing } from './ai/judge.flow'
 // AI Word Generator Function Export
 export { generateWords } from './ai/wordGenerator'
 
-// Game Finalize Trigger Export
-export { finalizeGame } from './game/finalize'
+// Game Finalize Functions Export
+// finalizeGame: Database Trigger는 asia-northeast3에서 지원 안 됨 (주석 처리)
+export { finalizeGameManual } from './game/finalize'

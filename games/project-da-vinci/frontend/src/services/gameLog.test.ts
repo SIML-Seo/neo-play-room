@@ -63,9 +63,7 @@ describe('calculateScore', () => {
       finalTurnCount: 5,
       finalTime: 100000,
     }
-    expect(calculateScore(log3turns as GameLog)).toBeLessThan(
-      calculateScore(log5turns as GameLog)
-    )
+    expect(calculateScore(log3turns as GameLog)).toBeLessThan(calculateScore(log5turns as GameLog))
   })
 
   it('같은 턴 수에서 시간이 짧으면 점수가 낮음 (높은 순위)', () => {
@@ -84,7 +82,7 @@ describe('calculateScore', () => {
 
   it('난이도 필드가 없으면 기본값 1.0 적용', () => {
     const log: Partial<GameLog> = {
-      difficulty: 'unknown' as any,
+      difficulty: 'unknown' as unknown as GameDifficulty,
       finalTurnCount: 3,
       finalTime: 120000,
     }
