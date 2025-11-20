@@ -39,13 +39,13 @@ games/project-da-vinci/
 │   │   │   ├── game/            # Canvas, DrawingTools, Chat, AIGuessDisplay
 │   │   │   └── common/          # Button, Modal, Loader
 │   │   ├── pages/               # Home, Lobby, GameRoom, Results
-│   │   ├── hooks/               # useAuth, useGameRoom, useCanvas, useAIJudge
+│   │   ├── hooks/               # useAuth, useGameRoom, useSmartPen 🖊️ (스마트펜)
 │   │   ├── stores/              # Zustand (authStore만 사용)
 │   │   ├── services/            # Firebase SDK 래퍼
-│   │   ├── types/               # game.types.ts
+│   │   ├── types/               # game.types.ts, smartpen.types.ts 🖊️
 │   │   └── utils/               # timeFormatter, sanitizer
 │   ├── vite.config.ts           # Vite 설정
-│   └── package.json             # React 19, Fabric.js 6, Zustand 5
+│   └── package.json             # React 19, Fabric.js 6, web_pen_sdk 0.8.0 🖊️
 ├── functions/                   # Cloud Functions (Node 20)
 │   ├── src/
 │   │   ├── index.ts             # 진입점
@@ -294,6 +294,188 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 - 준비 완료 시스템으로 **모든 플레이어가 동의** 후 시작
 - 대기실 채팅을 통한 **원활한 소통**
 
+### 7. 🖊️ 스마트펜 통합 아키텍처
+
+**현재 상태**: ✅ 구현 완료 (web_pen_sdk v0.8.0)
+
+**설계 원칙**: 스마트펜은 **선택적 입력 장치**로, 마우스/터치와 병행 사용 가능
+
+#### 아키텍처 흐름
+
+```
+[대기실]
+    ↓
+[플레이어가 "스마트펜 연결" 클릭]
+    ↓
+[PenHelper.scanPen()] → Bluetooth 스캔
+    ↓
+[발견된 펜 목록 표시]
+    ↓
+[플레이어가 펜 선택 → PenHelper.connectDevice()]
+    ↓
+[연결 성공] → 대기실 테스트 캔버스에서 필기 테스트 가능
+    ↓
+[게임 시작]
+    ↓
+┌─────────────────────────────────────────┐
+│  [Player 턴 시작]                        │
+│      ↓                                  │
+│  [ncode 종이에 스마트펜으로 그림 그리기]   │
+│      ↓                                  │
+│  PenHelper.dotCallback(mac, dot)        │
+│  {                                      │
+│    x: 7535,  // ncode 좌표               │
+│    y: 10640, // ncode 좌표               │
+│    f: 512,   // force (압력 0-1024)      │
+│    dotType: 1 // 0=down, 1=move, 2=up   │
+│  }                                      │
+│      ↓                                  │
+│  [좌표 변환]                             │
+│  PenHelper.ncodeToScreen(dot, view, paperSize)│
+│  → { x: 400, y: 300, f: 512 }  // Canvas 좌표 │
+│      ↓                                  │
+│  [압력 → 선 두께 변환]                    │
+│  brushWidth = (force / 1024) * maxWidth  │
+│  → brushWidth = 10px                     │
+│      ↓                                  │
+│  [Fabric.js Path 생성]                   │
+│  canvas.add(new fabric.Path(...))       │
+│      ↓                                  │
+│  [RTDB 동기화] (기존 마우스와 동일)        │
+│  set('/liveDrawings/roomId', canvas.toJSON())│
+│      ↓                                  │
+│  [다른 플레이어들에게 실시간 반영]          │
+└─────────────────────────────────────────┘
+    ↓
+[턴 종료] → AI 추론 (스마트펜/마우스 구분 없음)
+```
+
+#### 주요 구현 파일
+
+```typescript
+// frontend/src/hooks/useSmartPen.ts (287줄)
+export function useSmartPen(options: UseSmartPenOptions) {
+  // 스캔, 연결, 좌표 변환, 압력 감지 로직
+  const scanDevices = async () => {
+    const device = await PenHelper.scanPen() // Bluetooth 스캔
+  }
+
+  const connectDevice = async (device: PenDevice) => {
+    await PenHelper.connectDevice(device)
+    await PenHelper.serviceBinding_16(...)
+    await PenHelper.characteristicBinding(...)
+  }
+
+  useEffect(() => {
+    PenHelper.dotCallback = (mac: string, dot: Dot) => {
+      const screenDot = convertToScreenCoordinates(dot)
+      switch (dot.dotType) {
+        case 0: onStrokeStart?.(screenDot); break
+        case 1: onStrokeMove?.(screenDot); break
+        case 2: onStrokeEnd?.(screenDot); break
+      }
+    }
+  }, [])
+}
+
+// frontend/src/types/smartpen.types.ts
+export interface Dot {
+  x: number       // ncode X 좌표 (0-15070)
+  y: number       // ncode Y 좌표 (0-21280)
+  f: number       // force 압력 (0-1024)
+  timestamp: number
+  dotType: number // 0=down, 1=move, 2=up
+}
+
+// frontend/src/components/game/Canvas.tsx
+<Canvas
+  enableSmartPen={true}  // 스마트펜 활성화 옵션
+  onCanvasChange={(data) => syncToFirebase(data)}
+/>
+```
+
+#### 좌표 변환 로직
+
+**ncode 좌표계 → Canvas 좌표계 변환**:
+
+```typescript
+// A4 용지 기준 (ncode 표준)
+const paperSize: PaperSize = {
+  Xmin: 0,
+  Ymin: 0,
+  Xmax: 15070,  // A4 width in ncode units
+  Ymax: 21280,  // A4 height in ncode units
+}
+
+// Canvas 뷰 설정
+const view: View = {
+  width: 800,   // Canvas width (px)
+  height: 600,  // Canvas height (px)
+  margin: { left: 0, top: 0, right: 0, bottom: 0 }
+}
+
+// PenHelper SDK의 자동 변환 함수 사용
+const screenDot = PenHelper.ncodeToScreen(dot, view, paperSize)
+// { x: 400, y: 300 } (Canvas 좌표)
+```
+
+#### 압력 감지 (Pressure Sensitivity)
+
+```typescript
+// Dot.f: 0-1024 범위의 압력 값
+// → 선 두께로 변환 (예: 2px-20px)
+
+const minWidth = 2
+const maxWidth = 20
+const brushWidth = minWidth + ((dot.f / 1024) * (maxWidth - minWidth))
+
+// 압력이 강할수록 선이 굵어짐
+// f=0 → 2px, f=512 → 11px, f=1024 → 20px
+```
+
+#### 대기실 테스트 캔버스
+
+**GameRoom.tsx (waiting 상태)**:
+
+```tsx
+<div className="smartpen-test-section">
+  <h3>🖊️ 스마트펜 테스트</h3>
+  <p>게임 시작 전에 스마트펜을 연결하고 테스트해보세요!</p>
+
+  {/* 테스트 캔버스 (enableSmartPen=true) */}
+  <Canvas
+    width={400}
+    height={300}
+    enableSmartPen={true}
+    isDrawingEnabled={true}
+  />
+
+  {/* 스마트펜 연결 UI */}
+  {!penState.isConnected ? (
+    <button onClick={scanDevices}>스마트펜 스캔</button>
+  ) : (
+    <div>연결됨: {penState.connectedDevice?.name}</div>
+  )}
+</div>
+```
+
+#### 장점 및 효과
+
+1. **물리적 그리기 경험**: 실제 종이와 펜으로 그리는 자연스러운 느낌
+2. **압력 감지**: 필압에 따라 선 두께 자동 조절 → 더 표현력 있는 그림
+3. **ncode 기술 활용**: 네오랩의 핵심 기술 실사용 및 홍보
+4. **선택적 사용**: 스마트펜이 없어도 마우스/터치로 플레이 가능
+5. **기존 AI 로직과 완벽 호환**: Canvas → Base64 → Gemini 흐름 동일
+
+#### 제약사항 및 대응
+
+| 제약사항 | 대응 방안 |
+|---------|----------|
+| 스마트펜 소지자만 사용 가능 | 마우스/터치 입력과 병행 지원 |
+| ncode 용지 필요 | 대기실에서 용지 배포 안내 |
+| Bluetooth 연결 불안정 | 대기실 테스트 캔버스로 사전 검증 |
+| 좌표 오차 가능성 | PenHelper SDK의 자동 보정 활용 |
+
 ---
 
 ## 🎨 주요 기술 스택 & 버전
@@ -305,6 +487,7 @@ Player A (턴)                    Firebase RTDB                     Player B-E (
 | | Vite | 7.2.2 | 빌드 도구 (HMR) |
 | | Tailwind CSS | 4.1.17 | 유틸리티 기반 스타일링 |
 | | Fabric.js | 6.9.0 | HTML5 Canvas 객체 제어 |
+| | **🖊️ web_pen_sdk** | **0.8.0** | **네오랩 스마트펜 SDK (압력 감지, 좌표 변환)** |
 | | Zustand | 5.0.8 | 경량 상태 관리 (authStore) |
 | | React Router | 7.9.5 | 클라이언트 라우팅 |
 | | DOMPurify | 3.3.0 | XSS 방지 (채팅 메시지 sanitize) |

@@ -188,6 +188,11 @@
 ### 프론트엔드
 - **프레임워크**: React (Vite)
 - **캔버스 라이브러리**: Fabric.js
+- **🖊️ 스마트펜 연동**: **web_pen_sdk v0.8.0** (네오랩 Web Pen SDK)
+  - 압력 감지 드로잉 (Pressure-sensitive drawing)
+  - ncode 좌표계 → Canvas 좌표 자동 변환
+  - Bluetooth 연결 및 스캔 기능
+  - 대기실 테스트 캔버스 제공
 - **스타일링**: Tailwind CSS (미술관/갤러리 테마)
 - **상태 관리**: Zustand (경량 상태 관리)
 - **폰트**: Playfair Display, Cormorant Garamond, Crimson Text (세리프 폰트)
@@ -374,10 +379,16 @@ firebase deploy
 - 실시간 리더보드 UI
 - 게임 리플레이 기능 (캔버스 애니메이션)
 
-### Cycle 3 스마트펜 연동
-- Neo smartpen Web SDK 통합
-- "스마트펜 전용 라운드" 추가
-- NCode 좌표 → 캔버스 좌표 변환 로직
+### ✅ Cycle 1에서 이미 구현된 기능
+- ✅ **네오랩 스마트펜 SDK 통합** (web_pen_sdk v0.8.0)
+- ✅ **압력 감지 드로잉** (Pressure-sensitive drawing)
+- ✅ **NCode 좌표 → 캔버스 좌표 자동 변환**
+- ✅ **대기실에서 스마트펜 연결 및 테스트 기능**
+- ✅ **UI 가시성 개선** (글자 크기 증가, 레이아웃 최적화)
+
+### Cycle 3 추가 개선 계획
+- 스마트펜 전용 게임 모드 추가
+- 스마트펜 필수 라운드 도입
 
 ---
 

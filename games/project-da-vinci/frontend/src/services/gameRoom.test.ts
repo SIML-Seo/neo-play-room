@@ -30,9 +30,9 @@ vi.mock('@/firebase', () => ({
 vi.mock('@/utils/difficulty', () => ({
   getDifficultyConfig: vi.fn((difficulty: string) => {
     const configs = {
-      easy: { turnTimeLimit: 90, maxTurns: 15 },
-      normal: { turnTimeLimit: 60, maxTurns: 10 },
-      hard: { turnTimeLimit: 30, maxTurns: 7 },
+      easy: { turnTimeLimit: 45, maxTurns: 15 },
+      normal: { turnTimeLimit: 30, maxTurns: 10 },
+      hard: { turnTimeLimit: 20, maxTurns: 5 },
     }
     return configs[difficulty as keyof typeof configs]
   }),
@@ -92,9 +92,9 @@ describe('gameRoom services', () => {
         'mock-ref',
         expect.objectContaining({
           status: 'finished',
-          result: 'failed',
+          result: 'failure',
           failReason: 'turnLimitExceeded',
-          finishedAt: expect.any(Number),
+          endTime: expect.any(Number),
         })
       )
     })
@@ -135,7 +135,7 @@ describe('gameRoom services', () => {
         expect.objectContaining({
           difficulty: 'easy',
           maxTurns: 15,
-          turnTimeLimit: 90,
+          turnTimeLimit: 45,
         })
       )
     })
@@ -150,7 +150,7 @@ describe('gameRoom services', () => {
         expect.objectContaining({
           difficulty: 'normal',
           maxTurns: 10,
-          turnTimeLimit: 60,
+          turnTimeLimit: 30,
         })
       )
     })
@@ -164,8 +164,8 @@ describe('gameRoom services', () => {
         'mock-ref',
         expect.objectContaining({
           difficulty: 'hard',
-          maxTurns: 7,
-          turnTimeLimit: 30,
+          maxTurns: 5,
+          turnTimeLimit: 20,
         })
       )
     })

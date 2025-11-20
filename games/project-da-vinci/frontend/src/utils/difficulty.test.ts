@@ -80,22 +80,22 @@ describe('difficulty 유틸리티', () => {
   })
 
   describe('난이도별 게임 밸런스', () => {
-    it('쉬움: 90초, 15턴', () => {
+    it('쉬움: 45초, 15턴', () => {
       const config = getDifficultyConfig('easy')
-      expect(config.turnTimeLimit).toBe(90)
+      expect(config.turnTimeLimit).toBe(45)
       expect(config.maxTurns).toBe(15)
     })
 
-    it('보통: 60초, 10턴', () => {
+    it('보통: 30초, 10턴', () => {
       const config = getDifficultyConfig('normal')
-      expect(config.turnTimeLimit).toBe(60)
+      expect(config.turnTimeLimit).toBe(30)
       expect(config.maxTurns).toBe(10)
     })
 
-    it('어려움: 30초, 7턴', () => {
+    it('어려움: 20초, 5턴', () => {
       const config = getDifficultyConfig('hard')
-      expect(config.turnTimeLimit).toBe(30)
-      expect(config.maxTurns).toBe(7)
+      expect(config.turnTimeLimit).toBe(20)
+      expect(config.maxTurns).toBe(5)
     })
   })
 })

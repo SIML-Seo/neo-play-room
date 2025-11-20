@@ -11,7 +11,7 @@ export default defineConfig({
     pool: 'vmThreads',
     server: {
       deps: {
-        inline: ['react-router', 'react-router-dom'],
+        inline: ['react-router', 'react-router-dom', 'web_pen_sdk'],
       },
     },
     coverage: {
@@ -31,6 +31,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@shared': path.resolve(__dirname, '../../../shared'),
     },
   },
 })
