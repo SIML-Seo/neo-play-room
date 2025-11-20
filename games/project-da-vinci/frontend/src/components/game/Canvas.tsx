@@ -97,6 +97,12 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
 
       fabricCanvasRef.current = canvas
 
+      // 커스텀 커서 설정 (검은색 십자)
+      const cursorSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='2' x2='12' y2='22' stroke='%23000000' stroke-width='2'/%3E%3Cline x1='2' y1='12' x2='22' y2='12' stroke='%23000000' stroke-width='2'/%3E%3C/svg%3E`
+      canvas.freeDrawingCursor = `url("${cursorSvg}") 12 12, crosshair`
+      canvas.defaultCursor = 'default'
+      canvas.hoverCursor = 'default'
+
       // 드로잉 모드를 항상 활성화 (렌더링 문제 방지)
       canvas.isDrawingMode = true
 
@@ -338,7 +344,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
         )}
 
         {/* 캔버스 */}
-        <div ref={containerRef} className="bg-gallery-ivory rounded-lg border-2 border-gold-dark/30 shadow-canvas p-2 w-full">
+        <div ref={containerRef} className="bg-gallery-ivory rounded-lg border-2 border-gold-dark/30 shadow-canvas w-full">
           <canvas ref={canvasRef} />
         </div>
       </div>
