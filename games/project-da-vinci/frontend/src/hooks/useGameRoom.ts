@@ -59,10 +59,10 @@ export function useGameRoom(roomId: string | undefined) {
         .then(async () => {
           // Emulator Trigger 버그 대응: 게임 로그 수동 저장
           try {
-            const finalizeGameManual = httpsCallable<{ roomId: string }, { success: boolean; message: string }>(
-              functions,
-              'finalizeGameManual'
-            )
+            const finalizeGameManual = httpsCallable<
+              { roomId: string },
+              { success: boolean; message: string }
+            >(functions, 'finalizeGameManual')
             const result = await finalizeGameManual({ roomId })
             console.log('✅ 게임 로그 수동 저장 완료:', result.data)
           } catch (error) {

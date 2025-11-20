@@ -111,9 +111,9 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
   let targetWord: string
 
   const schedule = await getGameSchedule()
-  console.log(`[createGameRoom] 스케줄 ${schedule}`);
+  console.log(`[createGameRoom] 스케줄 ${schedule}`)
   const currentTheme = getCurrentTheme(schedule)
-  console.log(`[createGameRoom] 커런트띰 ${currentTheme}`);
+  console.log(`[createGameRoom] 커런트띰 ${currentTheme}`)
   if (currentTheme) {
     // 스케줄에 주제가 있으면 해당 주제 사용
     theme = currentTheme
@@ -124,7 +124,9 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
       console.log(`[createGameRoom] 스케줄 주제 "${theme}" 사용 - 단어: ${targetWord}`)
     } else {
       // 문제 풀이 없으면 기본 전래동화 사용
-      console.warn(`[createGameRoom] ${currentTheme} 주제의 문제 풀이 없습니다. 기본 전래동화 사용.`)
+      console.warn(
+        `[createGameRoom] ${currentTheme} 주제의 문제 풀이 없습니다. 기본 전래동화 사용.`
+      )
       theme = DEFAULT_THEME
       targetWord = selectRandomWord(DEFAULT_WORDS)
     }

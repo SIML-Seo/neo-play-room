@@ -75,9 +75,9 @@ describe('AI Service - Retry Logic', () => {
     mockJudgeDrawing.mockRejectedValue(new Error('Persistent error'))
 
     // expect().rejects를 먼저 설정한 후 타이머 진행
-    const promise = expect(submitDrawingToAI('room-789', 'data:image/png;base64,def')).rejects.toThrow(
-      'AI 판단에 실패했습니다'
-    )
+    const promise = expect(
+      submitDrawingToAI('room-789', 'data:image/png;base64,def')
+    ).rejects.toThrow('AI 판단에 실패했습니다')
 
     // 모든 재시도 대기 (0 + 1초 + 2초 + 4초)
     await vi.advanceTimersByTimeAsync(7000)

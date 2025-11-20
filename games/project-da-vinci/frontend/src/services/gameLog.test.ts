@@ -63,9 +63,7 @@ describe('calculateScore', () => {
       finalTurnCount: 5,
       finalTime: 100000,
     }
-    expect(calculateScore(log3turns as GameLog)).toBeLessThan(
-      calculateScore(log5turns as GameLog)
-    )
+    expect(calculateScore(log3turns as GameLog)).toBeLessThan(calculateScore(log5turns as GameLog))
   })
 
   it('같은 턴 수에서 시간이 짧으면 점수가 낮음 (높은 순위)', () => {

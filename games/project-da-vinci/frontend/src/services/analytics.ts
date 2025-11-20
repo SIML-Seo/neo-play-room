@@ -3,16 +3,7 @@
  * Firestore에서 게임 통계 및 분석 데이터 조회
  */
 
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-  doc,
-  getDoc,
-} from 'firebase/firestore'
+import { collection, query, where, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore'
 import { firestore } from '@/firebase'
 import type { GameLog, DailyAnalytics, WordAnalytics } from '@/types/game.types'
 
@@ -25,7 +16,7 @@ export async function getRecentGameLogs(limitCount: number = 50): Promise<GameLo
     const q = query(logsRef, orderBy('finishedAt', 'desc'), limit(limitCount))
 
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ logId: doc.id, ...doc.data() } as GameLog))
+    return snapshot.docs.map((doc) => ({ logId: doc.id, ...doc.data() }) as GameLog)
   } catch (error) {
     console.error('[getRecentGameLogs] 조회 실패:', error)
     return []
@@ -49,7 +40,7 @@ export async function getGameLogsByDifficulty(
     )
 
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ logId: doc.id, ...doc.data() } as GameLog))
+    return snapshot.docs.map((doc) => ({ logId: doc.id, ...doc.data() }) as GameLog)
   } catch (error) {
     console.error('[getGameLogsByDifficulty] 조회 실패:', error)
     return []
@@ -70,7 +61,7 @@ export async function getFailedGameLogs(limitCount: number = 50): Promise<GameLo
     )
 
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ logId: doc.id, ...doc.data() } as GameLog))
+    return snapshot.docs.map((doc) => ({ logId: doc.id, ...doc.data() }) as GameLog)
   } catch (error) {
     console.error('[getFailedGameLogs] 조회 실패:', error)
     return []

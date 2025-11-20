@@ -55,7 +55,7 @@ export function useMatchmaking() {
         wasInLobby,
         isCurrentlyInLobby,
         playerCount: players.length,
-        playerUids: players.map(p => p.uid)
+        playerUids: players.map((p) => p.uid),
       })
 
       // 이전에 대기실에 있었는데 지금은 없다면 = 게임 룸으로 이동됨

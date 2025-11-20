@@ -60,7 +60,9 @@ export default function Lobby() {
           <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center flex-wrap gap-4">
               <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-playfair font-bold text-gold-frame gold-glow">Project Da Vinci</h1>
+                <h1 className="text-2xl font-playfair font-bold text-gold-frame gold-glow">
+                  Project Da Vinci
+                </h1>
                 <span className="museum-label">대기실</span>
               </div>
 
@@ -74,7 +76,9 @@ export default function Lobby() {
                     />
                   )}
                   <div className="text-sm">
-                    <div className="font-crimson font-semibold text-gallery-cream">{user.displayName}</div>
+                    <div className="font-crimson font-semibold text-gallery-cream">
+                      {user.displayName}
+                    </div>
                     <div className="text-gallery-cream/60 text-xs">{user.email}</div>
                   </div>
                 </div>
@@ -103,9 +107,12 @@ export default function Lobby() {
             <div className="w-32 h-32 mx-auto mb-6 bg-gold-frame/20 rounded-full flex items-center justify-center border-4 border-gold-frame">
               <span className="text-6xl">🔒</span>
             </div>
-            <h2 className="text-4xl font-playfair font-bold text-gold-frame mb-4 gold-glow">전시회 휴관 중</h2>
+            <h2 className="text-4xl font-playfair font-bold text-gold-frame mb-4 gold-glow">
+              전시회 휴관 중
+            </h2>
             <p className="gallery-text text-gallery-cream text-lg mb-8 max-w-xl mx-auto leading-relaxed">
-              현재 갤러리는 휴관 시간입니다.<br />
+              현재 갤러리는 휴관 시간입니다.
+              <br />
               다음 개관 시간을 확인해주세요.
             </p>
 
@@ -143,7 +150,9 @@ export default function Lobby() {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-playfair font-bold text-gold-frame gold-glow">Project Da Vinci</h1>
+              <h1 className="text-2xl font-playfair font-bold text-gold-frame gold-glow">
+                Project Da Vinci
+              </h1>
               <span className="museum-label">작가 대기실</span>
             </div>
 
@@ -157,7 +166,9 @@ export default function Lobby() {
                   />
                 )}
                 <div className="text-sm">
-                  <div className="font-crimson font-semibold text-gallery-cream">{user.displayName}</div>
+                  <div className="font-crimson font-semibold text-gallery-cream">
+                    {user.displayName}
+                  </div>
                   <div className="text-gallery-cream/60 text-xs">{user.email}</div>
                 </div>
               </div>
@@ -193,7 +204,9 @@ export default function Lobby() {
           {/* 대기 중인 플레이어 */}
           <div className="lg:col-span-2">
             <div className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn">
-              <h2 className="text-2xl font-playfair font-bold text-gold-frame mb-2 gold-glow">참여 작가</h2>
+              <h2 className="text-2xl font-playfair font-bold text-gold-frame mb-2 gold-glow">
+                참여 작가
+              </h2>
               <p className="gallery-text text-gallery-cream/80 text-sm mb-6">
                 {ENV.game.maxPlayers}명의 작가가 모이면 협동 창작이 시작됩니다
               </p>
@@ -219,11 +232,11 @@ export default function Lobby() {
                           className="w-12 h-12 rounded-full border-2 border-gold-frame"
                         />
                       ) : ( */}
-                        <div className="w-12 h-12 rounded-full bg-gallery-wall flex items-center justify-center border-2 border-gold-dark">
-                          <span className="text-gold-frame text-lg font-playfair font-bold">
-                            {'?'}
-                          </span>
-                        </div>
+                      <div className="w-12 h-12 rounded-full bg-gallery-wall flex items-center justify-center border-2 border-gold-dark">
+                        <span className="text-gold-frame text-lg font-playfair font-bold">
+                          {'?'}
+                        </span>
+                      </div>
                       {/* )} */}
                       <div className="flex-1">
                         <div className="font-crimson font-bold text-gallery-cream">
@@ -264,24 +277,37 @@ export default function Lobby() {
 
           {/* 게임 정보 */}
           <div className="space-y-6">
-            <div className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn" style={{ animationDelay: '0.1s' }}>
-              <h3 className="text-xl font-playfair font-bold text-gold-frame mb-4 gold-glow">전시 정보</h3>
+            <div
+              className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn"
+              style={{ animationDelay: '0.1s' }}
+            >
+              <h3 className="text-xl font-playfair font-bold text-gold-frame mb-4 gold-glow">
+                전시 정보
+              </h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between items-center py-2 border-b border-gold-dark/30">
                   <span className="text-gallery-cream/70 font-crimson">필요 작가</span>
-                  <span className="font-crimson font-bold text-gallery-cream">{ENV.game.maxPlayers}명</span>
+                  <span className="font-crimson font-bold text-gallery-cream">
+                    {ENV.game.maxPlayers}명
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gold-dark/30">
                   <span className="text-gallery-cream/70 font-crimson">현재 대기</span>
-                  <span className="font-crimson font-bold text-gold-light">{waitingPlayers.length}명</span>
+                  <span className="font-crimson font-bold text-gold-light">
+                    {waitingPlayers.length}명
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gold-dark/30">
                   <span className="text-gallery-cream/70 font-crimson">최대 턴</span>
-                  <span className="font-crimson font-bold text-gallery-cream">{ENV.game.maxTurns}턴</span>
+                  <span className="font-crimson font-bold text-gallery-cream">
+                    {ENV.game.maxTurns}턴
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-gallery-cream/70 font-crimson">턴당 시간</span>
-                  <span className="font-crimson font-bold text-gallery-cream">{ENV.game.turnTimeLimit}초</span>
+                  <span className="font-crimson font-bold text-gallery-cream">
+                    {ENV.game.turnTimeLimit}초
+                  </span>
                 </div>
               </div>
 
@@ -303,7 +329,9 @@ export default function Lobby() {
             </div>
 
             <div className="gallery-placard animate-scaleIn" style={{ animationDelay: '0.2s' }}>
-              <h3 className="text-lg font-playfair font-bold text-gold-light mb-4">협동 창작 규칙</h3>
+              <h3 className="text-lg font-playfair font-bold text-gold-light mb-4">
+                협동 창작 규칙
+              </h3>
               <ul className="space-y-3 text-sm gallery-text">
                 <li className="flex items-start gap-3">
                   <span className="text-gold-frame font-playfair font-bold text-lg">I</span>

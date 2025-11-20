@@ -23,15 +23,23 @@ describe('difficulty 유틸리티', () => {
     })
 
     it('쉬움 난이도는 가장 긴 시간과 많은 턴을 가져야 함', () => {
-      expect(DIFFICULTY_CONFIG.easy.turnTimeLimit).toBeGreaterThan(DIFFICULTY_CONFIG.normal.turnTimeLimit)
-      expect(DIFFICULTY_CONFIG.easy.turnTimeLimit).toBeGreaterThan(DIFFICULTY_CONFIG.hard.turnTimeLimit)
+      expect(DIFFICULTY_CONFIG.easy.turnTimeLimit).toBeGreaterThan(
+        DIFFICULTY_CONFIG.normal.turnTimeLimit
+      )
+      expect(DIFFICULTY_CONFIG.easy.turnTimeLimit).toBeGreaterThan(
+        DIFFICULTY_CONFIG.hard.turnTimeLimit
+      )
       expect(DIFFICULTY_CONFIG.easy.maxTurns).toBeGreaterThan(DIFFICULTY_CONFIG.normal.maxTurns)
       expect(DIFFICULTY_CONFIG.easy.maxTurns).toBeGreaterThan(DIFFICULTY_CONFIG.hard.maxTurns)
     })
 
     it('어려움 난이도는 가장 짧은 시간과 적은 턴을 가져야 함', () => {
-      expect(DIFFICULTY_CONFIG.hard.turnTimeLimit).toBeLessThan(DIFFICULTY_CONFIG.normal.turnTimeLimit)
-      expect(DIFFICULTY_CONFIG.hard.turnTimeLimit).toBeLessThan(DIFFICULTY_CONFIG.easy.turnTimeLimit)
+      expect(DIFFICULTY_CONFIG.hard.turnTimeLimit).toBeLessThan(
+        DIFFICULTY_CONFIG.normal.turnTimeLimit
+      )
+      expect(DIFFICULTY_CONFIG.hard.turnTimeLimit).toBeLessThan(
+        DIFFICULTY_CONFIG.easy.turnTimeLimit
+      )
       expect(DIFFICULTY_CONFIG.hard.maxTurns).toBeLessThan(DIFFICULTY_CONFIG.normal.maxTurns)
       expect(DIFFICULTY_CONFIG.hard.maxTurns).toBeLessThan(DIFFICULTY_CONFIG.easy.maxTurns)
     })

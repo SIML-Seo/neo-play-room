@@ -28,7 +28,9 @@ export default function GameRoom() {
   } = useGameRoom(roomId)
   const navigate = useNavigate()
   const canvasRef = useRef<CanvasHandle>(null)
-  const [remainingTime, setRemainingTime] = useState(gameRoom?.turnTimeLimit || ENV.game.turnTimeLimit)
+  const [remainingTime, setRemainingTime] = useState(
+    gameRoom?.turnTimeLimit || ENV.game.turnTimeLimit
+  )
   const [isSubmittingToAI, setIsSubmittingToAI] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [targetWord, setTargetWord] = useState<string | null>(null)
@@ -85,7 +87,14 @@ export default function GameRoom() {
     ) {
       handleNextTurn()
     }
-  }, [remainingTime, gameRoom?.status, gameRoom?.isAIJudging, gameRoom?.turnCount, gameRoom?.maxTurns, handleNextTurn])
+  }, [
+    remainingTime,
+    gameRoom?.status,
+    gameRoom?.isAIJudging,
+    gameRoom?.turnCount,
+    gameRoom?.maxTurns,
+    handleNextTurn,
+  ])
 
   // 게임 종료 시 결과 페이지로 리다이렉트
   useEffect(() => {
@@ -183,7 +192,9 @@ export default function GameRoom() {
             <span className="text-4xl">⚠️</span>
           </div>
           <h2 className="text-2xl font-playfair font-bold text-gold-frame mb-4">오류 발생</h2>
-          <p className="gallery-text text-gallery-cream mb-6">{roomError || '전시실을 찾을 수 없습니다.'}</p>
+          <p className="gallery-text text-gallery-cream mb-6">
+            {roomError || '전시실을 찾을 수 없습니다.'}
+          </p>
           <button
             onClick={() => navigate('/lobby')}
             className="w-full px-6 py-3 bg-gold-frame text-gallery-floor font-playfair font-bold text-lg
@@ -212,17 +223,21 @@ export default function GameRoom() {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-playfair font-bold text-gold-frame gold-glow">Project Da Vinci</h1>
-              <span className="gallery-placard text-xs py-1 px-3">
-                {gameRoom.theme}
-              </span>
+              <h1 className="text-2xl font-playfair font-bold text-gold-frame gold-glow">
+                Project Da Vinci
+              </h1>
+              <span className="gallery-placard text-xs py-1 px-3">{gameRoom.theme}</span>
               {/* 난이도 배지 */}
               {gameRoom.difficulty && (
                 <span
                   className={`px-3 py-1 rounded-lg text-xs font-crimson font-bold flex items-center gap-1 border-2
-                    ${gameRoom.difficulty === 'easy' ? 'bg-gold-frame/20 border-gold-frame text-gold-light' :
-                      gameRoom.difficulty === 'normal' ? 'bg-gold-dark/20 border-gold-dark text-gold-frame' :
-                      'bg-velvet-red/20 border-velvet-red text-velvet-burgundy'}`}
+                    ${
+                      gameRoom.difficulty === 'easy'
+                        ? 'bg-gold-frame/20 border-gold-frame text-gold-light'
+                        : gameRoom.difficulty === 'normal'
+                          ? 'bg-gold-dark/20 border-gold-dark text-gold-frame'
+                          : 'bg-velvet-red/20 border-velvet-red text-velvet-burgundy'
+                    }`}
                 >
                   <span>{getDifficultyConfig(gameRoom.difficulty).icon}</span>
                   <span>{getDifficultyConfig(gameRoom.difficulty).label}</span>
@@ -290,15 +305,21 @@ export default function GameRoom() {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <span className="text-2xl">{config.icon}</span>
-                            <span className={`font-playfair font-bold text-lg ${
-                              isSelected ? 'text-gold-light' : 'text-gallery-cream'
-                            }`}>
+                            <span
+                              className={`font-playfair font-bold text-lg ${
+                                isSelected ? 'text-gold-light' : 'text-gallery-cream'
+                              }`}
+                            >
                               {config.label}
                             </span>
                           </div>
-                          {isSelected && <span className="text-2xl animate-scaleIn text-gold-frame">✓</span>}
+                          {isSelected && (
+                            <span className="text-2xl animate-scaleIn text-gold-frame">✓</span>
+                          )}
                         </div>
-                        <p className="text-sm gallery-text text-gallery-cream/70 mb-2">{config.description}</p>
+                        <p className="text-sm gallery-text text-gallery-cream/70 mb-2">
+                          {config.description}
+                        </p>
                         <div className="flex gap-4 text-xs museum-label">
                           <span>⏱️ {config.turnTimeLimit}초</span>
                           <span>🔄 {config.maxTurns}턴</span>
@@ -313,7 +334,10 @@ export default function GameRoom() {
               </div>
 
               {/* 플레이어 목록 */}
-              <div className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn" style={{ animationDelay: '0.1s' }}>
+              <div
+                className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn"
+                style={{ animationDelay: '0.1s' }}
+              >
                 <h3 className="text-xl font-playfair font-bold text-gold-frame mb-4 gold-glow">
                   참여 작가 ({allPlayers.length}명)
                 </h3>
@@ -373,7 +397,10 @@ export default function GameRoom() {
               </div>
 
               {/* 준비 버튼 & 게임 시작 */}
-              <div className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn" style={{ animationDelay: '0.2s' }}>
+              <div
+                className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn"
+                style={{ animationDelay: '0.2s' }}
+              >
                 <div className="space-y-4">
                   {/* 내 준비 상태 토글 */}
                   <button
@@ -403,7 +430,9 @@ export default function GameRoom() {
                   {/* 준비 상태 안내 */}
                   <div className="text-center gallery-placard">
                     {allPlayers.every((p) => p.ready) ? (
-                      <span className="text-gold-light font-crimson font-semibold">모든 작가가 준비 완료! 🎉</span>
+                      <span className="text-gold-light font-crimson font-semibold">
+                        모든 작가가 준비 완료! 🎉
+                      </span>
                     ) : (
                       <span className="text-gallery-cream/80 font-crimson">
                         {allPlayers.filter((p) => p.ready).length}/{allPlayers.length}명 준비 완료
@@ -417,17 +446,22 @@ export default function GameRoom() {
             {/* 오른쪽: 게임 룰 & 채팅 */}
             <div className="lg:col-span-1 space-y-6">
               {/* AI 누적 추론 안내 */}
-              <div className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn" style={{ animationDelay: '0.3s' }}>
+              <div
+                className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn"
+                style={{ animationDelay: '0.3s' }}
+              >
                 <h3 className="text-xl font-playfair font-bold text-gold-frame mb-3 gold-glow">
                   🎯 AI 누적 추론
                 </h3>
                 <div className="space-y-3 text-sm gallery-text text-gallery-cream/90">
                   <p className="font-crimson">
-                    AI는 <span className="text-gold-light font-bold">이전 턴의 추측을 기억</span>하고,
-                    누적된 단서를 조합하여 정답을 추론합니다.
+                    AI는 <span className="text-gold-light font-bold">이전 턴의 추측을 기억</span>
+                    하고, 누적된 단서를 조합하여 정답을 추론합니다.
                   </p>
                   <div className="bg-gallery-floor/50 rounded-lg p-3 border border-gold-dark/30">
-                    <div className="text-xs museum-label text-gallery-cream/70 mb-2">예시: "선녀와나무꾼"</div>
+                    <div className="text-xs museum-label text-gallery-cream/70 mb-2">
+                      예시: "선녀와나무꾼"
+                    </div>
                     <div className="space-y-1 font-crimson text-xs">
                       <div className="flex items-center gap-2">
                         <span className="text-gold-frame">턴 1:</span>
@@ -450,8 +484,13 @@ export default function GameRoom() {
               </div>
 
               {/* 채팅 */}
-              <div className="gallery-frame bg-wood-dark shadow-gallery p-6 h-96 flex flex-col animate-scaleIn" style={{ animationDelay: '0.4s' }}>
-                <h3 className="text-xl font-playfair font-bold text-gold-frame mb-4 gold-glow">대화</h3>
+              <div
+                className="gallery-frame bg-wood-dark shadow-gallery p-6 h-96 flex flex-col animate-scaleIn"
+                style={{ animationDelay: '0.4s' }}
+              >
+                <h3 className="text-xl font-playfair font-bold text-gold-frame mb-4 gold-glow">
+                  대화
+                </h3>
                 <div className="flex-1 overflow-hidden">
                   <Chat roomId={roomId!} user={user} gameRoom={gameRoom} />
                 </div>
@@ -474,13 +513,17 @@ export default function GameRoom() {
               ) : (
                 <div className="mb-4 gallery-placard border-2 border-gold-dark/50 animate-fadeIn">
                   <p className="text-gallery-cream/80 font-crimson">
-                    👀 {currentPlayer?.artistName || currentPlayer?.displayName || '???'}님이 작품을 창작하고 있습니다...
+                    👀 {currentPlayer?.artistName || currentPlayer?.displayName || '???'}님이 작품을
+                    창작하고 있습니다...
                   </p>
                 </div>
               )}
 
               {/* Canvas with gallery frame */}
-              <div className="gallery-frame shadow-gallery animate-scaleIn" style={{ animationDelay: '0.1s' }}>
+              <div
+                className="gallery-frame shadow-gallery animate-scaleIn"
+                style={{ animationDelay: '0.1s' }}
+              >
                 <div className="canvas-frame">
                   <Canvas
                     ref={canvasRef}
@@ -520,8 +563,13 @@ export default function GameRoom() {
             {/* 중간: 타이머 & 플레이어 */}
             <div className="lg:col-span-1 space-y-6">
               {/* 현재 턴 정보 */}
-              <div className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn" style={{ animationDelay: '0.2s' }}>
-                <h3 className="text-lg font-playfair font-bold text-gold-frame mb-4 gold-glow">현재 턴</h3>
+              <div
+                className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn"
+                style={{ animationDelay: '0.2s' }}
+              >
+                <h3 className="text-lg font-playfair font-bold text-gold-frame mb-4 gold-glow">
+                  현재 턴
+                </h3>
 
                 {/* 큰 타이머 표시 */}
                 <div className="mb-6 flex flex-col items-center justify-center">
@@ -572,8 +620,13 @@ export default function GameRoom() {
               </div>
 
               {/* 플레이어 목록 */}
-              <div className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn" style={{ animationDelay: '0.3s' }}>
-                <h3 className="text-lg font-playfair font-bold text-gold-frame mb-4 gold-glow">작가 목록</h3>
+              <div
+                className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn"
+                style={{ animationDelay: '0.3s' }}
+              >
+                <h3 className="text-lg font-playfair font-bold text-gold-frame mb-4 gold-glow">
+                  작가 목록
+                </h3>
                 <div className="space-y-2">
                   {allPlayers.map((player) => {
                     const isCurrent = player.uid === gameRoom.currentTurn
@@ -596,16 +649,22 @@ export default function GameRoom() {
                               src={player.photoURL}
                               alt={player.artistName || player.displayName || ''}
                               className={`w-8 h-8 rounded-full ${
-                                isCurrent ? 'ring-2 ring-gold-frame' : 'border-2 border-gold-dark/50'
+                                isCurrent
+                                  ? 'ring-2 ring-gold-frame'
+                                  : 'border-2 border-gold-dark/50'
                               }`}
                             />
                           ) : (
                             <div
                               className={`w-8 h-8 rounded-full bg-gallery-wall flex items-center justify-center ${
-                                isCurrent ? 'ring-2 ring-gold-frame' : 'border-2 border-gold-dark/50'
+                                isCurrent
+                                  ? 'ring-2 ring-gold-frame'
+                                  : 'border-2 border-gold-dark/50'
                               }`}
                             >
-                              <span className="text-sm font-playfair font-bold text-gold-frame">{player.artistName?.[0] || player.displayName?.[0]}</span>
+                              <span className="text-sm font-playfair font-bold text-gold-frame">
+                                {player.artistName?.[0] || player.displayName?.[0]}
+                              </span>
                             </div>
                           )}
                           {isCurrent && (
@@ -635,7 +694,10 @@ export default function GameRoom() {
             {/* 오른쪽: AI 히스토리 & 채팅 */}
             <div className="lg:col-span-1 space-y-6">
               {/* 턴 히스토리 & AI 추론 결과 */}
-              <div className="gallery-frame bg-gradient-to-br from-wood-dark to-wood-medium shadow-gallery p-6 animate-scaleIn" style={{ animationDelay: '0.4s' }}>
+              <div
+                className="gallery-frame bg-gradient-to-br from-wood-dark to-wood-medium shadow-gallery p-6 animate-scaleIn"
+                style={{ animationDelay: '0.4s' }}
+              >
                 <h3 className="text-lg font-playfair font-bold text-gold-frame mb-3 flex items-center gap-2 gold-glow">
                   <span>🎯</span>
                   <span>AI 감상 기록</span>
@@ -669,11 +731,15 @@ export default function GameRoom() {
                                 </span>
                               )}
                             </div>
-                            <span className={`text-xs font-crimson font-semibold ${confidenceColor}`}>
+                            <span
+                              className={`text-xs font-crimson font-semibold ${confidenceColor}`}
+                            >
                               {guess.confidence}% 확신
                             </span>
                           </div>
-                          <div className="font-crimson font-semibold text-gallery-cream text-base">{guess.guess}</div>
+                          <div className="font-crimson font-semibold text-gallery-cream text-base">
+                            {guess.guess}
+                          </div>
                         </div>
                       )
                     })
@@ -692,7 +758,10 @@ export default function GameRoom() {
               </div>
 
               {/* 채팅 */}
-              <div className="flex flex-col" style={{ height: 'calc(100vh - 500px)', minHeight: '500px' }}>
+              <div
+                className="flex flex-col"
+                style={{ height: 'calc(100vh - 500px)', minHeight: '500px' }}
+              >
                 <Chat roomId={roomId!} user={user} />
               </div>
             </div>

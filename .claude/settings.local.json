@@ -22,7 +22,11 @@
       "Bash(cmd //c \"taskkill //PID 34176 //F\")",
       "Bash(cat:*)",
       "Bash(find:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(claude doctor)",
+      "mcp__serena__find_symbol",
+      "mcp__serena__activate_project",
+      "Bash(npm run lint)"
     ],
     "deny": [],
     "ask": []

@@ -202,7 +202,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       loadCanvasData: (canvasData: string) => {
         console.log('[Canvas] loadCanvasData 호출됨', {
           hasCanvas: !!fabricCanvasRef.current,
-          dataLength: canvasData?.length || 0
+          dataLength: canvasData?.length || 0,
         })
 
         if (!fabricCanvasRef.current) {
@@ -344,7 +344,10 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
         )}
 
         {/* 캔버스 */}
-        <div ref={containerRef} className="bg-gallery-ivory rounded-lg border-2 border-gold-dark/30 shadow-canvas w-full">
+        <div
+          ref={containerRef}
+          className="bg-gallery-ivory rounded-lg border-2 border-gold-dark/30 shadow-canvas w-full"
+        >
           <canvas ref={canvasRef} />
         </div>
       </div>

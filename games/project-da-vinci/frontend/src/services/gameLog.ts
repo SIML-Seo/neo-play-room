@@ -3,15 +3,7 @@
  * Firestore에서 게임 로그 데이터 조회
  */
 
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-  Timestamp,
-} from 'firebase/firestore'
+import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore'
 import { firestore } from '@/firebase'
 import type { GameLog } from '@/types/game.types'
 
@@ -151,7 +143,9 @@ function getDifficultyMultiplier(difficulty: string): number {
  * @param log 게임 로그 또는 필요한 필드만 포함한 객체
  * @returns 보정 점수
  */
-export function calculateScore(log: Pick<GameLog, 'difficulty' | 'finalTurnCount' | 'finalTime'>): number {
+export function calculateScore(
+  log: Pick<GameLog, 'difficulty' | 'finalTurnCount' | 'finalTime'>
+): number {
   const multiplier = getDifficultyMultiplier(log.difficulty)
 
   // 턴 점수: 난이도 보정 적용 (가중치로 나누면 어려운 난이도일수록 점수가 낮아짐)

@@ -7,7 +7,12 @@
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
 import { firestore } from '@/firebase'
 import type { GameScheduleConfig, GameScheduleDateRange } from '@/types/game.types'
-import { getWordPoolByTheme, generateAndSaveWordPool, getAllWordPools, deleteWordPool } from '@/services/wordPools'
+import {
+  getWordPoolByTheme,
+  generateAndSaveWordPool,
+  getAllWordPools,
+  deleteWordPool,
+} from '@/services/wordPools'
 
 /**
  * 게임 스케줄 설정 조회
@@ -48,7 +53,9 @@ export async function updateGameSchedule(
         const existingPool = await getWordPoolByTheme(theme)
 
         if (!existingPool) {
-          console.log(`[updateGameSchedule] "${theme}" 주제의 문제 풀이 없습니다. 자동 생성 시작...`)
+          console.log(
+            `[updateGameSchedule] "${theme}" 주제의 문제 풀이 없습니다. 자동 생성 시작...`
+          )
 
           try {
             await generateAndSaveWordPool(
@@ -63,7 +70,9 @@ export async function updateGameSchedule(
             // 생성 실패해도 스케줄은 저장
           }
         } else {
-          console.log(`[updateGameSchedule] "${theme}" 주제 문제 풀이 이미 존재 (${existingPool.words.length}개 단어)`)
+          console.log(
+            `[updateGameSchedule] "${theme}" 주제 문제 풀이 이미 존재 (${existingPool.words.length}개 단어)`
+          )
         }
       }
 
@@ -71,7 +80,9 @@ export async function updateGameSchedule(
       const allWordPools = await getAllWordPools()
       for (const pool of allWordPools) {
         if (!scheduledThemes.has(pool.theme)) {
-          console.log(`[updateGameSchedule] "${pool.theme}" 주제가 스케줄에서 제거됨. 워드풀 삭제 중...`)
+          console.log(
+            `[updateGameSchedule] "${pool.theme}" 주제가 스케줄에서 제거됨. 워드풀 삭제 중...`
+          )
           try {
             await deleteWordPool(pool.theme)
             console.log(`[updateGameSchedule] ✅ "${pool.theme}" 워드풀 삭제 완료`)

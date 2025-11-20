@@ -117,10 +117,7 @@ export function selectRandomWords(words: string[], count: number): string[] {
 /**
  * Cloud Function을 통해 주제에 맞는 단어 자동 생성
  */
-export async function generateWordsForTheme(
-  theme: string,
-  count: number = 20
-): Promise<string[]> {
+export async function generateWordsForTheme(theme: string, count: number = 20): Promise<string[]> {
   try {
     const generateWords = httpsCallable<
       { theme: string; count?: number },
@@ -136,7 +133,6 @@ export async function generateWordsForTheme(
     throw error
   }
 }
-
 
 /**
  * 주제별 문제 풀 자동 생성 (Cloud Function 호출)

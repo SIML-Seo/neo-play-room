@@ -86,7 +86,9 @@ export default function Results() {
             <span className="text-4xl">⚠️</span>
           </div>
           <h2 className="text-2xl font-playfair font-bold text-gold-frame mb-4">오류 발생</h2>
-          <p className="gallery-text text-gallery-cream mb-6">{error || '전시 데이터를 찾을 수 없습니다.'}</p>
+          <p className="gallery-text text-gallery-cream mb-6">
+            {error || '전시 데이터를 찾을 수 없습니다.'}
+          </p>
           <button
             onClick={() => navigate('/lobby')}
             className="w-full px-6 py-3 bg-gold-frame text-gallery-floor font-playfair font-bold text-lg
@@ -120,7 +122,9 @@ export default function Results() {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-playfair font-bold text-gold-frame gold-glow">Project Da Vinci</h1>
+              <h1 className="text-2xl font-playfair font-bold text-gold-frame gold-glow">
+                Project Da Vinci
+              </h1>
               <span className="museum-label">전시 결과</span>
             </div>
             <div className="flex items-center gap-3">
@@ -132,7 +136,9 @@ export default function Results() {
                 />
               )}
               <div className="text-sm">
-                <div className="font-crimson font-semibold text-gallery-cream">{user?.displayName}</div>
+                <div className="font-crimson font-semibold text-gallery-cream">
+                  {user?.displayName}
+                </div>
               </div>
             </div>
           </div>
@@ -147,13 +153,19 @@ export default function Results() {
             {isSuccess ? (
               <>
                 <div className="text-8xl mb-4 animate-bounce">🎨</div>
-                <h2 className="text-4xl font-playfair font-bold text-gold-frame mb-2 gold-glow">협동 창작 성공!</h2>
-                <p className="text-lg gallery-text text-gold-light">AI 큐레이터가 작품의 주제를 정확히 감상했습니다!</p>
+                <h2 className="text-4xl font-playfair font-bold text-gold-frame mb-2 gold-glow">
+                  협동 창작 성공!
+                </h2>
+                <p className="text-lg gallery-text text-gold-light">
+                  AI 큐레이터가 작품의 주제를 정확히 감상했습니다!
+                </p>
               </>
             ) : isTurnLimitExceeded ? (
               <>
                 <div className="text-8xl mb-4">⏱️</div>
-                <h2 className="text-4xl font-playfair font-bold text-velvet-burgundy mb-2">전시 시간 종료</h2>
+                <h2 className="text-4xl font-playfair font-bold text-velvet-burgundy mb-2">
+                  전시 시간 종료
+                </h2>
                 <p className="text-lg gallery-text text-gallery-cream/80">
                   최대 {gameRoom.maxTurns}턴을 초과했습니다.
                 </p>
@@ -162,7 +174,9 @@ export default function Results() {
               <>
                 <div className="text-8xl mb-4">🖼️</div>
                 <h2 className="text-4xl font-playfair font-bold text-gold-frame mb-2">전시 종료</h2>
-                <p className="text-lg gallery-text text-gallery-cream/80">다음 전시에 다시 도전하세요!</p>
+                <p className="text-lg gallery-text text-gallery-cream/80">
+                  다음 전시에 다시 도전하세요!
+                </p>
               </>
             )}
           </div>
@@ -170,7 +184,9 @@ export default function Results() {
           {/* 게임 통계 */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="gallery-placard border-2 border-gold-frame bg-gold-frame/10 text-center">
-              <div className="text-3xl font-playfair font-bold text-gold-light mb-2">{revealedWord}</div>
+              <div className="text-3xl font-playfair font-bold text-gold-light mb-2">
+                {revealedWord}
+              </div>
               <div className="text-sm museum-label">작품 주제</div>
             </div>
             <div className="gallery-placard border-2 border-gold-dark bg-wood-medium/30 text-center">
@@ -200,8 +216,12 @@ export default function Results() {
           {/* 마지막 추론 */}
           {gameRoom.lastGuess && (
             <div className="gallery-placard border-2 border-gold-dark mb-6">
-              <h3 className="font-playfair font-bold text-gold-light mb-2">AI 큐레이터의 최종 감상</h3>
-              <p className="text-2xl font-crimson font-semibold text-gallery-cream">{gameRoom.lastGuess}</p>
+              <h3 className="font-playfair font-bold text-gold-light mb-2">
+                AI 큐레이터의 최종 감상
+              </h3>
+              <p className="text-2xl font-crimson font-semibold text-gallery-cream">
+                {gameRoom.lastGuess}
+              </p>
             </div>
           )}
 
@@ -210,7 +230,10 @@ export default function Results() {
             <h3 className="font-playfair font-bold text-gold-light mb-4">참여 작가</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {allPlayers.map((player) => (
-                <div key={player.uid} className="flex items-center gap-3 bg-wood-medium/30 rounded-lg p-3 border border-gold-dark/30">
+                <div
+                  key={player.uid}
+                  className="flex items-center gap-3 bg-wood-medium/30 rounded-lg p-3 border border-gold-dark/30"
+                >
                   {/* {player.photoURL ? (
                     <img
                       src={player.photoURL}
@@ -218,13 +241,15 @@ export default function Results() {
                       className="w-10 h-10 rounded-full border-2 border-gold-frame"
                     />
                   ) : ( */}
-                    <div className="w-10 h-10 rounded-full bg-gallery-wall flex items-center justify-center border-2 border-gold-dark">
-                      <span className="text-gold-frame font-playfair font-bold">
-                        {player.artistName?.[0] || '?'}
-                      </span>
-                    </div>
+                  <div className="w-10 h-10 rounded-full bg-gallery-wall flex items-center justify-center border-2 border-gold-dark">
+                    <span className="text-gold-frame font-playfair font-bold">
+                      {player.artistName?.[0] || '?'}
+                    </span>
+                  </div>
                   {/* )} */}
-                  <span className="text-sm font-crimson font-semibold text-gallery-cream">{player.artistName}</span>
+                  <span className="text-sm font-crimson font-semibold text-gallery-cream">
+                    {player.artistName}
+                  </span>
                 </div>
               ))}
             </div>
@@ -233,8 +258,13 @@ export default function Results() {
 
         {/* AI 추론 히스토리 */}
         {aiGuesses.length > 0 && (
-          <div className="gallery-frame bg-wood-dark shadow-gallery p-8 mb-8 animate-scaleIn" style={{ animationDelay: '0.1s' }}>
-            <h3 className="text-2xl font-playfair font-bold text-gold-frame mb-6 gold-glow">AI 감상 기록</h3>
+          <div
+            className="gallery-frame bg-wood-dark shadow-gallery p-8 mb-8 animate-scaleIn"
+            style={{ animationDelay: '0.1s' }}
+          >
+            <h3 className="text-2xl font-playfair font-bold text-gold-frame mb-6 gold-glow">
+              AI 감상 기록
+            </h3>
             <div className="space-y-3">
               {aiGuesses.map((guess, idx) => {
                 const isCorrect = guess.guess === revealedWord
@@ -260,7 +290,9 @@ export default function Results() {
                         <div className="text-sm font-playfair font-bold museum-label px-3 py-1 bg-gold-dark/20 rounded">
                           턴 {guess.turn}
                         </div>
-                        <div className="text-xl font-crimson font-bold text-gallery-cream">{guess.guess}</div>
+                        <div className="text-xl font-crimson font-bold text-gallery-cream">
+                          {guess.guess}
+                        </div>
                         {isCorrect && (
                           <span className="px-3 py-1 bg-gold-frame text-gallery-floor text-xs font-crimson font-bold rounded-full">
                             ✓ 정답

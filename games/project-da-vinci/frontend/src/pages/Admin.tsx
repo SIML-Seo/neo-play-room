@@ -216,7 +216,11 @@ export default function Admin() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 {user.photoURL && (
-                  <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full" />
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || ''}
+                    className="w-8 h-8 rounded-full"
+                  />
                 )}
                 <div className="text-sm">
                   <div className="font-medium text-gray-900">{user.displayName}</div>
@@ -286,7 +290,10 @@ export default function Admin() {
                   <p className="text-gray-500 text-sm">데이터가 없습니다.</p>
                 ) : (
                   hardestWords.map((word, idx) => (
-                    <div key={word.word} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                    <div
+                      key={word.word}
+                      className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg"
+                    >
                       <div className="w-8 h-8 bg-red-100 text-red-700 rounded-full flex items-center justify-center font-bold text-sm">
                         {idx + 1}
                       </div>
@@ -297,7 +304,9 @@ export default function Admin() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-red-600">{word.successRate.toFixed(0)}%</div>
+                        <div className="text-lg font-bold text-red-600">
+                          {word.successRate.toFixed(0)}%
+                        </div>
                         <div className="text-xs text-gray-500">성공률</div>
                       </div>
                     </div>
@@ -327,7 +336,9 @@ export default function Admin() {
                         <td className="text-right py-3 px-4 text-black">{day.totalGames}</td>
                         <td className="text-right py-3 px-4 text-green-600">{day.successCount}</td>
                         <td className="text-right py-3 px-4 text-red-600">{day.failureCount}</td>
-                        <td className="text-right py-3 px-4 text-black">{day.avgTurns.toFixed(1)}</td>
+                        <td className="text-right py-3 px-4 text-black">
+                          {day.avgTurns.toFixed(1)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -343,7 +354,10 @@ export default function Admin() {
                   <p className="text-gray-500 text-sm">데이터가 없습니다.</p>
                 ) : (
                   recentGames.map((game) => (
-                    <div key={game.logId} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm">
+                    <div
+                      key={game.logId}
+                      className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm"
+                    >
                       <div
                         className={`px-3 py-1 rounded-full text-xs font-bold ${
                           game.result === 'success'
@@ -360,8 +374,7 @@ export default function Admin() {
                         </div>
                       </div>
                       <div className="text-right text-gray-600">
-                        {game.finalTurnCount}턴 /{' '}
-                        {(game.finalTime / 1000 / 60).toFixed(1)}분
+                        {game.finalTurnCount}턴 / {(game.finalTime / 1000 / 60).toFixed(1)}분
                       </div>
                     </div>
                   ))
@@ -415,7 +428,9 @@ export default function Admin() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-blue-800 mb-1">주제 * (AI 자동 생성)</label>
+                    <label className="block text-xs text-blue-800 mb-1">
+                      주제 * (AI 자동 생성)
+                    </label>
                     <input
                       type="text"
                       value={newTheme}
@@ -450,11 +465,16 @@ export default function Admin() {
                     <strong>등록된 게임 시간:</strong> 아래 날짜/시간대에만 게임이 가능합니다.
                   </div>
                   {schedule.dateRanges.map((range, idx) => (
-                    <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm border border-gray-200">
+                    <div
+                      key={idx}
+                      className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm border border-gray-200"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <div className="font-medium text-gray-900">
-                            {range.date} ({new Date(range.date).toLocaleDateString('ko-KR', { weekday: 'short' })})
+                            {range.date} (
+                            {new Date(range.date).toLocaleDateString('ko-KR', { weekday: 'short' })}
+                            )
                           </div>
                           <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
                             주제: {range.theme}
@@ -462,7 +482,9 @@ export default function Admin() {
                         </div>
                         <div className="text-xs text-gray-600 mt-1">
                           {range.start} ~ {range.end}
-                          {range.description && <span className="ml-2 text-blue-600">({range.description})</span>}
+                          {range.description && (
+                            <span className="ml-2 text-blue-600">({range.description})</span>
+                          )}
                         </div>
                       </div>
                       <button
@@ -480,7 +502,8 @@ export default function Admin() {
               ) : (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="text-sm text-yellow-800">
-                    <strong>현재 상태:</strong> 등록된 게임 시간이 없습니다. 모든 시간에 게임이 가능합니다.
+                    <strong>현재 상태:</strong> 등록된 게임 시간이 없습니다. 모든 시간에 게임이
+                    가능합니다.
                   </div>
                   <div className="text-xs text-yellow-700 mt-2">
                     위 폼에서 날짜와 시간을 선택하여 게임 가능 시간을 추가하세요.
