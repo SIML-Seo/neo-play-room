@@ -354,10 +354,10 @@ export default function GameRoom() {
                       const myPlayer = allPlayers.find((p) => p.uid === user.uid)
                       handlePlayerReady(user.uid, !myPlayer?.ready)
                     }}
-                    className={`w-full px-6 py-3 rounded-lg font-playfair font-bold text-lg transition-all shadow-md hover:scale-105 ${
+                    className={`w-full px-6 py-3 rounded-lg font-playfair font-bold text-lg transition-all shadow-md hover:scale-105 border-4 ${
                       allPlayers.find((p) => p.uid === user.uid)?.ready
-                        ? 'bg-wood-medium text-gallery-cream hover:bg-wood-light'
-                        : 'bg-gold-frame text-gallery-floor hover:bg-gold-light shadow-frame-gold'
+                        ? 'bg-wood-medium text-gallery-cream hover:bg-wood-light border-gold-dark'
+                        : 'bg-gold-frame text-gallery-floor hover:bg-gold-light shadow-frame-gold border-gold-dark'
                     }`}
                   >
                     {allPlayers.find((p) => p.uid === user.uid)?.ready ? '준비 취소' : '준비 완료'}
@@ -367,7 +367,7 @@ export default function GameRoom() {
                   {allPlayers.every((p) => p.ready) && (
                     <button
                       onClick={handleStartGame}
-                      className="w-full px-6 py-3 bg-gradient-to-r from-gold-dark via-gold-frame to-gold-light text-gallery-floor rounded-lg font-playfair font-bold text-lg hover:scale-105 transition-all animate-pulse shadow-frame-gold"
+                      className="w-full px-6 py-3 bg-gradient-to-r from-gold-dark via-gold-frame to-gold-light text-gallery-floor rounded-lg font-playfair font-bold text-lg hover:scale-105 transition-all animate-pulse shadow-frame-gold border-4 border-gallery-floor"
                     >
                       🚀 협동 창작 시작하기
                     </button>
@@ -423,8 +423,6 @@ export default function GameRoom() {
                 <div className="canvas-frame">
                   <Canvas
                     ref={canvasRef}
-                    width={600}
-                    height={450}
                     isDrawingEnabled={isDrawing && gameRoom.status === 'in-progress'}
                     onCanvasChange={handleCanvasChange}
                   />

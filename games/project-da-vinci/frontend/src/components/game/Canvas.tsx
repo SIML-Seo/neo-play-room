@@ -35,12 +35,14 @@ function debounce<T extends (...args: any[]) => void>(
 }
 
 const Canvas = forwardRef<CanvasHandle, CanvasProps>(
-  ({ width = 800, height = 600, isDrawingEnabled = true, onCanvasChange }, ref) => {
+  ({ width, height, isDrawingEnabled = true, onCanvasChange }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
     const fabricCanvasRef = useRef<fabric.Canvas | null>(null)
     const [currentColor, setCurrentColor] = useState('#000000')
     const [brushWidth, setBrushWidth] = useState(5)
     const [isEraser, setIsEraser] = useState(false)
+    const [canvasSize, setCanvasSize] = useState({ width: width || 800, height: height || 600 })
 
     // Debounced canvas change handler
     const debouncedCanvasChange = useRef<((canvasData: string) => void) | null>(null)
@@ -58,16 +60,39 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       }
     }, [onCanvasChange])
 
+    // 반응형 캔버스 크기 조정
+    useEffect(() => {
+      if (!containerRef.current || width || height) return
+
+      const updateCanvasSize = () => {
+        if (!containerRef.current) return
+        const containerWidth = containerRef.current.offsetWidth
+        // 4:3 비율 유지
+        const aspectRatio = 3 / 4
+        const calculatedHeight = containerWidth * aspectRatio
+        setCanvasSize({ width: containerWidth, height: calculatedHeight })
+      }
+
+      updateCanvasSize()
+
+      const resizeObserver = new ResizeObserver(updateCanvasSize)
+      resizeObserver.observe(containerRef.current)
+
+      return () => {
+        resizeObserver.disconnect()
+      }
+    }, [width, height])
+
     // Fabric.js 캔버스 초기화
     useEffect(() => {
       if (!canvasRef.current) return
 
-      console.log('[Canvas] 초기화 중...', { width, height, isDrawingEnabled })
+      console.log('[Canvas] 초기화 중...', { canvasSize, isDrawingEnabled })
 
       const canvas = new fabric.Canvas(canvasRef.current, {
-        width,
-        height,
-        backgroundColor: '#ffffff',
+        width: canvasSize.width,
+        height: canvasSize.height,
+        backgroundColor: '#FFFEF0', // Ivory 색상 (미술관 테마)
       })
 
       fabricCanvasRef.current = canvas
@@ -105,9 +130,9 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       return () => {
         canvas.dispose()
       }
-      // width/height 변경시에만 재생성하고 싶으므로 다른 의존성은 제외
+      // canvasSize 변경시에만 재생성하고 싶으므로 다른 의존성은 제외
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [width, height])
+    }, [canvasSize.width, canvasSize.height])
 
     // 그리기 모드 토글 (항상 true로 유지하되, selection을 비활성화)
     useEffect(() => {
@@ -194,7 +219,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
 
           // 기존 objects 모두 제거
           canvas.clear()
-          canvas.backgroundColor = '#ffffff'
+          canvas.backgroundColor = '#FFFEF0' // Ivory 색상 (미술관 테마)
 
           // 새로운 objects 추가
           if (data.objects && data.objects.length > 0) {
@@ -226,7 +251,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
     const clearCanvas = () => {
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.clear()
-        fabricCanvasRef.current.backgroundColor = '#ffffff'
+        fabricCanvasRef.current.backgroundColor = '#FFFEF0' // Ivory 색상 (미술관 테마)
         fabricCanvasRef.current.renderAll()
 
         if (onCanvasChange) {
@@ -252,7 +277,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       <div className="flex flex-col gap-4">
         {/* 툴바 */}
         {isDrawingEnabled && (
-          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+          <div className="bg-gallery-cream rounded-lg border-2 border-gold-dark/30 p-4 shadow-sm">
             <div className="flex items-center gap-6 flex-wrap">
               {/* 색상 선택 */}
               <div className="flex items-center gap-2">
@@ -313,7 +338,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
         )}
 
         {/* 캔버스 */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+        <div ref={containerRef} className="bg-gallery-ivory rounded-lg border-2 border-gold-dark/30 shadow-canvas p-2 w-full">
           <canvas ref={canvasRef} />
         </div>
       </div>
