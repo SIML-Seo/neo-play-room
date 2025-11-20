@@ -4,7 +4,7 @@
  * Cloud Functions를 통한 AI 단어 자동 생성
  */
 
-import { collection, doc, getDoc, setDoc, getDocs, deleteDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, setDoc, getDocs, deleteDoc, Timestamp } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { firestore, functions } from '@/firebase'
 import type { ThemeWordPool } from '@/types/game.types'
@@ -60,12 +60,12 @@ export async function updateWordPool(
       theme,
       words,
       description,
-      updatedAt: new Date(),
+      updatedAt: Timestamp.now(),
       createdBy,
     }
 
     if (!existingDoc.exists()) {
-      wordPoolData.createdAt = new Date()
+      wordPoolData.createdAt = Timestamp.now()
     }
 
     await setDoc(docRef, wordPoolData)
@@ -155,8 +155,8 @@ export async function generateAndSaveWordPool(
     theme,
     words,
     description,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
     createdBy,
   }
 }

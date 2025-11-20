@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
+import { Timestamp } from 'firebase/firestore'
 import {
   getOverallStats,
   getDailyAnalytics,
@@ -133,7 +134,7 @@ export default function Admin() {
       setSchedule({
         dateRanges: updatedRanges,
         updatedBy: user?.email || 'admin',
-        updatedAt: new Date(),
+        updatedAt: Timestamp.now(),
       })
       setScheduleEnabled(true)
 
@@ -165,7 +166,7 @@ export default function Admin() {
       setSchedule({
         dateRanges: updatedRanges,
         updatedBy: user?.email || 'admin',
-        updatedAt: new Date(),
+        updatedAt: Timestamp.now(),
       })
       setScheduleEnabled(updatedRanges.length > 0)
 

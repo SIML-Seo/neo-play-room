@@ -3,7 +3,6 @@
  * 게임 종료 시 자동으로 Firestore에 게임 로그 저장 및 분석 데이터 집계
  */
 
-import { onValueUpdated } from 'firebase-functions/v2/database'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getDatabase } from 'firebase-admin/database'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
@@ -130,7 +129,11 @@ export async function processGameFinalization(roomId: string): Promise<void> {
 
 /**
  * 게임 종료 시 게임 로그 저장 Trigger (Database Trigger)
+ * 
+ * NOTE: asia-northeast3 리전에서 Database Trigger가 아직 지원되지 않아 주석 처리
+ * 실제로는 judgeDrawing 함수에서 processGameFinalization을 직접 호출하므로 문제 없음
  */
+/* 
 export const finalizeGame = onValueUpdated(
   {
     ref: '/gameRooms/{roomId}/status',
@@ -150,6 +153,7 @@ export const finalizeGame = onValueUpdated(
     await processGameFinalization(roomId)
   }
 )
+*/
 
 /**
  * 게임 로그 수동 저장 Callable Function
