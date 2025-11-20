@@ -18,7 +18,7 @@ test.describe('Canvas 드로잉 테스트', () => {
     await expect(page).toHaveTitle(/Vite|Project/)
   })
 
-  test.skip('Canvas에 그림 그리기 (실제 게임 룸 필요)', async ({ page }) => {
+  test.skip('Canvas에 그림 그리기 (실제 게임 룸 필요)', async () => {
     // 실제 게임 룸으로 이동 (인증 후)
     // await page.goto('/game/test-room')
 
@@ -47,7 +47,7 @@ test.describe('Canvas 드로잉 테스트', () => {
  * 드로잉 툴바 테스트
  */
 test.describe('드로잉 툴바', () => {
-  test.skip('색상 선택 버튼이 작동함', async ({ page }) => {
+  test.skip('색상 선택 버튼이 작동함', async () => {
     // await page.goto('/game/test-room')
 
     // 색상 선택 버튼 클릭
@@ -59,7 +59,7 @@ test.describe('드로잉 툴바', () => {
     // await expect(colorButton).toHaveClass(/active|selected/)
   })
 
-  test.skip('브러시 두께 조절이 작동함', async ({ page }) => {
+  test.skip('브러시 두께 조절이 작동함', async () => {
     // await page.goto('/game/test-room')
 
     // 두께 슬라이더 조정
@@ -71,7 +71,7 @@ test.describe('드로잉 툴바', () => {
     // await expect(widthDisplay).toHaveText('10')
   })
 
-  test.skip('지우기 버튼이 작동함', async ({ page }) => {
+  test.skip('지우기 버튼이 작동함', async () => {
     // await page.goto('/game/test-room')
 
     // 그림 그리기

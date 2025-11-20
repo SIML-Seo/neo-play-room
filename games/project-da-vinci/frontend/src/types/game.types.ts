@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore'
+
 export type GameStatus = 'waiting' | 'in-progress' | 'finished'
 export type GameDifficulty = 'easy' | 'normal' | 'hard'
 
@@ -75,7 +77,7 @@ export interface GameLog {
   finalImageUri: string
   aiGuessList: AIGuess[]
   completedAt: number
-  finishedAt: any // Firestore Timestamp
+  finishedAt: Timestamp // Firestore Timestamp
 }
 
 // Firestore 분석 데이터 타입
@@ -119,7 +121,7 @@ export interface GameScheduleDateRange {
 export interface GameScheduleConfig {
   dateRanges: GameScheduleDateRange[]
   updatedBy: string
-  updatedAt: any // Firestore Timestamp
+  updatedAt: Timestamp // Firestore Timestamp
 }
 
 // 주제별 문제 풀 타입
@@ -127,7 +129,7 @@ export interface ThemeWordPool {
   theme: string // 주제 이름 (예: "동화", "영화", "음식", "동물")
   words: string[] // 문제 단어 목록
   description?: string // 주제 설명
-  createdAt?: any // Firestore Timestamp
-  updatedAt?: any // Firestore Timestamp
+  createdAt?: Timestamp // Firestore Timestamp
+  updatedAt?: Timestamp // Firestore Timestamp
   createdBy?: string // 생성자 UID
 }

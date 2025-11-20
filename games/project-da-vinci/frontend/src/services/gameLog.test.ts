@@ -84,7 +84,7 @@ describe('calculateScore', () => {
 
   it('난이도 필드가 없으면 기본값 1.0 적용', () => {
     const log: Partial<GameLog> = {
-      difficulty: 'unknown' as any,
+      difficulty: 'unknown' as unknown as GameDifficulty,
       finalTurnCount: 3,
       finalTime: 120000,
     }
