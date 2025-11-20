@@ -220,17 +220,17 @@ export default function GameRoom() {
     <div className="min-h-screen">
       {/* Header */}
       <header className="bg-wood-dark border-b-4 border-gold-frame shadow-gallery">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1920px] mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-playfair font-bold text-gold-frame gold-glow">
+              <h1 className="text-3xl font-playfair font-bold text-gold-frame gold-glow">
                 Project Da Vinci
               </h1>
-              <span className="gallery-placard text-xs py-1 px-3">{gameRoom.theme}</span>
+              <span className="gallery-placard text-base py-1 px-4">{gameRoom.theme}</span>
               {/* 난이도 배지 */}
               {gameRoom.difficulty && (
                 <span
-                  className={`px-3 py-1 rounded-lg text-xs font-crimson font-bold flex items-center gap-1 border-2
+                  className={`px-4 py-2 rounded-lg text-sm font-crimson font-bold flex items-center gap-2 border-2
                     ${
                       gameRoom.difficulty === 'easy'
                         ? 'bg-gold-frame/20 border-gold-frame text-gold-light'
@@ -239,12 +239,12 @@ export default function GameRoom() {
                           : 'bg-velvet-red/20 border-velvet-red text-velvet-burgundy'
                     }`}
                 >
-                  <span>{getDifficultyConfig(gameRoom.difficulty).icon}</span>
+                  <span className="text-lg">{getDifficultyConfig(gameRoom.difficulty).icon}</span>
                   <span>{getDifficultyConfig(gameRoom.difficulty).label}</span>
                 </span>
               )}
               {gameRoom.status === 'waiting' && (
-                <span className="px-3 py-1 bg-gold-dark/20 border-2 border-gold-dark text-gold-light rounded-lg text-xs font-crimson font-bold">
+                <span className="px-4 py-2 bg-gold-dark/20 border-2 border-gold-dark text-gold-light rounded-lg text-sm font-crimson font-bold">
                   준비 중
                 </span>
               )}
@@ -255,10 +255,10 @@ export default function GameRoom() {
                 <img
                   src={user.photoURL}
                   alt={gameRoom.players[user.uid]?.artistName || user.displayName || ''}
-                  className="w-10 h-10 rounded-full border-2 border-gold-frame"
+                  className="w-12 h-12 rounded-full border-2 border-gold-frame"
                 />
               )}
-              <div className="text-sm">
+              <div className="text-base">
                 <div className="font-crimson font-semibold text-gallery-cream">
                   {gameRoom.players[user.uid]?.artistName || user.displayName}
                 </div>
@@ -269,7 +269,7 @@ export default function GameRoom() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <main className="max-w-[1920px] mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* 게임 대기 중 - 대기실 UI */}
         {gameRoom.status === 'waiting' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -277,10 +277,10 @@ export default function GameRoom() {
             <div className="lg:col-span-2 space-y-6">
               {/* 난이도 선택 */}
               <div className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn">
-                <h3 className="text-xl font-playfair font-bold text-gold-frame mb-2 gold-glow">
+                <h3 className="text-2xl font-playfair font-bold text-gold-frame mb-2 gold-glow">
                   난이도 선택
                 </h3>
-                <p className="gallery-text text-gallery-cream/80 text-sm mb-4">
+                <p className="gallery-text text-gallery-cream/80 text-base mb-4">
                   모든 참가자가 자유롭게 수정할 수 있습니다
                 </p>
                 <div className="space-y-3">
@@ -304,9 +304,9 @@ export default function GameRoom() {
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-2xl">{config.icon}</span>
+                            <span className="text-3xl">{config.icon}</span>
                             <span
-                              className={`font-playfair font-bold text-lg ${
+                              className={`font-playfair font-bold text-xl ${
                                 isSelected ? 'text-gold-light' : 'text-gallery-cream'
                               }`}
                             >
@@ -314,13 +314,13 @@ export default function GameRoom() {
                             </span>
                           </div>
                           {isSelected && (
-                            <span className="text-2xl animate-scaleIn text-gold-frame">✓</span>
+                            <span className="text-3xl animate-scaleIn text-gold-frame">✓</span>
                           )}
                         </div>
-                        <p className="text-sm gallery-text text-gallery-cream/70 mb-2">
+                        <p className="text-base gallery-text text-gallery-cream/70 mb-2">
                           {config.description}
                         </p>
-                        <div className="flex gap-4 text-xs museum-label">
+                        <div className="flex gap-4 text-sm museum-label">
                           <span>⏱️ {config.turnTimeLimit}초</span>
                           <span>🔄 {config.maxTurns}턴</span>
                           <span className="font-semibold text-gold-light">
@@ -338,7 +338,7 @@ export default function GameRoom() {
                 className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn"
                 style={{ animationDelay: '0.1s' }}
               >
-                <h3 className="text-xl font-playfair font-bold text-gold-frame mb-4 gold-glow">
+                <h3 className="text-2xl font-playfair font-bold text-gold-frame mb-4 gold-glow">
                   참여 작가 ({allPlayers.length}명)
                 </h3>
                 <div className="space-y-3">
@@ -362,17 +362,17 @@ export default function GameRoom() {
                             <img
                               src={player.photoURL}
                               alt={player.artistName || player.displayName || ''}
-                              className="w-10 h-10 rounded-full border-2 border-gold-frame"
+                              className="w-12 h-12 rounded-full border-2 border-gold-frame"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gallery-wall flex items-center justify-center border-2 border-gold-dark">
-                              <span className="text-gold-frame font-playfair font-bold">
+                            <div className="w-12 h-12 rounded-full bg-gallery-wall flex items-center justify-center border-2 border-gold-dark">
+                              <span className="text-gold-frame font-playfair font-bold text-lg">
                                 {player.artistName?.[0] || player.displayName?.[0]}
                               </span>
                             </div>
                           )}
                           <div>
-                            <div className="font-crimson font-bold text-gallery-cream">
+                            <div className="font-crimson font-bold text-gallery-cream text-lg">
                               {player.artistName || player.displayName}
                               {isMe && <span className="text-gold-light ml-2">(나)</span>}
                             </div>
@@ -381,11 +381,11 @@ export default function GameRoom() {
                         </div>
                         <div className="flex items-center gap-2">
                           {isReady ? (
-                            <span className="px-3 py-1 bg-gold-frame text-gallery-floor text-xs font-crimson font-bold rounded-full">
+                            <span className="px-3 py-1 bg-gold-frame text-gallery-floor text-sm font-crimson font-bold rounded-full">
                               ✓ 준비 완료
                             </span>
                           ) : (
-                            <span className="px-3 py-1 bg-gallery-floor/50 border border-gold-dark/30 text-gallery-cream/60 text-xs font-crimson rounded-full">
+                            <span className="px-3 py-1 bg-gallery-floor/50 border border-gold-dark/30 text-gallery-cream/60 text-sm font-crimson rounded-full">
                               대기 중
                             </span>
                           )}
@@ -502,17 +502,17 @@ export default function GameRoom() {
         {/* 게임 진행 중 - 캔버스 & 게임 UI */}
         {gameRoom.status === 'in-progress' && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* 왼쪽: 캔버스 영역 */}
-            <div className="lg:col-span-2">
+            {/* 왼쪽: 캔버스 영역 - 75% */}
+            <div className="lg:col-span-3">
               {isDrawing ? (
                 <div className="mb-4 gallery-placard border-2 border-gold-frame bg-gold-frame/10 animate-fadeIn">
-                  <p className="text-gallery-cream font-crimson font-semibold">
+                  <p className="text-gallery-cream font-crimson font-semibold text-lg">
                     🎨 당신의 차례입니다! 주제: {wordDisplay}
                   </p>
                 </div>
               ) : (
                 <div className="mb-4 gallery-placard border-2 border-gold-dark/50 animate-fadeIn">
-                  <p className="text-gallery-cream/80 font-crimson">
+                  <p className="text-gallery-cream/80 font-crimson text-lg">
                     👀 {currentPlayer?.artistName || currentPlayer?.displayName || '???'}님이 작품을
                     창작하고 있습니다...
                   </p>
@@ -560,21 +560,21 @@ export default function GameRoom() {
               )}
             </div>
 
-            {/* 중간: 타이머 & 플레이어 */}
-            <div className="lg:col-span-1 space-y-6">
+            {/* 오른쪽: 타이머 & 플레이어 & AI 히스토리 & 채팅 - 25% */}
+            <div className="lg:col-span-1 space-y-4">
               {/* 현재 턴 정보 */}
               <div
-                className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn"
+                className="gallery-frame bg-wood-dark shadow-gallery p-5 animate-scaleIn"
                 style={{ animationDelay: '0.2s' }}
               >
-                <h3 className="text-lg font-playfair font-bold text-gold-frame mb-4 gold-glow">
+                <h3 className="text-xl font-playfair font-bold text-gold-frame mb-3 gold-glow">
                   현재 턴
                 </h3>
 
                 {/* 큰 타이머 표시 */}
-                <div className="mb-6 flex flex-col items-center justify-center">
+                <div className="mb-4 flex flex-col items-center justify-center">
                   <div
-                    className={`text-6xl font-playfair font-bold transition-all duration-300 ${
+                    className={`text-8xl font-playfair font-bold transition-all duration-300 ${
                       remainingTime <= 10
                         ? 'text-velvet-red animate-pulse'
                         : remainingTime <= 30
@@ -584,7 +584,7 @@ export default function GameRoom() {
                   >
                     {remainingTime}
                   </div>
-                  <div className="text-sm museum-label mt-1">남은 시간 (초)</div>
+                  <div className="text-base museum-label mt-1">남은 시간 (초)</div>
 
                   {/* 진행 바 */}
                   <div className="w-full h-2 bg-gallery-floor rounded-full overflow-hidden mt-3 border border-gold-dark/50">
@@ -603,7 +603,7 @@ export default function GameRoom() {
                   </div>
                 </div>
 
-                <div className="space-y-3 text-sm border-t border-gold-dark/30 pt-4">
+                <div className="space-y-2 text-base border-t border-gold-dark/30 pt-3">
                   <div className="flex justify-between">
                     <span className="text-gallery-cream/70 font-crimson">현재 작가</span>
                     <span className="font-crimson font-semibold text-gallery-cream">
@@ -612,7 +612,7 @@ export default function GameRoom() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gallery-cream/70 font-crimson">턴 수</span>
-                    <span className="font-crimson font-semibold text-gold-light">
+                    <span className="font-crimson font-semibold text-gold-light text-lg">
                       {gameRoom.turnCount} / {gameRoom.maxTurns}
                     </span>
                   </div>
@@ -621,10 +621,10 @@ export default function GameRoom() {
 
               {/* 플레이어 목록 */}
               <div
-                className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn"
+                className="gallery-frame bg-wood-dark shadow-gallery p-4 animate-scaleIn"
                 style={{ animationDelay: '0.3s' }}
               >
-                <h3 className="text-lg font-playfair font-bold text-gold-frame mb-4 gold-glow">
+                <h3 className="text-xl font-playfair font-bold text-gold-frame mb-3 gold-glow">
                   작가 목록
                 </h3>
                 <div className="space-y-2">
@@ -635,7 +635,7 @@ export default function GameRoom() {
                     return (
                       <div
                         key={player.uid}
-                        className={`flex items-center gap-2 p-3 rounded-lg transition-all duration-300 ${
+                        className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-300 ${
                           isCurrent
                             ? 'bg-gold-frame/20 border-2 border-gold-frame shadow-frame-gold scale-105 animate-pulse'
                             : isMe
@@ -672,7 +672,7 @@ export default function GameRoom() {
                           )}
                         </div>
                         <span
-                          className={`text-sm font-crimson font-semibold ${
+                          className={`text-base font-crimson font-semibold ${
                             isCurrent ? 'text-gallery-cream' : 'text-gallery-cream/80'
                           }`}
                         >
@@ -680,7 +680,7 @@ export default function GameRoom() {
                           {isMe && ' (나)'}
                         </span>
                         {isCurrent && (
-                          <span className="text-xs text-gallery-floor bg-gold-frame px-2 py-1 rounded-full ml-auto font-crimson font-bold">
+                          <span className="text-sm text-gallery-floor bg-gold-frame px-2 py-1 rounded-full ml-auto font-crimson font-bold">
                             🎨 창작 중
                           </span>
                         )}
@@ -689,16 +689,13 @@ export default function GameRoom() {
                   })}
                 </div>
               </div>
-            </div>
 
-            {/* 오른쪽: AI 히스토리 & 채팅 */}
-            <div className="lg:col-span-1 space-y-6">
               {/* 턴 히스토리 & AI 추론 결과 */}
               <div
-                className="gallery-frame bg-gradient-to-br from-wood-dark to-wood-medium shadow-gallery p-6 animate-scaleIn"
+                className="gallery-frame bg-gradient-to-br from-wood-dark to-wood-medium shadow-gallery p-4 animate-scaleIn"
                 style={{ animationDelay: '0.4s' }}
               >
-                <h3 className="text-lg font-playfair font-bold text-gold-frame mb-3 flex items-center gap-2 gold-glow">
+                <h3 className="text-xl font-playfair font-bold text-gold-frame mb-3 flex items-center gap-2 gold-glow">
                   <span>🎯</span>
                   <span>AI 감상 기록</span>
                 </h3>
@@ -722,22 +719,22 @@ export default function GameRoom() {
                         >
                           <div className="flex items-start justify-between mb-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-playfair font-bold text-gold-frame bg-gold-frame/20 px-2 py-0.5 rounded">
+                              <span className="text-sm font-playfair font-bold text-gold-frame bg-gold-frame/20 px-2 py-1 rounded">
                                 턴 {guess.turn}
                               </span>
                               {player && (
-                                <span className="text-xs text-gallery-cream/70 font-crimson">
+                                <span className="text-sm text-gallery-cream/70 font-crimson">
                                   by {player.artistName || player.displayName}
                                 </span>
                               )}
                             </div>
                             <span
-                              className={`text-xs font-crimson font-semibold ${confidenceColor}`}
+                              className={`text-sm font-crimson font-semibold ${confidenceColor}`}
                             >
                               {guess.confidence}% 확신
                             </span>
                           </div>
-                          <div className="font-crimson font-semibold text-gallery-cream text-base">
+                          <div className="font-crimson font-semibold text-gallery-cream text-lg">
                             {guess.guess}
                           </div>
                         </div>
@@ -746,10 +743,10 @@ export default function GameRoom() {
                   ) : (
                     <div className="text-center py-8 gallery-placard">
                       <div className="text-4xl mb-2">🤖</div>
-                      <p className="text-sm text-gold-light font-crimson font-semibold">
+                      <p className="text-base text-gold-light font-crimson font-semibold">
                         아직 AI 감상 기록이 없습니다.
                       </p>
-                      <p className="text-xs text-gallery-cream/60 font-crimson mt-1">
+                      <p className="text-sm text-gallery-cream/60 font-crimson mt-1">
                         작품을 그리고 AI 큐레이터에게 제출하세요!
                       </p>
                     </div>
