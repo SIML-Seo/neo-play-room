@@ -100,10 +100,8 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
     '토끼전',
     '선녀와나무꾼',
     '견우와직녀',
-    '해와달이된오누이',
     '금도끼은도끼',
     '혹부리영감',
-    '호랑이와곶감',
   ]
 
   // 현재 스케줄에서 주제 가져오기
