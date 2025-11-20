@@ -110,9 +110,9 @@ export async function startGame(roomId: string): Promise<void> {
 export async function endGameByTurnLimit(roomId: string): Promise<void> {
   await update(ref(database, `gameRooms/${roomId}`), {
     status: 'finished',
-    result: 'failed',
+    result: 'failure', // 'failed' → 'failure' (finalize.ts와 일관성)
     failReason: 'turnLimitExceeded',
-    finishedAt: Date.now(),
+    endTime: Date.now(), // endTime 추가 (소요 시간 계산용)
   })
 }
 

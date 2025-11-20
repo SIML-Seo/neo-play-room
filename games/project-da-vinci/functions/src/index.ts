@@ -15,4 +15,4 @@ export { judgeDrawing } from './ai/judge.flow'
 export { generateWords } from './ai/wordGenerator'
 
 // Game Finalize Trigger Export
-export { finalizeGame } from './game/finalize'
+export { finalizeGame, finalizeGameManual } from './game/finalize'

@@ -139,8 +139,10 @@ export default function Home() {
                   <div className="flex items-start gap-3">
                     <span className="text-3xl text-gold-frame">III</span>
                     <div>
-                      <h4 className="font-playfair font-bold text-gold-light mb-1">AI 감상</h4>
-                      <p className="text-sm gallery-text">AI 큐레이터가 작품을 해석합니다</p>
+                      <h4 className="font-playfair font-bold text-gold-light mb-1">🎯 AI 누적 감상</h4>
+                      <p className="text-sm gallery-text">
+                        AI 큐레이터가 이전 추측을 기억하며 단서를 조합하여 작품을 해석합니다
+                      </p>
                     </div>
                   </div>
                 </div>

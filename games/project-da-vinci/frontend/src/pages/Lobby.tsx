@@ -212,25 +212,25 @@ export default function Lobby() {
                           : 'bg-wood-medium/50 border-gold-dark'
                       }`}
                     >
-                      {player.photoURL ? (
+                      {/* {player.photoURL ? (
                         <img
                           src={player.photoURL}
                           alt={player.displayName || ''}
                           className="w-12 h-12 rounded-full border-2 border-gold-frame"
                         />
-                      ) : (
+                      ) : ( */}
                         <div className="w-12 h-12 rounded-full bg-gallery-wall flex items-center justify-center border-2 border-gold-dark">
                           <span className="text-gold-frame text-lg font-playfair font-bold">
-                            {player.displayName?.[0] || '?'}
+                            {'?'}
                           </span>
                         </div>
-                      )}
+                      {/* )} */}
                       <div className="flex-1">
                         <div className="font-crimson font-bold text-gallery-cream">
-                          {player.displayName || '익명 작가'}
+                          {'익명 작가'}
                           {isMe && <span className="text-gold-light ml-2">(나)</span>}
                         </div>
-                        <div className="text-sm text-gallery-cream/60 font-crimson">{player.email}</div>
+                        {/* <div className="text-sm text-gallery-cream/60 font-crimson">{player.email}</div> */}
                       </div>
                     </div>
                   )

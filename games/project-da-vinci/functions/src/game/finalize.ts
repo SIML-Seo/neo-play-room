@@ -4,6 +4,7 @@
  */
 
 import { onValueUpdated } from 'firebase-functions/v2/database'
+import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { getDatabase } from 'firebase-admin/database'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { logger } from 'firebase-functions'
@@ -41,6 +42,8 @@ export async function processGameFinalization(roomId: string): Promise<void> {
         const secretSnapshot = await db.ref(`/roomSecrets/${roomId}/targetWord`).once('value')
         if (secretSnapshot.exists()) {
           targetWord = secretSnapshot.val()
+          // 가져온 정답을 gameRoom에도 백업으로 저장 (다음 조회 시 보장)
+          await db.ref(`/gameRooms/${roomId}/targetWordReveal`).set(targetWord)
         }
       }
 
@@ -145,5 +148,33 @@ export const finalizeGame = onValueUpdated(
 
     logger.info(`[finalizeGame] 게임 종료 감지 (Trigger): ${roomId}`)
     await processGameFinalization(roomId)
+  }
+)
+
+/**
+ * 게임 로그 수동 저장 Callable Function
+ * Emulator Trigger 버그 대응용 (턴 제한 초과 시 Frontend에서 직접 호출)
+ */
+export const finalizeGameManual = onCall<{ roomId: string }>(
+  {
+    region: 'asia-northeast3',
+    cors: true, // CORS 허용 (Emulator 대응)
+  },
+  async (request) => {
+    const { roomId } = request.data
+
+    if (!roomId) {
+      throw new HttpsError('invalid-argument', 'roomId가 필요합니다.')
+    }
+
+    logger.info(`[finalizeGameManual] 수동 게임 로그 저장 요청: ${roomId}`)
+
+    try {
+      await processGameFinalization(roomId)
+      return { success: true, message: '게임 로그 저장 완료' }
+    } catch (error) {
+      logger.error(`[finalizeGameManual] 게임 로그 저장 실패: ${roomId}`, error)
+      throw new HttpsError('internal', '게임 로그 저장 실패')
+    }
   }
 )

@@ -19,11 +19,15 @@ interface GameRoomPlayer {
   displayName: string | null
   email: string | null
   photoURL: string | null
+  artistName?: string
   ready: boolean
 }
 
 const LOBBY_PATH = 'lobby/waitingPlayers'
 const MAX_PLAYERS = ENV.game.maxPlayers
+
+// 미술 작가 이름 목록 (5명 고정)
+const ARTIST_NAMES = ['피카소', '고흐', '모네', '달리', '뭉크']
 
 /**
  * 대기실에 플레이어 추가
@@ -86,36 +90,49 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
 
   const turnOrder = players.map((p) => p.uid)
 
+  // 기본 전래동화 워드풀 (스케줄이 없을 때 사용)
+  const DEFAULT_THEME = '전래동화'
+  const DEFAULT_WORDS = [
+    '흥부와놀부',
+    '콩쥐팥쥐',
+    '심청전',
+    '춘향전',
+    '토끼전',
+    '선녀와나무꾼',
+    '견우와직녀',
+    '해와달이된오누이',
+    '금도끼은도끼',
+    '혹부리영감',
+    '호랑이와곶감',
+  ]
+
   // 현재 스케줄에서 주제 가져오기
   let theme: string
   let targetWord: string
 
-  if (ENV.isDevelopment) {
-    // 개발 환경: 고정된 테스트 데이터
-    theme = '테스트'
-    targetWord = '집'
-  } else {
-    // 상용 환경: 스케줄에서 주제 가져오기
-    const schedule = await getGameSchedule()
-    const currentTheme = getCurrentTheme(schedule)
-
-    if (currentTheme) {
-      theme = currentTheme
-      // 주제별 문제 풀에서 랜덤 단어 선택
-      const wordPool = await getWordPoolByTheme(currentTheme)
-      if (wordPool && wordPool.words.length > 0) {
-        targetWord = selectRandomWord(wordPool.words)
-      } else {
-        // 문제 풀이 없으면 기본값 사용
-        console.warn(`[createGameRoom] ${currentTheme} 주제의 문제 풀이 없습니다. 기본값 사용.`)
-        targetWord = '고양이'
-      }
+  const schedule = await getGameSchedule()
+  console.log(`[createGameRoom] 스케줄 ${schedule}`);
+  const currentTheme = getCurrentTheme(schedule)
+  console.log(`[createGameRoom] 커런트띰 ${currentTheme}`);
+  if (currentTheme) {
+    // 스케줄에 주제가 있으면 해당 주제 사용
+    theme = currentTheme
+    // 주제별 문제 풀에서 랜덤 단어 선택
+    const wordPool = await getWordPoolByTheme(currentTheme)
+    if (wordPool && wordPool.words.length > 0) {
+      targetWord = selectRandomWord(wordPool.words)
+      console.log(`[createGameRoom] 스케줄 주제 "${theme}" 사용 - 단어: ${targetWord}`)
     } else {
-      // 스케줄이 없으면 기본 주제 사용
-      console.warn('[createGameRoom] 현재 활성 스케줄이 없습니다. 기본 주제 사용.')
-      theme = '동물'
-      targetWord = '고양이'
+      // 문제 풀이 없으면 기본 전래동화 사용
+      console.warn(`[createGameRoom] ${currentTheme} 주제의 문제 풀이 없습니다. 기본 전래동화 사용.`)
+      theme = DEFAULT_THEME
+      targetWord = selectRandomWord(DEFAULT_WORDS)
     }
+  } else {
+    // 스케줄이 없으면 기본 전래동화 사용
+    console.log('[createGameRoom] 활성 스케줄이 없습니다. 기본 전래동화 사용.')
+    theme = DEFAULT_THEME
+    targetWord = selectRandomWord(DEFAULT_WORDS)
   }
 
   await set(newRoomRef, {
@@ -130,12 +147,13 @@ export async function createGameRoom(players: WaitingPlayer[]): Promise<string> 
     startTime: serverTimestamp(),
     canvasData: '', // 초기 빈 캔버스
     players: players.reduce(
-      (acc, player) => {
+      (acc, player, index) => {
         acc[player.uid] = {
           uid: player.uid,
           displayName: player.displayName || null,
           email: player.email || null,
           photoURL: player.photoURL || null,
+          artistName: ARTIST_NAMES[index], // turnOrder 순서대로 작가 이름 할당
           ready: false,
         }
         return acc

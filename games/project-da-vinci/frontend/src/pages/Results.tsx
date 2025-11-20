@@ -211,20 +211,20 @@ export default function Results() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {allPlayers.map((player) => (
                 <div key={player.uid} className="flex items-center gap-3 bg-wood-medium/30 rounded-lg p-3 border border-gold-dark/30">
-                  {player.photoURL ? (
+                  {/* {player.photoURL ? (
                     <img
                       src={player.photoURL}
                       alt={player.displayName || ''}
                       className="w-10 h-10 rounded-full border-2 border-gold-frame"
                     />
-                  ) : (
+                  ) : ( */}
                     <div className="w-10 h-10 rounded-full bg-gallery-wall flex items-center justify-center border-2 border-gold-dark">
                       <span className="text-gold-frame font-playfair font-bold">
-                        {player.displayName?.[0]}
+                        {player.artistName?.[0] || '?'}
                       </span>
                     </div>
-                  )}
-                  <span className="text-sm font-crimson font-semibold text-gallery-cream">{player.displayName}</span>
+                  {/* )} */}
+                  <span className="text-sm font-crimson font-semibold text-gallery-cream">{player.artistName}</span>
                 </div>
               ))}
             </div>

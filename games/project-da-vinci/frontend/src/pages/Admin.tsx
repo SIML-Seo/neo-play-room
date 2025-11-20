@@ -323,11 +323,11 @@ export default function Admin() {
                   <tbody>
                     {dailyAnalytics.slice(0, 7).map((day) => (
                       <tr key={day.date} className="border-b border-gray-100">
-                        <td className="py-3 px-4">{day.date}</td>
-                        <td className="text-right py-3 px-4">{day.totalGames}</td>
+                        <td className="py-3 px-4 text-black">{day.date}</td>
+                        <td className="text-right py-3 px-4 text-black">{day.totalGames}</td>
                         <td className="text-right py-3 px-4 text-green-600">{day.successCount}</td>
                         <td className="text-right py-3 px-4 text-red-600">{day.failureCount}</td>
-                        <td className="text-right py-3 px-4">{day.avgTurns.toFixed(1)}</td>
+                        <td className="text-right py-3 px-4 text-black">{day.avgTurns.toFixed(1)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -384,7 +384,7 @@ export default function Admin() {
               </div>
 
               {/* 새 스케줄 추가 폼 */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 ">
                 <div className="text-sm font-medium text-blue-900 mb-3">새 게임 시간 추가</div>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                   <div>
@@ -393,7 +393,7 @@ export default function Admin() {
                       type="date"
                       value={newDate}
                       onChange={(e) => setNewDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm text-blue-900"
                     />
                   </div>
                   <div>
@@ -402,7 +402,7 @@ export default function Admin() {
                       type="time"
                       value={newStartTime}
                       onChange={(e) => setNewStartTime(e.target.value)}
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm text-blue-900"
                     />
                   </div>
                   <div>
@@ -411,7 +411,7 @@ export default function Admin() {
                       type="time"
                       value={newEndTime}
                       onChange={(e) => setNewEndTime(e.target.value)}
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm text-blue-900"
                     />
                   </div>
                   <div>
@@ -421,7 +421,7 @@ export default function Admin() {
                       value={newTheme}
                       onChange={(e) => setNewTheme(e.target.value)}
                       placeholder="예: 우주, 음악, 동화"
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm text-blue-900"
                     />
                   </div>
                   <div>
@@ -431,7 +431,7 @@ export default function Admin() {
                       value={newDescription}
                       onChange={(e) => setNewDescription(e.target.value)}
                       placeholder="예: 우주 탐험 이벤트"
-                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm text-blue-900"
                     />
                   </div>
                 </div>

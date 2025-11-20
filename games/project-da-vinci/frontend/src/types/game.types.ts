@@ -7,6 +7,7 @@ export interface Player {
   displayName?: string | null
   email?: string | null
   photoURL?: string | null
+  artistName?: string // 미술 작가 이름으로 익명화
   team: string
   ready: boolean
   joinedAt: number
@@ -41,6 +42,7 @@ export interface GameRoom {
   players: Record<string, Player>
   aiGuesses: AIGuess[]
   canvasData?: string
+  isAIJudging?: boolean // AI 판정 중 여부 (타이머 일시정지용)
 }
 
 export interface LiveDrawing {

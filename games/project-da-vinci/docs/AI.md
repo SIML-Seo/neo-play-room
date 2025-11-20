@@ -504,20 +504,122 @@ export function buildPromptByDifficulty(theme: string, difficulty: AIDifficulty)
 }
 ```
 
-### 3. Multi-turn 대화 (실험적)
+### 3. ✅ AI 누적 추론 (Cooperative Clue System)
+
+**상태: 구현 완료** 🎉
+
+AI가 이전 턴의 추측을 기억하고, 누적된 단서를 조합하여 정답을 추론합니다.
+
+#### 핵심 개념
+
+```
+❌ 기존 방식 (독립적 판단):
+  턴 1: [산 그림] → AI: "산" (40%)
+  턴 2: [집 그림] → AI: "집" (75%) ← 이전 "산" 모름
+  턴 3: [나무꾼] → AI: "나무꾼" (70%) ← 조합 불가
+  턴 4: [요정] → AI: "요정" (70%) ← 여전히 개별 판단
+
+✅ 개선 방식 (누적 추론):
+  턴 1: [산 그림] → AI: "산" (40%)
+  턴 2: [집 그림] → AI: "집" (75%) + 기억: [산]
+  턴 3: [나무꾼] → AI: "나무꾼" (70%) + 기억: [산, 집]
+  턴 4: [요정] → AI: "선녀와나무꾼" (85%) ✅
+              ↑ 조합: "나무꾼" + "요정" = "선녀와나무꾼"
+```
+
+#### 구현
 
 ```typescript
-// AI가 이전 추론을 기억하고 점진적으로 추론 개선
-const conversationHistory = [
-  { role: 'user', parts: [{ text: prompt }, imagePart] },
-  { role: 'model', parts: [{ text: previousGuess }] },
-  { role: 'user', parts: [{ text: '틀렸어요. 다시 보세요.' }] },
-];
+// functions/src/ai/prompts.ts
 
-const result = await model.generateContent({
-  contents: conversationHistory,
-});
+export interface AIGuessHistory {
+  turn: number
+  guess: string
+  confidence: number
+}
+
+function formatPreviousGuesses(previousGuesses: AIGuessHistory[]): string {
+  if (!previousGuesses || previousGuesses.length === 0) {
+    return ''
+  }
+
+  const guessesText = previousGuesses
+    .map((g) => `  턴 ${g.turn}: "${g.guess}" (신뢰도 ${(g.confidence * 100).toFixed(0)}%)`)
+    .join('\n')
+
+  return `
+**Your Previous Guesses** (from earlier drawings by teammates):
+${guessesText}
+
+**IMPORTANT**: This is a COOPERATIVE game where multiple players draw clues in sequence.
+- You saw these earlier drawings and made the guesses above
+- Now you're seeing a NEW drawing from another teammate
+- Consider ALL the clues together - players are building up hints
+- Try to combine the previous guesses with the current drawing
+- If previous guesses suggest parts of an answer (like "나무꾼" and "요정"),
+  consider if they could combine into one answer (like "선녀와나무꾼")
+- The final answer might be a combination of multiple clues
+`
+}
+
+export function buildJudgePrompt(
+  theme: string,
+  previousGuesses: AIGuessHistory[] = []
+): string {
+  const historySection = formatPreviousGuesses(previousGuesses)
+
+  return `You are playing a Pictionary game as the judge.
+Your task is to look at the drawing and guess what it represents.
+
+**Game Category**: ${theme}
+${historySection}
+**Rules**:
+1. You do NOT know the correct answer.
+2. You must guess based on what you see in the CURRENT drawing AND previous clues.
+3. Respond in Korean.
+4. Be honest about your confidence level.
+5. Consider if this drawing adds to previous clues to form a complete answer.
+
+**Response Format** (JSON only):
+{
+  "guess": "your guess in Korean",
+  "confidence": 0.85
+}
+
+**Examples**:
+- If you see a red apple: {"guess": "사과", "confidence": 0.9}
+- If previous guesses were "나무꾼" and you see a fairy: {"guess": "선녀와나무꾼", "confidence": 0.85}
+
+Now, look at the drawing and make your guess.`
+}
 ```
+
+#### 호출 예시
+
+```typescript
+// functions/src/ai/judge.flow.ts
+
+// 이전 추측 히스토리 변환
+const previousGuesses = (gameRoom.aiGuesses || []).map((g: any) => ({
+  turn: g.turn,
+  guess: g.guess,
+  confidence: g.confidence,
+}))
+
+const prompt = buildPromptByDifficulty(gameRoom.theme, difficulty, previousGuesses)
+logger.info(`프롬프트 생성 (이전 추측: ${previousGuesses.length}개)`)
+```
+
+#### 게임 경험 개선
+
+**Before**: 한 장의 그림으로 "선녀와나무꾼" 표현 필요 (거의 불가능)
+
+**After**:
+- 턴 1: 산 그리기 → AI: "산"
+- 턴 2: 나무꾼 그리기 → AI: "나무꾼"
+- 턴 3: 요정(선녀) 그리기 → AI: "선녀와나무꾼" ✅
+
+참가자들이 **단서를 하나씩 쌓아가며** AI를 가이드할 수 있습니다!
 
 ---
 

@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@/hooks/useChat'
 import type { User } from 'firebase/auth'
+import type { GameRoom } from '@/types/game.types'
 
 interface ChatProps {
   roomId: string
   user: User
+  gameRoom?: GameRoom
 }
 
-export default function Chat({ roomId, user }: ChatProps) {
+export default function Chat({ roomId, user, gameRoom }: ChatProps) {
   const { messages, sendMessage, isSending } = useChat(roomId, user)
   const [inputText, setInputText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -21,7 +23,9 @@ export default function Chat({ roomId, user }: ChatProps) {
     if (!inputText.trim() || isSending) return
 
     try {
-      await sendMessage(inputText)
+      // 현재 사용자의 artistName 가져오기
+      const myArtistName = gameRoom?.players?.[user.uid]?.artistName
+      await sendMessage(inputText, myArtistName)
       setInputText('')
     } catch (err) {
       console.error('Failed to send message:', err)
@@ -74,7 +78,7 @@ export default function Chat({ roomId, user }: ChatProps) {
                 >
                   {!isMyMessage && (
                     <div className="text-xs font-medium mb-1 opacity-70">
-                      {message.displayName}
+                      {message.artistName || '익명'}
                     </div>
                   )}
                   <div className="text-sm break-words whitespace-pre-wrap">{message.text}</div>

@@ -8,6 +8,8 @@ import { submitDrawingToAI } from '@/services/ai'
 import { ENV } from '@/config/env'
 import { subscribeToRoomSecret } from '@/services/roomSecrets'
 import { getDifficultyConfig, DIFFICULTY_CONFIG, type GameDifficulty } from '@/utils/difficulty'
+import { ref, update } from 'firebase/database'
+import { database } from '@/firebase'
 
 export default function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -38,14 +40,19 @@ export default function GameRoom() {
     }
   }, [isAuthenticated, authLoading, navigate])
 
-  // 타이머 업데이트
+  // 타이머 업데이트 (AI 판정 중에는 멈춤)
   useEffect(() => {
+    // AI 판정 중일 때는 타이머 멈춤
+    if (gameRoom?.isAIJudging) {
+      return
+    }
+
     const interval = setInterval(() => {
       setRemainingTime(getRemainingTime())
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [getRemainingTime])
+  }, [getRemainingTime, gameRoom?.isAIJudging])
 
   // 현재 턴인 경우 정답 단어 구독
   useEffect(() => {
@@ -68,12 +75,17 @@ export default function GameRoom() {
     }
   }, [roomId, user, isMyTurn])
 
-  // 시간 초과 시 자동으로 다음 턴
+  // 시간 초과 시 자동으로 다음 턴 (AI 판정 중이 아닐 때만, 턴 수 초과하지 않았을 때만)
   useEffect(() => {
-    if (remainingTime === 0 && gameRoom?.status === 'in-progress') {
+    if (
+      remainingTime === 0 &&
+      gameRoom?.status === 'in-progress' &&
+      !gameRoom?.isAIJudging &&
+      gameRoom.turnCount < gameRoom.maxTurns // 턴 수 초과 방지
+    ) {
       handleNextTurn()
     }
-  }, [remainingTime, gameRoom?.status, handleNextTurn])
+  }, [remainingTime, gameRoom?.status, gameRoom?.isAIJudging, gameRoom?.turnCount, gameRoom?.maxTurns, handleNextTurn])
 
   // 게임 종료 시 결과 페이지로 리다이렉트
   useEffect(() => {
@@ -119,6 +131,10 @@ export default function GameRoom() {
       setIsSubmittingToAI(true)
       setAiError(null)
 
+      // Firebase에 AI 판정 중 플래그 설정 (모든 참가자의 타이머 멈춤)
+      const roomRef = ref(database, `gameRooms/${roomId}`)
+      await update(roomRef, { isAIJudging: true })
+
       const imageBase64 = canvasRef.current.getCanvasAsBase64()
       if (!imageBase64) {
         throw new Error('캔버스 이미지를 가져올 수 없습니다.')
@@ -128,12 +144,21 @@ export default function GameRoom() {
 
       console.log('AI 판단 결과:', result)
 
+      // AI 판정 완료 후 플래그 해제 (타이머 재개)
+      await update(roomRef, { isAIJudging: false })
+
       // 게임이 종료되면 useEffect에서 자동으로 /results로 리다이렉트됨
     } catch (err) {
       console.error('AI 제출 실패:', err)
       const errorMessage =
         err instanceof Error ? err.message : 'AI에게 제출하는 중 오류가 발생했습니다.'
       setAiError(errorMessage)
+
+      // 에러 발생 시에도 플래그 해제
+      if (roomId) {
+        const roomRef = ref(database, `gameRooms/${roomId}`)
+        await update(roomRef, { isAIJudging: false })
+      }
     } finally {
       setIsSubmittingToAI(false)
     }
@@ -214,12 +239,14 @@ export default function GameRoom() {
               {user.photoURL && (
                 <img
                   src={user.photoURL}
-                  alt={user.displayName || ''}
+                  alt={gameRoom.players[user.uid]?.artistName || user.displayName || ''}
                   className="w-10 h-10 rounded-full border-2 border-gold-frame"
                 />
               )}
               <div className="text-sm">
-                <div className="font-crimson font-semibold text-gallery-cream">{user.displayName}</div>
+                <div className="font-crimson font-semibold text-gallery-cream">
+                  {gameRoom.players[user.uid]?.artistName || user.displayName}
+                </div>
               </div>
             </div>
           </div>
@@ -288,7 +315,7 @@ export default function GameRoom() {
               {/* 플레이어 목록 */}
               <div className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn" style={{ animationDelay: '0.1s' }}>
                 <h3 className="text-xl font-playfair font-bold text-gold-frame mb-4 gold-glow">
-                  참가 작가 ({allPlayers.length}명)
+                  참여 작가 ({allPlayers.length}명)
                 </h3>
                 <div className="space-y-3">
                   {allPlayers.map((player) => {
@@ -310,22 +337,22 @@ export default function GameRoom() {
                           {player.photoURL ? (
                             <img
                               src={player.photoURL}
-                              alt={player.displayName || ''}
+                              alt={player.artistName || player.displayName || ''}
                               className="w-10 h-10 rounded-full border-2 border-gold-frame"
                             />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-gallery-wall flex items-center justify-center border-2 border-gold-dark">
                               <span className="text-gold-frame font-playfair font-bold">
-                                {player.displayName?.[0]}
+                                {player.artistName?.[0] || player.displayName?.[0]}
                               </span>
                             </div>
                           )}
                           <div>
                             <div className="font-crimson font-bold text-gallery-cream">
-                              {player.displayName}
+                              {player.artistName || player.displayName}
                               {isMe && <span className="text-gold-light ml-2">(나)</span>}
                             </div>
-                            <div className="text-xs text-gallery-cream/60 font-crimson">{player.email}</div>
+                            {/* <div className="text-xs text-gallery-cream/60 font-crimson">{player.email}</div> */}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -387,12 +414,46 @@ export default function GameRoom() {
               </div>
             </div>
 
-            {/* 오른쪽: 채팅 */}
-            <div className="lg:col-span-1">
-              <div className="gallery-frame bg-wood-dark shadow-gallery p-6 h-[calc(100vh-200px)] flex flex-col animate-scaleIn" style={{ animationDelay: '0.3s' }}>
+            {/* 오른쪽: 게임 룰 & 채팅 */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* AI 누적 추론 안내 */}
+              <div className="gallery-frame bg-wood-dark shadow-gallery p-6 animate-scaleIn" style={{ animationDelay: '0.3s' }}>
+                <h3 className="text-xl font-playfair font-bold text-gold-frame mb-3 gold-glow">
+                  🎯 AI 누적 추론
+                </h3>
+                <div className="space-y-3 text-sm gallery-text text-gallery-cream/90">
+                  <p className="font-crimson">
+                    AI는 <span className="text-gold-light font-bold">이전 턴의 추측을 기억</span>하고,
+                    누적된 단서를 조합하여 정답을 추론합니다.
+                  </p>
+                  <div className="bg-gallery-floor/50 rounded-lg p-3 border border-gold-dark/30">
+                    <div className="text-xs museum-label text-gallery-cream/70 mb-2">예시: "선녀와나무꾼"</div>
+                    <div className="space-y-1 font-crimson text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gold-frame">턴 1:</span>
+                        <span>산 그리기 → AI: "산"</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gold-frame">턴 2:</span>
+                        <span>나무꾼 그리기 → AI: "나무꾼"</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gold-frame">턴 3:</span>
+                        <span>요정 그리기 → AI: "선녀와나무꾼" ✅</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs font-crimson text-gallery-cream/80 italic">
+                    💡 팀원들과 전략을 협의하여 단서를 하나씩 쌓아가세요!
+                  </p>
+                </div>
+              </div>
+
+              {/* 채팅 */}
+              <div className="gallery-frame bg-wood-dark shadow-gallery p-6 h-96 flex flex-col animate-scaleIn" style={{ animationDelay: '0.4s' }}>
                 <h3 className="text-xl font-playfair font-bold text-gold-frame mb-4 gold-glow">대화</h3>
                 <div className="flex-1 overflow-hidden">
-                  <Chat roomId={roomId!} user={user} />
+                  <Chat roomId={roomId!} user={user} gameRoom={gameRoom} />
                 </div>
               </div>
             </div>
@@ -413,7 +474,7 @@ export default function GameRoom() {
               ) : (
                 <div className="mb-4 gallery-placard border-2 border-gold-dark/50 animate-fadeIn">
                   <p className="text-gallery-cream/80 font-crimson">
-                    👀 {currentPlayer?.displayName || '???'}님이 작품을 창작하고 있습니다...
+                    👀 {currentPlayer?.artistName || currentPlayer?.displayName || '???'}님이 작품을 창작하고 있습니다...
                   </p>
                 </div>
               )}
@@ -498,7 +559,7 @@ export default function GameRoom() {
                   <div className="flex justify-between">
                     <span className="text-gallery-cream/70 font-crimson">현재 작가</span>
                     <span className="font-crimson font-semibold text-gallery-cream">
-                      {currentPlayer?.displayName || '???'}
+                      {currentPlayer?.artistName || currentPlayer?.displayName || '???'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -533,7 +594,7 @@ export default function GameRoom() {
                           {player.photoURL ? (
                             <img
                               src={player.photoURL}
-                              alt={player.displayName || ''}
+                              alt={player.artistName || player.displayName || ''}
                               className={`w-8 h-8 rounded-full ${
                                 isCurrent ? 'ring-2 ring-gold-frame' : 'border-2 border-gold-dark/50'
                               }`}
@@ -544,7 +605,7 @@ export default function GameRoom() {
                                 isCurrent ? 'ring-2 ring-gold-frame' : 'border-2 border-gold-dark/50'
                               }`}
                             >
-                              <span className="text-sm font-playfair font-bold text-gold-frame">{player.displayName?.[0]}</span>
+                              <span className="text-sm font-playfair font-bold text-gold-frame">{player.artistName?.[0] || player.displayName?.[0]}</span>
                             </div>
                           )}
                           {isCurrent && (
@@ -556,7 +617,7 @@ export default function GameRoom() {
                             isCurrent ? 'text-gallery-cream' : 'text-gallery-cream/80'
                           }`}
                         >
-                          {player.displayName}
+                          {player.artistName || player.displayName}
                           {isMe && ' (나)'}
                         </span>
                         {isCurrent && (
@@ -604,7 +665,7 @@ export default function GameRoom() {
                               </span>
                               {player && (
                                 <span className="text-xs text-gallery-cream/70 font-crimson">
-                                  by {player.displayName}
+                                  by {player.artistName || player.displayName}
                                 </span>
                               )}
                             </div>
@@ -631,7 +692,7 @@ export default function GameRoom() {
               </div>
 
               {/* 채팅 */}
-              <div className="flex flex-col" style={{ height: 'calc(100vh - 400px)', minHeight: '400px' }}>
+              <div className="flex flex-col" style={{ height: 'calc(100vh - 500px)', minHeight: '500px' }}>
                 <Chat roomId={roomId!} user={user} />
               </div>
             </div>
