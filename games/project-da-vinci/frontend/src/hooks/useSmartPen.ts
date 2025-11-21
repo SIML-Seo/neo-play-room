@@ -151,17 +151,20 @@ export function useSmartPen(options: UseSmartPenOptions) {
     }
 
     // Message 콜백 설정 (연결 상태, 배터리 등)
+    // README 참조: https://github.com/NeoSmartpen/WEB-SDK-Sample
     PenHelper.messageCallback = (mac: string, type: number, args: unknown) => {
       console.log('[SmartPen] Message:', { mac, type, args })
 
-      // PenMessageType 상수 참조 (SDK 내부)
-      // 0x01: PEN_AUTHORIZED - 펜 인증 완료 (연결 성공)
-      // 0x02: PASSWORD_REQUEST - 비밀번호 요청
-      // 0x11: SETTING_INFO - 설정 정보 (배터리 포함)
+      // PenMessageType 상수 (README 기준)
+      // 0x01: PEN_AUTHORIZED - 펜 인증 성공
+      // 0x02: PEN_PASSWORD_REQUEST - 비밀번호 요청
+      // 0x04: PEN_DISCONNECTED - 펜 연결 해제
+      // 0x06: PEN_CONNECTION_SUCCESS - 펜 연결 성공
+      // 0x11: PEN_SETTING_INFO - 펜 상태정보 (배터리, 메모리 등)
 
       switch (type) {
-        case 0x01: // PEN_AUTHORIZED - 연결 성공
-          console.log('[SmartPen] 펜 연결 완료')
+        case 0x06: // PEN_CONNECTION_SUCCESS - 펜 연결 성공
+          console.log('[SmartPen] 펜 연결 성공 (0x06)')
           setState((prev) => ({
             ...prev,
             isConnected: true,
@@ -172,24 +175,71 @@ export function useSmartPen(options: UseSmartPenOptions) {
           callbacksRef.current.onConnect?.()
           break
 
-        case 0x11: // SETTING_INFO - 배터리 정보 포함
+        case 0x01: // PEN_AUTHORIZED - 펜 인증 성공
+          console.log('[SmartPen] 펜 인증 성공 (0x01)')
+          // 인증 성공 시에도 연결 상태 업데이트
+          setState((prev) => ({
+            ...prev,
+            isConnected: true,
+            isScanning: false,
+            connectedPenMac: mac,
+            error: null,
+          }))
+          break
+
+        case 0x11: // PEN_SETTING_INFO - 배터리 정보 포함
+          console.log('[SmartPen] 펜 설정 정보 (0x11):', args)
+          // README 패턴: 이 이벤트에서 controller 확인 및 배터리 정보 저장
           if (typeof args === 'object' && args !== null && 'Battery' in args) {
             const settingInfo = args as { Battery: number }
+            // 배터리 값이 128이면 충전 중
+            const batteryValue = settingInfo.Battery === 128 ? 100 : settingInfo.Battery
             setState((prev) => ({
               ...prev,
-              battery: settingInfo.Battery,
+              isConnected: true,
+              connectedPenMac: mac,
+              battery: batteryValue,
             }))
           }
           break
 
-        case 0x00: // CYCLIC - 주기적 상태 확인
-          // 연결 상태 업데이트
-          if (PenHelper.pens.length > 0) {
-            setState((prev) => ({
-              ...prev,
-              isConnected: true,
-            }))
-          }
+        case 0x04: // PEN_DISCONNECTED - 펜 연결 해제
+          console.log('[SmartPen] 펜 연결 해제 (0x04)')
+          setState((prev) => ({
+            ...prev,
+            isConnected: false,
+            connectedPenMac: null,
+            battery: 100,
+          }))
+          callbacksRef.current.onDisconnect?.()
+          break
+
+        case 0x02: // PEN_PASSWORD_REQUEST - 비밀번호 요청
+          console.log('[SmartPen] 비밀번호 요청 (0x02)')
+          // 비밀번호가 설정된 펜의 경우 처리
+          // 현재는 에러로 표시 (추후 비밀번호 입력 UI 추가 가능)
+          setState((prev) => ({
+            ...prev,
+            error: '펜에 비밀번호가 설정되어 있습니다. 펜 설정에서 비밀번호를 해제해주세요.',
+          }))
+          break
+
+        case 0x63: // EVENT_LOW_BATTERY - 배터리 부족
+          console.log('[SmartPen] 배터리 부족 경고 (0x63)')
+          setState((prev) => ({
+            ...prev,
+            error: '스마트펜 배터리가 부족합니다.',
+          }))
+          break
+
+        case 0x64: // EVENT_POWER_OFF - 전원 OFF
+          console.log('[SmartPen] 펜 전원 OFF (0x64)')
+          setState((prev) => ({
+            ...prev,
+            isConnected: false,
+            connectedPenMac: null,
+          }))
+          callbacksRef.current.onDisconnect?.()
           break
       }
     }

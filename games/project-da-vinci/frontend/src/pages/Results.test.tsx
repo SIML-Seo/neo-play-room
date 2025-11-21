@@ -67,6 +67,7 @@ describe('Results 페이지', () => {
         uid: 'user-1',
         name: '플레이어1',
         displayName: '플레이어1',
+        artistName: '피카소',
         team: 'A',
         ready: true,
         joinedAt: Date.now(),
@@ -75,6 +76,7 @@ describe('Results 페이지', () => {
         uid: 'user-2',
         name: '플레이어2',
         displayName: '플레이어2',
+        artistName: '다빈치',
         team: 'A',
         ready: true,
         joinedAt: Date.now(),
@@ -109,10 +111,11 @@ describe('Results 페이지', () => {
     renderResults()
 
     await waitFor(() => {
-      expect(screen.getByText('성공!')).toBeInTheDocument()
+      expect(screen.getByText('협동 창작 성공!')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('백설공주')).toBeInTheDocument()
+    // "백설공주"가 여러 곳에 표시됨 (정답, AI 추론 히스토리 등)
+    expect(screen.getAllByText('백설공주').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(/5 \/ 10/)).toBeInTheDocument()
   })
 
@@ -132,11 +135,11 @@ describe('Results 페이지', () => {
     renderResults()
 
     await waitFor(() => {
-      expect(screen.getByText('시간 초과')).toBeInTheDocument()
+      expect(screen.getByText('전시 시간 종료')).toBeInTheDocument()
     })
   })
 
-  it('AI 추론 히스토리 표시', async () => {
+  it('AI 감상 기록 표시', async () => {
     mockGet.mockResolvedValue({
       exists: () => true,
       val: () => mockGameRoom,
@@ -145,11 +148,12 @@ describe('Results 페이지', () => {
     renderResults()
 
     await waitFor(() => {
-      expect(screen.getByText('AI 추론 히스토리')).toBeInTheDocument()
+      expect(screen.getByText('AI 감상 기록')).toBeInTheDocument()
     })
 
     expect(screen.getByText('공주')).toBeInTheDocument()
-    expect(screen.getByText('백설공주')).toBeInTheDocument()
+    // "백설공주"가 여러 곳에 표시될 수 있음
+    expect(screen.getAllByText('백설공주').length).toBeGreaterThanOrEqual(1)
   })
 
   it('플레이어 목록 표시', async () => {
@@ -161,11 +165,12 @@ describe('Results 페이지', () => {
     renderResults()
 
     await waitFor(() => {
-      expect(screen.getByText('참가자')).toBeInTheDocument()
+      expect(screen.getByText('참여 작가')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('플레이어1')).toBeInTheDocument()
-    expect(screen.getByText('플레이어2')).toBeInTheDocument()
+    // artistName 필드가 표시됨
+    expect(screen.getByText('피카소')).toBeInTheDocument()
+    expect(screen.getByText('다빈치')).toBeInTheDocument()
   })
 
   it('게임 룸을 찾을 수 없으면 에러 표시', async () => {
@@ -183,7 +188,7 @@ describe('Results 페이지', () => {
     expect(screen.getByText('게임 룸을 찾을 수 없습니다.')).toBeInTheDocument()
   })
 
-  it('다시 플레이하기 버튼 표시', async () => {
+  it('게임 종료 후 버튼 표시', async () => {
     mockGet.mockResolvedValue({
       exists: () => true,
       val: () => mockGameRoom,
@@ -192,9 +197,9 @@ describe('Results 페이지', () => {
     renderResults()
 
     await waitFor(() => {
-      expect(screen.getByText('다시 플레이하기')).toBeInTheDocument()
+      expect(screen.getByText('다음 전시 참여하기')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('홈으로')).toBeInTheDocument()
+    expect(screen.getByText('갤러리 입구로')).toBeInTheDocument()
   })
 })

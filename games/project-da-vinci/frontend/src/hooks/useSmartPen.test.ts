@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
-import { useSmartPen } from './useSmartPen'
 import type { Dot } from '@/types/smartpen.types'
 
 // Mock PenController 타입
@@ -12,20 +11,26 @@ interface MockPenController {
   }
 }
 
-// Mock web_pen_sdk
-const mockPens: MockPenController[] = []
-const mockPenHelper = {
-  dotCallback: null as ((mac: string, dot: Dot) => void) | null,
-  messageCallback: null as ((mac: string, type: number, args: unknown) => void) | null,
-  pens: mockPens,
-  scanPen: vi.fn(),
-  disconnect: vi.fn(),
-  ncodeToScreen: vi.fn(),
-}
+// vi.hoisted를 사용하여 mock이 vi.mock보다 먼저 정의되도록 함
+const { mockPenHelper, mockPens } = vi.hoisted(() => {
+  const mockPens: MockPenController[] = []
+  const mockPenHelper = {
+    dotCallback: null as ((mac: string, dot: Dot) => void) | null,
+    messageCallback: null as ((mac: string, type: number, args: unknown) => void) | null,
+    pens: mockPens,
+    scanPen: vi.fn(),
+    disconnect: vi.fn(),
+    ncodeToScreen: vi.fn(),
+  }
+  return { mockPenHelper, mockPens }
+})
 
 vi.mock('web_pen_sdk', () => ({
   PenHelper: mockPenHelper,
 }))
+
+// import는 vi.mock 이후에 해야 함
+import { useSmartPen } from './useSmartPen'
 
 describe('useSmartPen', () => {
   const canvasSize = { width: 800, height: 600 }
@@ -333,7 +338,7 @@ describe('useSmartPen', () => {
     expect(onHover).toHaveBeenCalled()
   })
 
-  it('배터리 정보 메시지 처리 (type 0x11)', () => {
+  it('배터리 정보 메시지 처리 (type 0x11)', async () => {
     const { result } = renderHook(() =>
       useSmartPen({
         canvasSize,
@@ -345,16 +350,38 @@ describe('useSmartPen', () => {
       mockPenHelper.messageCallback('00:11:22:33:44:55', 0x11, { Battery: 75 })
     }
 
-    expect(result.current.state.battery).toBe(75)
+    await waitFor(() => {
+      expect(result.current.state.battery).toBe(75)
+    })
   })
 
-  it('PEN_AUTHORIZED 메시지 처리 (type 0x01) - 연결 완료', async () => {
+  it('PEN_CONNECTION_SUCCESS 메시지 처리 (type 0x06) - 연결 성공', async () => {
     const onConnect = vi.fn()
 
     const { result } = renderHook(() =>
       useSmartPen({
         canvasSize,
         onConnect,
+      })
+    )
+
+    // PEN_CONNECTION_SUCCESS 메시지 콜백 호출
+    if (mockPenHelper.messageCallback) {
+      mockPenHelper.messageCallback('00:11:22:33:44:55', 0x06, {})
+    }
+
+    await waitFor(() => {
+      expect(result.current.state.isConnected).toBe(true)
+    })
+
+    expect(result.current.state.connectedPenMac).toBe('00:11:22:33:44:55')
+    expect(onConnect).toHaveBeenCalled()
+  })
+
+  it('PEN_AUTHORIZED 메시지 처리 (type 0x01) - 펜 인증 성공', async () => {
+    const { result } = renderHook(() =>
+      useSmartPen({
+        canvasSize,
       })
     )
 
@@ -368,7 +395,89 @@ describe('useSmartPen', () => {
     })
 
     expect(result.current.state.connectedPenMac).toBe('00:11:22:33:44:55')
-    expect(onConnect).toHaveBeenCalled()
+  })
+
+  it('PEN_DISCONNECTED 메시지 처리 (type 0x04) - 연결 해제', async () => {
+    const onDisconnect = vi.fn()
+
+    const { result } = renderHook(() =>
+      useSmartPen({
+        canvasSize,
+        onDisconnect,
+      })
+    )
+
+    // 먼저 연결 상태로 만듦
+    if (mockPenHelper.messageCallback) {
+      mockPenHelper.messageCallback('00:11:22:33:44:55', 0x06, {})
+    }
+
+    await waitFor(() => {
+      expect(result.current.state.isConnected).toBe(true)
+    })
+
+    // PEN_DISCONNECTED 메시지 콜백 호출
+    if (mockPenHelper.messageCallback) {
+      mockPenHelper.messageCallback('00:11:22:33:44:55', 0x04, {})
+    }
+
+    await waitFor(() => {
+      expect(result.current.state.isConnected).toBe(false)
+    })
+
+    expect(result.current.state.connectedPenMac).toBe(null)
+    expect(onDisconnect).toHaveBeenCalled()
+  })
+
+  it('PEN_PASSWORD_REQUEST 메시지 처리 (type 0x02) - 비밀번호 요청 에러', async () => {
+    const { result } = renderHook(() =>
+      useSmartPen({
+        canvasSize,
+      })
+    )
+
+    // PEN_PASSWORD_REQUEST 메시지 콜백 호출
+    if (mockPenHelper.messageCallback) {
+      mockPenHelper.messageCallback('00:11:22:33:44:55', 0x02, {})
+    }
+
+    await waitFor(() => {
+      expect(result.current.state.error).toContain('비밀번호')
+    })
+  })
+
+  it('EVENT_LOW_BATTERY 메시지 처리 (type 0x63) - 배터리 부족 경고', async () => {
+    const { result } = renderHook(() =>
+      useSmartPen({
+        canvasSize,
+      })
+    )
+
+    // EVENT_LOW_BATTERY 메시지 콜백 호출
+    if (mockPenHelper.messageCallback) {
+      mockPenHelper.messageCallback('00:11:22:33:44:55', 0x63, {})
+    }
+
+    await waitFor(() => {
+      expect(result.current.state.error).toContain('배터리')
+    })
+  })
+
+  it('배터리 충전 중 상태 처리 (Battery=128)', async () => {
+    const { result } = renderHook(() =>
+      useSmartPen({
+        canvasSize,
+      })
+    )
+
+    // PEN_SETTING_INFO with Battery=128 (충전 중)
+    if (mockPenHelper.messageCallback) {
+      mockPenHelper.messageCallback('00:11:22:33:44:55', 0x11, { Battery: 128 })
+    }
+
+    await waitFor(() => {
+      expect(result.current.state.battery).toBe(100) // 충전 중이면 100으로 표시
+    })
   })
 
   it('좌표 변환 실패 시 수동 변환 사용', () => {
