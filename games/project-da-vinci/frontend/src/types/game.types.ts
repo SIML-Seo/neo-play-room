@@ -76,6 +76,7 @@ export interface GameLog {
   winningTeam: string
   finalImageUri: string
   aiGuessList: AIGuess[]
+  players?: Record<string, Player> // 참가자 정보
   completedAt: number
   finishedAt: Timestamp // Firestore Timestamp
 }

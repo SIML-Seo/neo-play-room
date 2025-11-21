@@ -20,6 +20,7 @@ import type {
   GameLog,
   GameScheduleConfig,
   GameScheduleDateRange,
+  Player,
 } from '@/types/game.types'
 
 // 마스터 계정 이메일 목록 (TODO: 환경변수로 이동)
@@ -350,33 +351,58 @@ export default function Admin() {
             {/* 최근 게임 로그 */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">최근 게임 (20개)</h2>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {recentGames.length === 0 ? (
                   <p className="text-gray-500 text-sm">데이터가 없습니다.</p>
                 ) : (
                   recentGames.map((game) => (
                     <div
                       key={game.logId}
-                      className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm"
+                      className="p-4 bg-gray-50 rounded-lg text-sm border border-gray-200"
                     >
-                      <div
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          game.result === 'success'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {game.result === 'success' ? '성공' : '실패'}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">{game.targetWord}</div>
-                        <div className="text-xs text-gray-500">
-                          테마: {game.theme} / 난이도: {game.difficulty}
+                      {/* 상단: 결과, 단어, 게임 정보 */}
+                      <div className="flex items-center gap-4 mb-3">
+                        <div
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            game.result === 'success'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {game.result === 'success' ? '성공' : '실패'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{game.targetWord}</div>
+                          <div className="text-xs text-gray-500">
+                            테마: {game.theme} / 난이도: {game.difficulty}
+                          </div>
+                        </div>
+                        <div className="text-right text-gray-600">
+                          {game.finalTurnCount}턴 / {(game.finalTime / 1000 / 60).toFixed(1)}분
                         </div>
                       </div>
-                      <div className="text-right text-gray-600">
-                        {game.finalTurnCount}턴 / {(game.finalTime / 1000 / 60).toFixed(1)}분
-                      </div>
+
+                      {/* 하단: 참가자 정보 */}
+                      {game.players && Object.keys(game.players).length > 0 && (
+                        <div className="border-t border-gray-200 pt-3">
+                          <div className="text-xs text-gray-500 mb-2 font-medium">참가자:</div>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.values(game.players as Record<string, Player>).map((player, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-2 px-2 py-1 bg-white rounded border border-gray-200"
+                              >
+                                <span className="font-medium text-gray-800">
+                                  {player.displayName || player.name}
+                                </span>
+                                {player.email && (
+                                  <span className="text-xs text-gray-500">({player.email})</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

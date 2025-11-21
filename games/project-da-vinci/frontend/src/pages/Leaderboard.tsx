@@ -13,7 +13,7 @@ import {
   sortGameLogsByRanking,
   calculateScore,
 } from '@/services/gameLog'
-import type { GameLog } from '@/types/game.types'
+import type { GameLog, Player } from '@/types/game.types'
 
 export default function Leaderboard() {
   const navigate = useNavigate()
@@ -302,6 +302,22 @@ export default function Leaderboard() {
                                 <span>•</span>
                                 <span>난이도: {getDifficultyLabel(log.difficulty)}</span>
                               </div>
+                              {/* 참가자 정보 */}
+                              {log.players && Object.keys(log.players).length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {Object.values(log.players as Record<string, Player>).map(
+                                    (player, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700"
+                                        title={player.email || ''}
+                                      >
+                                        {player.displayName || player.name}({player.email})
+                                      </span>
+                                    )
+                                  )}
+                                </div>
+                              )}
                             </div>
 
                             <div className="text-right">
@@ -437,6 +453,22 @@ export default function Leaderboard() {
                                 <span>•</span>
                                 <span>난이도: {getDifficultyLabel(log.difficulty)}</span>
                               </div>
+                              {/* 참가자 정보 */}
+                              {log.players && Object.keys(log.players).length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {Object.values(log.players as Record<string, Player>).map(
+                                    (player, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700"
+                                        title={player.email || ''}
+                                      >
+                                        {player.displayName || player.name} ({player.email})
+                                      </span>
+                                    )
+                                  )}
+                                </div>
+                              )}
                               <div className="mt-2 text-sm text-red-600 font-semibold">
                                 실패 사유:{' '}
                                 {log.failReason === 'turnLimitExceeded'
