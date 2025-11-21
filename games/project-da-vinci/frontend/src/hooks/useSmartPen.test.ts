@@ -21,6 +21,7 @@ const { mockPenHelper, mockPens } = vi.hoisted(() => {
     scanPen: vi.fn(),
     disconnect: vi.fn(),
     ncodeToScreen: vi.fn(),
+    InputPassword: vi.fn(), // 비밀번호 입력 메서드
   }
   return { mockPenHelper, mockPens }
 })
@@ -429,14 +430,41 @@ describe('useSmartPen', () => {
     expect(onDisconnect).toHaveBeenCalled()
   })
 
-  it('PEN_PASSWORD_REQUEST 메시지 처리 (type 0x02) - 비밀번호 요청 에러', async () => {
-    const { result } = renderHook(() =>
+  it('PEN_PASSWORD_REQUEST 메시지 처리 (type 0x02) - 연결된 펜이 있으면 기본 비밀번호 입력 시도', async () => {
+    // 연결된 펜 설정
+    mockPenHelper.pens.push({
+      device: { id: 'device-1' },
+      info: { MacAddress: '00:11:22:33:44:55', DeviceName: 'NeoSmartpen' },
+    })
+
+    renderHook(() =>
       useSmartPen({
         canvasSize,
       })
     )
 
     // PEN_PASSWORD_REQUEST 메시지 콜백 호출
+    if (mockPenHelper.messageCallback) {
+      mockPenHelper.messageCallback('00:11:22:33:44:55', 0x02, {})
+    }
+
+    // InputPassword가 기본 비밀번호 "0000"으로 호출되었는지 확인
+    await waitFor(() => {
+      expect(mockPenHelper.InputPassword).toHaveBeenCalledWith(
+        expect.objectContaining({ info: { MacAddress: '00:11:22:33:44:55', DeviceName: 'NeoSmartpen' } }),
+        '0000'
+      )
+    })
+  })
+
+  it('PEN_PASSWORD_REQUEST 메시지 처리 (type 0x02) - 연결된 펜이 없으면 에러 표시', async () => {
+    const { result } = renderHook(() =>
+      useSmartPen({
+        canvasSize,
+      })
+    )
+
+    // 연결된 펜 없이 PEN_PASSWORD_REQUEST 메시지 콜백 호출
     if (mockPenHelper.messageCallback) {
       mockPenHelper.messageCallback('00:11:22:33:44:55', 0x02, {})
     }

@@ -216,12 +216,30 @@ export function useSmartPen(options: UseSmartPenOptions) {
 
         case 0x02: // PEN_PASSWORD_REQUEST - 비밀번호 요청
           console.log('[SmartPen] 비밀번호 요청 (0x02)')
-          // 비밀번호가 설정된 펜의 경우 처리
-          // 현재는 에러로 표시 (추후 비밀번호 입력 UI 추가 가능)
-          setState((prev) => ({
-            ...prev,
-            error: '펜에 비밀번호가 설정되어 있습니다. 펜 설정에서 비밀번호를 해제해주세요.',
-          }))
+          // 비밀번호가 설정된 펜의 경우 기본 비밀번호 "0000" 시도
+          // README: PenHelper.InputPassword(controller, password) 사용
+          try {
+            const connectedPen = PenHelper.pens.find(
+              (pen) => pen.info?.MacAddress === mac
+            )
+            if (connectedPen) {
+              console.log('[SmartPen] 기본 비밀번호 "0000" 입력 시도...')
+              // 기본 비밀번호 시도
+              PenHelper.InputPassword(connectedPen, '0000')
+            } else {
+              // 연결된 펜을 찾을 수 없는 경우 에러 표시
+              setState((prev) => ({
+                ...prev,
+                error: '펜에 비밀번호가 설정되어 있습니다. 펜 설정에서 비밀번호를 해제해주세요.',
+              }))
+            }
+          } catch (passwordError) {
+            console.error('[SmartPen] 비밀번호 입력 실패:', passwordError)
+            setState((prev) => ({
+              ...prev,
+              error: '펜 비밀번호 인증에 실패했습니다. 펜 설정에서 비밀번호를 해제해주세요.',
+            }))
+          }
           break
 
         case 0x63: // EVENT_LOW_BATTERY - 배터리 부족
