@@ -51,6 +51,11 @@ export function useGameRoom(roomId: string | undefined) {
     if (gameRoom.status !== 'in-progress') return
 
     // turnCount가 maxTurns를 초과하면 게임 종료
+    console.log('[useGameRoom] 턴 체크:', {
+      turnCount: gameRoom.turnCount,
+      maxTurns: gameRoom.maxTurns,
+      shouldEnd: gameRoom.turnCount >= gameRoom.maxTurns,
+    })
     if (gameRoom.turnCount >= gameRoom.maxTurns) {
       console.log('⚠️ 최대 턴 수 초과! 게임을 종료합니다.')
 

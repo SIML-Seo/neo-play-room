@@ -284,29 +284,29 @@ export default function Lobby() {
               <h3 className="text-xl font-playfair font-bold text-gold-frame mb-4 gold-glow">
                 전시 정보
               </h3>
-              <div className="space-y-3 text-sm">
+              <div className="space-y-3 text-base">
                 <div className="flex justify-between items-center py-2 border-b border-gold-dark/30">
                   <span className="text-gallery-cream/70 font-crimson">필요 작가</span>
                   <span className="font-crimson font-bold text-gallery-cream">
-                    {ENV.game.maxPlayers}명
+                    {ENV.game.maxPlayers} 명
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gold-dark/30">
                   <span className="text-gallery-cream/70 font-crimson">현재 대기</span>
                   <span className="font-crimson font-bold text-gold-light">
-                    {waitingPlayers.length}명
+                    {waitingPlayers.length} 명
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gold-dark/30">
                   <span className="text-gallery-cream/70 font-crimson">최대 턴</span>
                   <span className="font-crimson font-bold text-gallery-cream">
-                    {ENV.game.maxTurns}턴
+                    {ENV.game.maxTurns} 턴
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-gallery-cream/70 font-crimson">턴당 시간</span>
                   <span className="font-crimson font-bold text-gallery-cream">
-                    {ENV.game.turnTimeLimit}초
+                    {ENV.game.turnTimeLimit} 초
                   </span>
                 </div>
               </div>

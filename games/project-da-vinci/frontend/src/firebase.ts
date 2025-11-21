@@ -30,7 +30,7 @@ if (import.meta.env.DEV) {
   try {
     connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
     connectDatabaseEmulator(database, '127.0.0.1', 9000)
-    connectFirestoreEmulator(firestore, '127.0.0.1', 9299)
+    connectFirestoreEmulator(firestore, '127.0.0.1', 9399)
     connectStorageEmulator(storage, '127.0.0.1', 9199)
     connectFunctionsEmulator(functions, '127.0.0.1', 5001)
     console.log('🔧 Connected to Firebase Emulators')

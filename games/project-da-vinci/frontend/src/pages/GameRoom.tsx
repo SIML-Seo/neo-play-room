@@ -28,6 +28,8 @@ export default function GameRoom() {
   } = useGameRoom(roomId)
   const navigate = useNavigate()
   const canvasRef = useRef<CanvasHandle>(null)
+  const isProcessingNextTurn = useRef(false) // 중복 handleNextTurn 호출 방지
+  const lastProcessedTurnCount = useRef<number>(-1) // 마지막으로 처리한 턴 카운트
   const [remainingTime, setRemainingTime] = useState(
     gameRoom?.turnTimeLimit || ENV.game.turnTimeLimit
   )
@@ -79,13 +81,34 @@ export default function GameRoom() {
 
   // 시간 초과 시 자동으로 다음 턴 (AI 판정 중이 아닐 때만, 턴 수 초과하지 않았을 때만)
   useEffect(() => {
+    const currentTurnCount = gameRoom?.turnCount ?? -1
+
+    // 중복 호출 방지: 이미 처리 중이거나 같은 턴을 이미 처리했으면 스킵
+    if (isProcessingNextTurn.current) {
+      console.log('[GameRoom] handleNextTurn 이미 처리 중, 스킵')
+      return
+    }
+    if (lastProcessedTurnCount.current === currentTurnCount) {
+      console.log('[GameRoom] 이미 처리한 턴, 스킵:', currentTurnCount)
+      return
+    }
+
     if (
       remainingTime === 0 &&
       gameRoom?.status === 'in-progress' &&
       !gameRoom?.isAIJudging &&
-      gameRoom.turnCount < gameRoom.maxTurns // 턴 수 초과 방지
+      currentTurnCount < (gameRoom?.maxTurns ?? 0) // 턴 수 초과 방지
     ) {
-      handleNextTurn()
+      console.log('[GameRoom] 시간 초과! 다음 턴 처리 시작:', currentTurnCount)
+      isProcessingNextTurn.current = true
+      lastProcessedTurnCount.current = currentTurnCount
+
+      handleNextTurn().finally(() => {
+        // 처리 완료 후 플래그 해제 (약간의 딜레이로 연속 호출 방지)
+        setTimeout(() => {
+          isProcessingNextTurn.current = false
+        }, 1000)
+      })
     }
   }, [
     remainingTime,
@@ -411,10 +434,10 @@ export default function GameRoom() {
                     className={`w-full px-6 py-3 rounded-lg font-playfair font-bold text-lg transition-all shadow-md hover:scale-105 border-4 ${
                       allPlayers.find((p) => p.uid === user.uid)?.ready
                         ? 'bg-wood-medium text-gallery-cream hover:bg-wood-light border-gold-dark'
-                        : 'bg-gold-frame text-gallery-floor hover:bg-gold-light shadow-frame-gold border-gold-dark'
+                        : 'bg-gold-frame text-gallery-floor hover:bg-gold-light shadow-frame-gold border-gold-dark animate-pulse'
                     }`}
                   >
-                    {allPlayers.find((p) => p.uid === user.uid)?.ready ? '준비 취소' : '준비 완료'}
+                    {allPlayers.find((p) => p.uid === user.uid)?.ready ? '준비 취소' : '🎨 준비 완료'}
                   </button>
 
                   {/* 모두 준비 완료 시 게임 시작 버튼 */}
@@ -454,16 +477,16 @@ export default function GameRoom() {
                   🖊️ 스마트펜 테스트
                 </h3>
                 <p className="text-sm text-gallery-cream/80 font-crimson mb-3">
-                  게임 시작 전에 스마트펜을 연결하고 테스트해보세요!
+                  게임 시작 전에 스마트펜을 연결해보세요.
                 </p>
-                <div className="canvas-frame" style={{ height: '300px' }}>
+                {/* <div className="canvas-frame" style={{ height: '300px' }}>
                   <Canvas
                     ref={canvasRef}
                     isDrawingEnabled={true}
                     onCanvasChange={() => {}}
                     enableSmartPen={true}
                   />
-                </div>
+                </div> */}
               </div>
 
               {/* AI 누적 추론 안내 */}
@@ -483,7 +506,7 @@ export default function GameRoom() {
                     <div className="text-xs museum-label text-gallery-cream/70 mb-2">
                       예시: "선녀와나무꾼"
                     </div>
-                    <div className="space-y-1 font-crimson text-xs">
+                    <div className="space-y-1 font-crimson text-sm">
                       <div className="flex items-center gap-2">
                         <span className="text-gold-frame">턴 1:</span>
                         <span>산 그리기 → AI: "산"</span>
@@ -522,9 +545,9 @@ export default function GameRoom() {
 
         {/* 게임 진행 중 - 캔버스 & 게임 UI */}
         {gameRoom.status === 'in-progress' && (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* 왼쪽: 캔버스 영역 - 75% */}
-            <div className="lg:col-span-3">
+          <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
+            {/* 왼쪽: 캔버스 영역 */}
+            <div className="lg:col-span-4">
               {isDrawing ? (
                 <div className="mb-4 gallery-placard border-2 border-gold-frame bg-gold-frame/10 animate-fadeIn">
                   <p className="text-gallery-cream font-crimson font-semibold text-lg">
@@ -582,8 +605,8 @@ export default function GameRoom() {
               )}
             </div>
 
-            {/* 오른쪽: 타이머 & 플레이어 & AI 히스토리 & 채팅 - 25% */}
-            <div className="lg:col-span-1 space-y-4">
+            {/* 중앙: 타이머 & 플레이어 & AI 히스토리 */}
+            <div className="lg:col-span-1 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 150px)' }}>
               {/* 현재 턴 정보 */}
               <div
                 className="gallery-frame bg-wood-dark shadow-gallery p-5 animate-scaleIn"
@@ -611,15 +634,15 @@ export default function GameRoom() {
                   {/* 진행 바 */}
                   <div className="w-full h-2 bg-gallery-floor rounded-full overflow-hidden mt-3 border border-gold-dark/50">
                     <div
-                      className={`h-full transition-all duration-1000 ease-linear ${
-                        remainingTime <= 10
-                          ? 'bg-velvet-red'
-                          : remainingTime <= 30
-                            ? 'bg-gold-light'
-                            : 'bg-gold-frame'
-                      }`}
+                      className="h-full transition-all duration-1000 ease-linear"
                       style={{
                         width: `${(remainingTime / (gameRoom.turnTimeLimit || ENV.game.turnTimeLimit)) * 100}%`,
+                        backgroundColor:
+                          remainingTime <= 10
+                            ? '#8B0000' // velvet-red
+                            : remainingTime <= 30
+                              ? '#FFD700' // gold-light
+                              : '#D4AF37', // gold-frame
                       }}
                     />
                   </div>
@@ -776,12 +799,15 @@ export default function GameRoom() {
                 </div>
               </div>
 
-              {/* 채팅 */}
+            </div>
+
+            {/* 오른쪽: 채팅 */}
+            <div className="lg:col-span-1">
               <div
-                className="flex flex-col"
-                style={{ height: 'calc(100vh - 500px)', minHeight: '500px' }}
+                className="flex flex-col sticky top-4"
+                style={{ height: 'calc(100vh - 150px)', minHeight: '500px' }}
               >
-                <Chat roomId={roomId!} user={user} />
+                <Chat roomId={roomId!} user={user} gameRoom={gameRoom} />
               </div>
             </div>
           </div>

@@ -40,7 +40,7 @@
       "rules": "database.rules.dev.json"
     },
     "firestore": {
-      "port": 9299
+      "port": 9399
     },
     "functions": {
       "port": 5001
