@@ -6,6 +6,7 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  assetsInclude: ['**/*.nproj'],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -22,11 +23,19 @@ export default defineConfig({
     exclude: ['@shared'],
     // zustand를 명시적으로 pre-bundle에 포함 (named export 문제 해결)
     include: ['zustand', 'dompurify'],
+    esbuildOptions: {
+      loader: {
+        '.nproj': 'dataurl',
+      },
+    },
   },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     css: true,
+  },
+  define: {
+    'process.env': {},
   },
 })

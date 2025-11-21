@@ -110,6 +110,38 @@ if (ENV.isDevelopment) {
 }
 ```
 
+### 4. web_pen_sdk 설정
+
+`web_pen_sdk`는 `.nproj` 파일을 사용하며 Node.js 환경(`process.env`)을 참조합니다. Vite에서 이를 사용하기 위해 `vite.config.ts`에 다음과 같은 설정이 필요합니다:
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  // 1. .nproj 파일을 에셋으로 처리
+  assetsInclude: ['**/*.nproj'],
+  
+  optimizeDeps: {
+    esbuildOptions: {
+      loader: {
+        // 2. 의존성 사전 번들링 시 .nproj 파일을 dataurl로 로드
+        '.nproj': 'dataurl',
+      },
+    },
+  },
+  
+  define: {
+    // 3. 브라우저 환경에서 process.env 폴리필 (ReferenceError 방지)
+    'process.env': {},
+  },
+})
+```
+
+| 설정 | 설명 |
+|------|------|
+| `assetsInclude` | `.nproj` 확장자를 가진 파일을 정적 에셋으로 처리하여 import 가능하게 함 |
+| `esbuildOptions.loader` | 의존성 스캔 단계에서 `.nproj` 파일을 `dataurl`로 변환하여 로드 에러 방지 |
+| `define['process.env']` | SDK 내부에서 참조하는 `process.env`를 빈 객체로 정의하여 런타임 에러 방지 |
+
 ---
 
 ## Backend (Functions) 환경 설정
