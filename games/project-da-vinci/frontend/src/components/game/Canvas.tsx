@@ -435,7 +435,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
               {/* 스마트펜 연결 (enableSmartPen이 true일 때만 표시) */}
               {enableSmartPen && (
                 <div className="flex items-center gap-2 ml-auto border-l pl-6">
-                  {smartPen.state.isConnected ? (
+                  {smartPen.isConnected ? (
                     <>
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -456,43 +456,23 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
                       </button>
                     </>
                   ) : (
-                    <>
-                      <button
-                        onClick={smartPen.scanDevices}
-                        disabled={smartPen.state.isScanning}
-                        className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
-                      >
-                        {smartPen.state.isScanning ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>검색 중...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>🖊️</span>
-                            <span>스마트펜 연결</span>
-                          </>
-                        )}
-                      </button>
-                      {smartPen.state.devices.length > 0 && (
-                        <select
-                          onChange={(e) => {
-                            const device = smartPen.state.devices[parseInt(e.target.value)]
-                            if (device) {
-                              smartPen.connectDevice(device)
-                            }
-                          }}
-                          className="px-3 py-2 rounded-lg text-sm border border-gray-300"
-                        >
-                          <option value="">장치 선택...</option>
-                          {smartPen.state.devices.map((device, index) => (
-                            <option key={device.mac} value={index}>
-                              {device.name} ({device.mac})
-                            </option>
-                          ))}
-                        </select>
+                    <button
+                      onClick={smartPen.connect}
+                      disabled={smartPen.isScanning}
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
+                    >
+                      {smartPen.isScanning ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>연결 중...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🖊️</span>
+                          <span>스마트펜 연결</span>
+                        </>
                       )}
-                    </>
+                    </button>
                   )}
                   {smartPen.state.error && (
                     <span className="text-xs text-red-600 max-w-xs truncate">
