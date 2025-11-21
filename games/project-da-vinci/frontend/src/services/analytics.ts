@@ -70,37 +70,40 @@ export async function getFailedGameLogs(limitCount: number = 50): Promise<GameLo
 
 /**
  * 일별 집계 데이터 조회 (최근 N일)
+ * 성능 최적화: 개별 요청 대신 단일 쿼리로 한 번에 조회
  */
 export async function getDailyAnalytics(days: number = 30): Promise<DailyAnalytics[]> {
   try {
     const analyticsRef = collection(firestore, 'analytics')
-    const docs: DailyAnalytics[] = []
 
-    // 최근 N일간의 데이터를 개별 조회 (일별 document ID 패턴: daily_YYYY-MM-DD)
+    // 날짜 범위 계산
     const today = new Date()
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toISOString().split('T')[0]
+    const startDate = new Date(today)
+    startDate.setDate(startDate.getDate() - days)
 
-      const docRef = doc(analyticsRef, `daily_${dateStr}`)
-      const docSnap = await getDoc(docRef)
+    // 단일 쿼리로 모든 daily_ 문서 조회
+    // Firestore 특성: date 필드가 없는 문서(word 통계 등)는 자동으로 제외됨
+    const q = query(
+      analyticsRef,
+      where('date', '>=', startDate.toISOString().split('T')[0]),
+      orderBy('date', 'desc'),
+      limit(days)
+    )
 
-      if (docSnap.exists()) {
-        const data = docSnap.data()
-        docs.push({
-          date: dateStr,
-          totalGames: data.totalGames || 0,
-          successCount: data.successCount || 0,
-          failureCount: data.failureCount || 0,
-          totalTurns: data.totalTurns || 0,
-          avgTurns: data.totalGames > 0 ? data.totalTurns / data.totalGames : 0,
-          avgTime: data.totalGames > 0 ? (data.totalTime || 0) / data.totalGames : 0,
-        })
-      }
-    }
+    const snapshot = await getDocs(q)
 
-    return docs.sort((a, b) => b.date.localeCompare(a.date))
+    return snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        date: data.date || doc.id.replace('daily_', ''),
+        totalGames: data.totalGames || 0,
+        successCount: data.successCount || 0,
+        failureCount: data.failureCount || 0,
+        totalTurns: data.totalTurns || 0,
+        avgTurns: data.totalGames > 0 ? data.totalTurns / data.totalGames : 0,
+        avgTime: data.totalGames > 0 ? (data.totalTime || 0) / data.totalGames : 0,
+      } as DailyAnalytics
+    })
   } catch (error) {
     console.error('[getDailyAnalytics] 조회 실패:', error)
     return []
@@ -156,6 +159,7 @@ export async function getOverallStats(): Promise<{
   avgTime: number
 }> {
   try {
+    // 단일 쿼리로 최적화되어 365일도 빠르게 조회 가능
     const dailyData = await getDailyAnalytics(365) // 최근 1년
 
     const totalGames = dailyData.reduce((sum, d) => sum + d.totalGames, 0)
