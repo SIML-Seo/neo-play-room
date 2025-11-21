@@ -2,8 +2,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { useMatchmaking } from '@/hooks/useMatchmaking'
 import { useGameSchedule } from '@/hooks/useGameSchedule'
 import { useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ENV } from '@/config/env'
+import { createGameRoom } from '@/services/matchmaking'
 
 export default function Lobby() {
   const { user, loading, signOut, isAuthenticated } = useAuth()
@@ -16,6 +17,9 @@ export default function Lobby() {
   } = useMatchmaking()
   const { isAllowed, nextOpenTime, timeUntilOpen, loading: scheduleLoading } = useGameSchedule()
   const navigate = useNavigate()
+
+  // 테스트 모드 상태 (모든 훅은 조건문 이전에 선언해야 함)
+  const [isStartingTestMode, setIsStartingTestMode] = useState(false)
 
   // 로그인하지 않은 경우 홈으로 리다이렉트
   useEffect(() => {
@@ -142,6 +146,22 @@ export default function Lobby() {
 
   // 마스터 계정 여부 확인
   const isMaster = user.email === 'swh1182@neolab.net'
+
+  // 마스터 계정 테스트 모드 시작 (1명으로도 게임 가능)
+  const handleStartTestMode = async () => {
+    if (!isMaster || waitingPlayers.length === 0) return
+
+    try {
+      setIsStartingTestMode(true)
+      const roomId = await createGameRoom(waitingPlayers)
+      navigate(`/game/${roomId}`)
+    } catch (err) {
+      console.error('[TestMode] 게임 시작 실패:', err)
+      alert('테스트 모드 시작에 실패했습니다.')
+    } finally {
+      setIsStartingTestMode(false)
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -326,6 +346,29 @@ export default function Lobby() {
                   />
                 </div>
               </div>
+
+              {/* 마스터 계정 테스트 모드 버튼 */}
+              {isMaster && waitingPlayers.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-gold-dark/30">
+                  <button
+                    onClick={handleStartTestMode}
+                    disabled={isStartingTestMode}
+                    className="w-full px-4 py-3 bg-velvet-red text-gallery-cream rounded-lg font-crimson font-bold hover:bg-velvet-burgundy transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isStartingTestMode ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-gallery-cream border-t-transparent rounded-full animate-spin" />
+                        시작 중...
+                      </span>
+                    ) : (
+                      `테스트 모드 시작 (${waitingPlayers.length}명)`
+                    )}
+                  </button>
+                  <p className="mt-2 text-xs text-gallery-cream/60 text-center font-crimson">
+                    마스터 전용: 인원 제한 없이 게임 시작
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="gallery-placard animate-scaleIn" style={{ animationDelay: '0.2s' }}>
