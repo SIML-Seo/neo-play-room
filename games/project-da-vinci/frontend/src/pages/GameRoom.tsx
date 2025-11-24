@@ -4,6 +4,7 @@ import { useGameRoom } from '@/hooks/useGameRoom'
 import { useEffect, useState, useRef } from 'react'
 import Canvas, { type CanvasHandle } from '@/components/game/Canvas'
 import Chat from '@/components/game/Chat'
+import SmartPenConnection from '@/components/game/SmartPenConnection'
 import { submitDrawingToAI } from '@/services/ai'
 import { ENV } from '@/config/env'
 import { subscribeToRoomSecret } from '@/services/roomSecrets'
@@ -468,25 +469,18 @@ export default function GameRoom() {
 
             {/* 오른쪽: 스마트펜 테스트 & 게임 룰 & 채팅 */}
             <div className="lg:col-span-1 space-y-6">
-              {/* 스마트펜 테스트 캔버스 */}
+              {/* 스마트펜 연결 */}
               <div
                 className="gallery-frame bg-wood-dark shadow-gallery p-4 animate-scaleIn"
                 style={{ animationDelay: '0.3s' }}
               >
                 <h3 className="text-xl font-playfair font-bold text-gold-frame mb-3 gold-glow">
-                  🖊️ 스마트펜 테스트
+                  🖊️ 스마트펜 연결
                 </h3>
                 <p className="text-sm text-gallery-cream/80 font-crimson mb-3">
-                  게임 시작 전에 스마트펜을 연결해보세요.
+                  게임 시작 전에 스마트펜을 연결하고 상태를 확인하세요.
                 </p>
-                {/* <div className="canvas-frame" style={{ height: '300px' }}>
-                  <Canvas
-                    ref={canvasRef}
-                    isDrawingEnabled={true}
-                    onCanvasChange={() => {}}
-                    enableSmartPen={true}
-                  />
-                </div> */}
+                <SmartPenConnection />
               </div>
 
               {/* AI 누적 추론 안내 */}

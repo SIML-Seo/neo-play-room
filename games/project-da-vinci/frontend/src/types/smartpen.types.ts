@@ -76,4 +76,5 @@ export interface SmartPenState {
   connectedPenMac: string | null
   battery: number
   error: string | null
+  isPasswordRequired: boolean
 }

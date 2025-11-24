@@ -50,6 +50,9 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
     // 스마트펜 스트로크 저장 (압력 정보 포함)
     const currentStrokePoints = useRef<{ x: number; y: number; force?: number }[]>([])
 
+    // 스마트펜 비밀번호 입력 상태
+    const [passwordInput, setPasswordInput] = useState('')
+
     // Debounced canvas change handler
     const debouncedCanvasChange = useRef<((canvasData: string) => void) | null>(null)
 
@@ -492,6 +495,52 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
         >
           <canvas ref={canvasRef} />
         </div>
+
+
+        {/* 스마트펜 비밀번호 입력 모달 */}
+        {smartPen.state.isPasswordRequired && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
+            <div className="bg-gallery-ivory p-6 rounded-lg shadow-xl w-80 border-2 border-gold-frame">
+              <h3 className="text-lg font-playfair font-bold mb-4 text-gold-frame">
+                스마트펜 비밀번호 입력
+              </h3>
+              <p className="text-sm text-gray-600 mb-4 font-crimson">
+                연결하려는 펜의 비밀번호를 입력해주세요.
+                <br />
+                <span className="text-xs text-gray-400">(초기 비밀번호: 0000)</span>
+              </p>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full border-2 border-gold-dark/30 p-2 rounded mb-4 bg-white focus:border-gold-frame focus:outline-none"
+                placeholder="비밀번호 4자리"
+                maxLength={4}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2 font-crimson">
+                <button
+                  onClick={() => {
+                    smartPen.disconnect()
+                    setPasswordInput('')
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    smartPen.submitPassword(passwordInput)
+                    setPasswordInput('')
+                  }}
+                  className="px-4 py-2 bg-gold-frame text-gallery-floor font-bold rounded hover:bg-gold-light transition-colors shadow-sm"
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

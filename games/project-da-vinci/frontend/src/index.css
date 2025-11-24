@@ -152,3 +152,9 @@ body {
   outline: 2px solid #d4af37;
   outline-offset: 2px;
 }
+
+/* Hide native password reveal button in Edge/IE */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}

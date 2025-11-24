@@ -45,6 +45,7 @@ export function useSmartPen(options: UseSmartPenOptions) {
     connectedPenMac: null,
     battery: 100,
     error: null,
+    isPasswordRequired: false,
   })
 
   // 콜백 함수들을 ref로 저장 (의존성 문제 해결)
@@ -164,27 +165,29 @@ export function useSmartPen(options: UseSmartPenOptions) {
 
       switch (type) {
         case 0x06: // PEN_CONNECTION_SUCCESS - 펜 연결 성공
-          console.log('[SmartPen] 펜 연결 성공 (0x06)')
+          console.log('[SmartPen] 펜 연결 성공 (0x06) - 인증 대기 중')
+          // 연결은 되었으나 인증(비밀번호 등)이 완료되지 않았으므로 isConnected는 아직 false
           setState((prev) => ({
             ...prev,
-            isConnected: true,
             isScanning: false,
             connectedPenMac: mac,
             error: null,
           }))
-          callbacksRef.current.onConnect?.()
+          // onConnect는 인증 후 호출
           break
 
         case 0x01: // PEN_AUTHORIZED - 펜 인증 성공
           console.log('[SmartPen] 펜 인증 성공 (0x01)')
-          // 인증 성공 시에도 연결 상태 업데이트
+          // 인증 성공 시 연결 상태 업데이트
           setState((prev) => ({
             ...prev,
             isConnected: true,
             isScanning: false,
             connectedPenMac: mac,
             error: null,
+            isPasswordRequired: false,
           }))
+          callbacksRef.current.onConnect?.()
           break
 
         case 0x11: // PEN_SETTING_INFO - 배터리 정보 포함
@@ -216,30 +219,13 @@ export function useSmartPen(options: UseSmartPenOptions) {
 
         case 0x02: // PEN_PASSWORD_REQUEST - 비밀번호 요청
           console.log('[SmartPen] 비밀번호 요청 (0x02)')
-          // 비밀번호가 설정된 펜의 경우 기본 비밀번호 "0000" 시도
-          // README: PenHelper.InputPassword(controller, password) 사용
-          try {
-            const connectedPen = PenHelper.pens.find(
-              (pen) => pen.info?.MacAddress === mac
-            )
-            if (connectedPen) {
-              console.log('[SmartPen] 기본 비밀번호 "0000" 입력 시도...')
-              // 기본 비밀번호 시도
-              PenHelper.InputPassword(connectedPen, '0000')
-            } else {
-              // 연결된 펜을 찾을 수 없는 경우 에러 표시
-              setState((prev) => ({
-                ...prev,
-                error: '펜에 비밀번호가 설정되어 있습니다. 펜 설정에서 비밀번호를 해제해주세요.',
-              }))
-            }
-          } catch (passwordError) {
-            console.error('[SmartPen] 비밀번호 입력 실패:', passwordError)
-            setState((prev) => ({
-              ...prev,
-              error: '펜 비밀번호 인증에 실패했습니다. 펜 설정에서 비밀번호를 해제해주세요.',
-            }))
-          }
+          // 사용자에게 비밀번호 입력 요청
+          setState((prev) => ({
+            ...prev,
+            isPasswordRequired: true,
+            connectedPenMac: mac, // 비밀번호 요청한 펜 MAC 저장
+            error: null,
+          }))
           break
 
         case 0x63: // EVENT_LOW_BATTERY - 배터리 부족
@@ -278,16 +264,21 @@ export function useSmartPen(options: UseSmartPenOptions) {
       const connectedPen = isConnected ? PenHelper.pens[0] : null
 
       setState((prev) => {
-        if (prev.isConnected !== isConnected) {
-          if (!isConnected && prev.isConnected) {
-            // 연결 해제됨
-            callbacksRef.current.onDisconnect?.()
-          }
+        // 연결이 끊어진 경우에만 처리 (연결 확인은 이벤트로 처리)
+        if (prev.isConnected && !isConnected) {
+          callbacksRef.current.onDisconnect?.()
           return {
             ...prev,
-            isConnected,
-            connectedPenMac: connectedPen?.info?.MacAddress ?? null,
+            isConnected: false,
+            connectedPenMac: null,
           }
+        }
+        // 이미 연결된 상태라면 MAC 주소 업데이트 (혹시 변경되었을 경우)
+        if (prev.isConnected && isConnected && connectedPen?.info?.MacAddress) {
+           return {
+             ...prev,
+             connectedPenMac: connectedPen.info.MacAddress
+           }
         }
         return prev
       })
@@ -338,12 +329,12 @@ export function useSmartPen(options: UseSmartPenOptions) {
         console.log('[SmartPen] 연결 성공')
         setState((prev) => ({
           ...prev,
-          isConnected: true,
+          // isConnected: true, // 여기서 true로 설정하지 않음 (인증 대기)
           isScanning: false,
           connectedPenMac: PenHelper.pens[0]?.info?.MacAddress ?? null,
           error: null,
         }))
-        callbacksRef.current.onConnect?.()
+        // callbacksRef.current.onConnect?.() // 인증 후 호출
       } else {
         // 사용자가 취소했거나 연결 실패
         setState((prev) => ({
@@ -381,6 +372,7 @@ export function useSmartPen(options: UseSmartPenOptions) {
         ...prev,
         isConnected: false,
         connectedPenMac: null,
+        isPasswordRequired: false,
       }))
 
       console.log('[SmartPen] 연결 해제 완료')
@@ -389,6 +381,45 @@ export function useSmartPen(options: UseSmartPenOptions) {
       console.error('[SmartPen] 연결 해제 실패:', error)
     }
   }, [])
+
+  /**
+   * 비밀번호 제출
+   */
+  const submitPassword = useCallback(
+    (password: string) => {
+      if (!state.connectedPenMac) {
+        console.error('[SmartPen] 비밀번호를 입력할 펜이 선택되지 않았습니다.')
+        return
+      }
+
+      const pen = PenHelper.pens.find((p) => p.info?.MacAddress === state.connectedPenMac)
+      if (!pen) {
+        console.error('[SmartPen] 해당 MAC 주소의 펜을 찾을 수 없습니다:', state.connectedPenMac)
+        setState((prev) => ({
+          ...prev,
+          error: '연결된 펜을 찾을 수 없습니다. 다시 시도해주세요.',
+          isPasswordRequired: false,
+        }))
+        return
+      }
+
+      try {
+        console.log('[SmartPen] 비밀번호 제출:', password)
+        // PenHelper.InputPassword(pen, password) -> pen.InputPassword(password) 로 변경
+        // @ts-ignore - SDK 타입 정의가 불완전할 수 있음
+        pen.InputPassword(password)
+        
+        // 성공 여부는 PEN_AUTHORIZED (0x01) 또는 다시 PEN_PASSWORD_REQUEST (0x02)로 확인
+      } catch (error) {
+        console.error('[SmartPen] 비밀번호 제출 실패:', error)
+        setState((prev) => ({
+          ...prev,
+          error: '비밀번호 제출 중 오류가 발생했습니다.',
+        }))
+      }
+    },
+    [state.connectedPenMac]
+  )
 
   /**
    * 컴포넌트 언마운트 시 연결 해제
@@ -404,6 +435,7 @@ export function useSmartPen(options: UseSmartPenOptions) {
     state,
     connect,
     disconnect,
+    submitPassword,
     // 연결 상태 확인 헬퍼
     isConnected: state.isConnected,
     isScanning: state.isScanning,
