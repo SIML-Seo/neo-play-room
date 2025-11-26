@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import * as fabric from 'fabric'
 import { useSmartPen } from '@/hooks/useSmartPen'
-import type { ScreenDot } from '@/types/smartpen.types'
+import type { ScreenDot } from 'web_pen_sdk/dist/Util/type'
 
 interface CanvasProps {
   width?: number
@@ -51,7 +51,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
     const currentStrokePoints = useRef<{ x: number; y: number; force?: number }[]>([])
 
     // 스마트펜 비밀번호 입력 상태
-    const [passwordInput, setPasswordInput] = useState('')
+
 
     // Debounced canvas change handler
     const debouncedCanvasChange = useRef<((canvasData: string) => void) | null>(null)
@@ -337,15 +337,16 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
     const smartPen = useSmartPen({
       onStrokeStart: (dot: ScreenDot) => {
         console.log('[Canvas] SmartPen Stroke Start:', dot)
-        currentStrokePoints.current = [{ x: dot.x, y: dot.y, force: dot.f }]
+        // SDK의 ScreenDot에는 압력 정보가 없으므로 기본값 사용
+        currentStrokePoints.current = [{ x: dot.x, y: dot.y, force: 512 }]
       },
       onStrokeMove: (dot: ScreenDot) => {
         console.log('[Canvas] SmartPen Stroke Move:', dot)
-        currentStrokePoints.current.push({ x: dot.x, y: dot.y, force: dot.f })
+        currentStrokePoints.current.push({ x: dot.x, y: dot.y, force: 512 })
       },
       onStrokeEnd: (dot: ScreenDot) => {
         console.log('[Canvas] SmartPen Stroke End:', dot)
-        currentStrokePoints.current.push({ x: dot.x, y: dot.y, force: dot.f })
+        currentStrokePoints.current.push({ x: dot.x, y: dot.y, force: 512 })
 
         // 스트로크를 Canvas에 추가 (압력 정보 포함)
         addSmartPenStroke(currentStrokePoints.current)
@@ -439,48 +440,24 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
               {enableSmartPen && (
                 <div className="flex items-center gap-2 ml-auto border-l pl-6">
                   {smartPen.isConnected ? (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                        <span className="text-sm font-medium text-green-700">
-                          🖊️ 스마트펜 연결됨
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-sm font-medium text-green-700">
+                        🖊️ 스마트펜 연결됨
+                      </span>
+                      {smartPen.state.battery < 100 && (
+                        <span className="text-xs text-gray-500">
+                          ({smartPen.state.battery}%)
                         </span>
-                        {smartPen.state.battery < 100 && (
-                          <span className="text-xs text-gray-500">
-                            ({smartPen.state.battery}%)
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={smartPen.disconnect}
-                        className="px-3 py-1 rounded-lg text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                      >
-                        연결 해제
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={smartPen.connect}
-                      disabled={smartPen.isScanning}
-                      className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
-                    >
-                      {smartPen.isScanning ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>연결 중...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>🖊️</span>
-                          <span>스마트펜 연결</span>
-                        </>
                       )}
-                    </button>
-                  )}
-                  {smartPen.state.error && (
-                    <span className="text-xs text-red-600 max-w-xs truncate">
-                      {smartPen.state.error}
-                    </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                      <span className="text-sm font-medium text-gray-500">
+                        🖊️ 스마트펜 미연결
+                      </span>
+                    </div>
                   )}
                 </div>
               )}
@@ -498,49 +475,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
 
 
         {/* 스마트펜 비밀번호 입력 모달 */}
-        {smartPen.state.isPasswordRequired && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
-            <div className="bg-gallery-ivory p-6 rounded-lg shadow-xl w-80 border-2 border-gold-frame">
-              <h3 className="text-lg font-playfair font-bold mb-4 text-gold-frame">
-                스마트펜 비밀번호 입력
-              </h3>
-              <p className="text-sm text-gray-600 mb-4 font-crimson">
-                연결하려는 펜의 비밀번호를 입력해주세요.
-                <br />
-                <span className="text-xs text-gray-400">(초기 비밀번호: 0000)</span>
-              </p>
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full border-2 border-gold-dark/30 p-2 rounded mb-4 bg-white focus:border-gold-frame focus:outline-none"
-                placeholder="비밀번호 4자리"
-                maxLength={4}
-                autoFocus
-              />
-              <div className="flex justify-end gap-2 font-crimson">
-                <button
-                  onClick={() => {
-                    smartPen.disconnect()
-                    setPasswordInput('')
-                  }}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={() => {
-                    smartPen.submitPassword(passwordInput)
-                    setPasswordInput('')
-                  }}
-                  className="px-4 py-2 bg-gold-frame text-gallery-floor font-bold rounded hover:bg-gold-light transition-colors shadow-sm"
-                >
-                  확인
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
     )
   }
