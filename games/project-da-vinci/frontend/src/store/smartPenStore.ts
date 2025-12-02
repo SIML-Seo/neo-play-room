@@ -1,13 +1,21 @@
 import { create } from 'zustand'
 import { PenHelper } from 'web_pen_sdk'
-import type { Dot, ScreenDot, PaperSize } from 'web_pen_sdk/dist/Util/type'
+import type { Dot } from 'web_pen_sdk/dist/Util/type'
 
-// ncode 용지 사이즈 상수 (N-code A4)
-const NCODE_A4_PAPER_SIZE: PaperSize = {
-  Xmin: 0,
-  Ymin: 0,
-  Xmax: 15070,
-  Ymax: 21280,
+// ncode 용지 그리기 영역 크기 (Ncode 단위)
+// A4 용지의 대략적인 크기를 기준으로 설정
+const DRAWING_AREA_SIZE = {
+  width: 88.5, // A4 width in NU (약 210mm)
+  height: 125.2, // A4 height in NU (약 297mm)
+}
+
+// 확장된 ScreenDot - 압력 정보 포함
+export interface ExtendedScreenDot {
+  x: number
+  y: number
+  f: number // 압력 (0-1024)
+  dotType: number
+  timeStamp: number
 }
 
 export interface SmartPenState {
@@ -20,10 +28,10 @@ export interface SmartPenState {
 }
 
 interface SmartPenCallbacks {
-  onStrokeStart?: (dot: ScreenDot) => void
-  onStrokeMove?: (dot: ScreenDot) => void
-  onStrokeEnd?: (dot: ScreenDot) => void
-  onHover?: (dot: ScreenDot) => void
+  onStrokeStart?: (dot: ExtendedScreenDot) => void
+  onStrokeMove?: (dot: ExtendedScreenDot) => void
+  onStrokeEnd?: (dot: ExtendedScreenDot) => void
+  onHover?: (dot: ExtendedScreenDot) => void
   onConnect?: () => void
   onDisconnect?: () => void
 }
@@ -47,17 +55,85 @@ interface SmartPenStore extends SmartPenState {
 // 등록된 콜백들 (store 외부에서 관리)
 const callbacksMap = new Map<string, SmartPenCallbacks>()
 
-// SDK 좌표 변환 함수
+// 세션 상태 관리
+// strokeOrigin: 첫 터치 좌표 (이 좌표가 캔버스 중앙이 됨)
+let strokeOrigin: { x: number; y: number } | null = null
+// 세션 시작 여부
+let sessionInitialized = false
+
+/**
+ * 수동 좌표 변환 함수 (동적 기준점 기반)
+ *
+ * 핵심 원리:
+ * 1. 첫 터치 좌표를 기준점(origin)으로 설정
+ * 2. 이후 모든 좌표는 기준점으로부터의 상대 좌표로 계산
+ * 3. 상대 좌표를 캔버스 중앙 기준으로 매핑
+ *
+ * 장점:
+ * - 어떤 Ncode 노트든 상관없이 동작
+ * - SOB(Section-Owner-Book)와 무관하게 첫 터치 기준으로 그리기 영역 설정
+ */
 function convertToScreenCoordinates(
   dot: Dot,
   canvasSize: { width: number; height: number }
-): ScreenDot {
-  const view = {
-    width: canvasSize.width || 800,
-    height: canvasSize.height || 600,
+): ExtendedScreenDot {
+  const canvasWidth = canvasSize.width || 800
+  const canvasHeight = canvasSize.height || 600
+
+  // 첫 세션: 첫 터치 좌표를 기준점으로 설정
+  if (!sessionInitialized) {
+    strokeOrigin = { x: dot.x, y: dot.y }
+    sessionInitialized = true
+    console.log('[SmartPenStore] 세션 시작 - 기준점 설정:', {
+      originX: strokeOrigin.x.toFixed(2),
+      originY: strokeOrigin.y.toFixed(2),
+    })
   }
 
-  return PenHelper.ncodeToScreen(dot, view, NCODE_A4_PAPER_SIZE)
+  // 기준점이 없으면 현재 좌표를 기준점으로 (안전장치)
+  if (!strokeOrigin) {
+    strokeOrigin = { x: dot.x, y: dot.y }
+  }
+
+  // 상대 좌표 계산 (기준점으로부터의 오프셋)
+  const relativeX = dot.x - strokeOrigin.x
+  const relativeY = dot.y - strokeOrigin.y
+
+  // Ncode → Screen 좌표 변환
+  // DRAWING_AREA_SIZE를 캔버스 크기에 맞게 스케일링
+  const scaleX = canvasWidth / DRAWING_AREA_SIZE.width
+  const scaleY = canvasHeight / DRAWING_AREA_SIZE.height
+
+  // 캔버스 중앙을 첫 터치 위치로 사용
+  const centerX = canvasWidth / 2
+  const centerY = canvasHeight / 2
+
+  // 캔버스 좌표로 변환
+  const screenX = centerX + relativeX * scaleX
+  const screenY = centerY + relativeY * scaleY
+
+  // 캔버스 경계 내로 클램핑
+  const clampedX = Math.max(0, Math.min(canvasWidth, screenX))
+  const clampedY = Math.max(0, Math.min(canvasHeight, screenY))
+
+  return {
+    x: clampedX,
+    y: clampedY,
+    f: dot.f ?? 512, // 압력 데이터 전달 (없으면 기본값 512)
+    dotType: dot.dotType ?? (dot as unknown as { DotType?: number }).DotType ?? 0,
+    timeStamp: dot.timeStamp ?? Date.now(),
+  }
+}
+
+/**
+ * 펜 세션 초기화
+ * 새 게임 시작, 캔버스 클리어, 펜 재연결 시 호출
+ * 다음 터치가 새로운 기준점이 됨
+ */
+export function resetPenSession() {
+  strokeOrigin = null
+  sessionInitialized = false
+  console.log('[SmartPenStore] 펜 세션 초기화됨')
 }
 
 // SDK 초기화 (한 번만 실행)
@@ -69,8 +145,21 @@ function initializeSDK(store: SmartPenStore) {
 
   // Dot 콜백 설정
   PenHelper.dotCallback = (_mac: string, dot: Dot) => {
+    // dotType 추출 (SDK에서 DotType 또는 dotType으로 전달될 수 있음)
+    const dotType = dot.dotType ?? (dot as unknown as { DotType?: number }).DotType ?? 0
+
+    // 좌표 변환 (압력 데이터 포함)
     const screenDot = convertToScreenCoordinates(dot, store.canvasSize)
-    const dotType = dot.dotType ?? 0
+
+    console.log('[SmartPenStore] Dot 수신:', {
+      rawX: dot.x,
+      rawY: dot.y,
+      rawF: dot.f,
+      dotType,
+      screenX: screenDot.x.toFixed(2),
+      screenY: screenDot.y.toFixed(2),
+      screenF: screenDot.f,
+    })
 
     // 모든 등록된 콜백에 전파
     callbacksMap.forEach((callbacks) => {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import * as fabric from 'fabric'
 import { useSmartPen } from '@/hooks/useSmartPen'
-import type { ScreenDot } from 'web_pen_sdk/dist/Util/type'
+import type { ExtendedScreenDot } from '@/store/smartPenStore'
 
 interface CanvasProps {
   width?: number
@@ -281,17 +281,21 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
       if (!fabricCanvasRef.current || points.length < 2) return
 
       // 압력 기반 두께 조절: force 값을 사용하여 동적으로 strokeWidth 계산
-      // force 범위: 0-255 (일반적인 스마트펜 압력 값)
-      // 두께 범위: brushWidth * 0.3 ~ brushWidth * 2.0
+      // force 범위: 0-1024 (스마트펜 압력 값)
+      // 두께 범위: brushWidth * 0.6 ~ brushWidth * 1.6
       const getStrokeWidth = (force: number | undefined) => {
         if (force === undefined) return brushWidth
 
-        // force를 0-1 범위로 정규화 (0-255 → 0-1)
-        const normalizedForce = Math.max(0, Math.min(1, force / 255))
+        // force를 0-1 범위로 정규화 (0-1024 → 0-1)
+        const rawNormalized = Math.max(0, Math.min(1, force / 1024))
 
-        // 압력에 따라 0.3배 ~ 2.0배 두께 조절
-        const minWidth = brushWidth * 0.3
-        const maxWidth = brushWidth * 2.0
+        // 제곱 곡선 적용: 압력을 더 줘야 굵어지도록 (덜 민감하게)
+        // 가벼운 터치 = 얇은 선, 강한 압력 = 굵은 선
+        const normalizedForce = rawNormalized * rawNormalized
+
+        // 압력에 따라 0.6배 ~ 1.6배 두께 조절 (범위를 더 좁혀서 안정적으로)
+        const minWidth = brushWidth * 0.6
+        const maxWidth = brushWidth * 1.6
         return minWidth + normalizedForce * (maxWidth - minWidth)
       }
 
@@ -335,18 +339,18 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(
 
     // 스마트펜 통합
     const smartPen = useSmartPen({
-      onStrokeStart: (dot: ScreenDot) => {
+      onStrokeStart: (dot: ExtendedScreenDot) => {
         console.log('[Canvas] SmartPen Stroke Start:', dot)
-        // SDK의 ScreenDot에는 압력 정보가 없으므로 기본값 사용
-        currentStrokePoints.current = [{ x: dot.x, y: dot.y, force: 512 }]
+        // ExtendedScreenDot에서 압력 정보(f)를 가져옴
+        currentStrokePoints.current = [{ x: dot.x, y: dot.y, force: dot.f }]
       },
-      onStrokeMove: (dot: ScreenDot) => {
+      onStrokeMove: (dot: ExtendedScreenDot) => {
         console.log('[Canvas] SmartPen Stroke Move:', dot)
-        currentStrokePoints.current.push({ x: dot.x, y: dot.y, force: 512 })
+        currentStrokePoints.current.push({ x: dot.x, y: dot.y, force: dot.f })
       },
-      onStrokeEnd: (dot: ScreenDot) => {
+      onStrokeEnd: (dot: ExtendedScreenDot) => {
         console.log('[Canvas] SmartPen Stroke End:', dot)
-        currentStrokePoints.current.push({ x: dot.x, y: dot.y, force: 512 })
+        currentStrokePoints.current.push({ x: dot.x, y: dot.y, force: dot.f })
 
         // 스트로크를 Canvas에 추가 (압력 정보 포함)
         addSmartPenStroke(currentStrokePoints.current)

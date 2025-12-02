@@ -28,7 +28,9 @@
       "mcp__serena__activate_project",
       "Bash(npm run lint)",
       "Bash(npx eslint:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(npx vite build)"
     ],
     "deny": [],
     "ask": []

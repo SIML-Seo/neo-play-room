@@ -6,6 +6,29 @@
 
 ---
 
+## 📑 목차
+
+- [🎯 프로젝트 개요](#-프로젝트-개요)
+- [🏗️ 프로젝트 구조](#️-프로젝트-구조)
+- [🚀 개발 환경 설정 및 빌드 명령어](#-개발-환경-설정-및-빌드-명령어)
+- [📐 아키텍처 핵심 원칙](#-아키텍처-핵심-원칙)
+  - [스마트펜 통합 아키텍처](#7-️-스마트펜-통합-아키텍처)
+- [🎨 주요 기술 스택 & 버전](#-주요-기술-스택--버전)
+- [🎨 UI/UX 디자인 시스템](#-uiux-디자인-시스템)
+- [📂 핵심 파일 & 모듈 가이드](#-핵심-파일--모듈-가이드)
+- [🗂️ Firebase Realtime Database 구조](#️-firebase-realtime-database-구조)
+- [🧠 AI 프롬프트 전략](#-ai-프롬프트-전략)
+- [🧪 테스트 전략](#-테스트-전략-docstestingmd-참조)
+- [🎯 개발 워크플로우 & 컨벤션](#-개발-워크플로우--컨벤션)
+- [🔐 보안 고려사항](#-보안-고려사항)
+- [📊 성능 최적화 전략](#-성능-최적화-전략)
+- [🚨 알려진 이슈 & 제약사항](#-알려진-이슈--제약사항)
+- [🛠️ 문제 해결 (Troubleshooting)](#️-문제-해결-troubleshooting)
+- [📖 추가 참고 문서](#-추가-참고-문서)
+- [🎯 개발 시 주의사항](#-개발-시-주의사항)
+
+---
+
 ## 🎯 프로젝트 개요
 
 **Project Da Vinci**는 5명이 협동하여 AI에게 그림을 그려 보여주고, AI가 그림을 맞추는 협동 게임입니다.
@@ -1040,52 +1063,18 @@ const data: any = ...; // RTDB 응답 타입이 동적이므로 any 허용
 
 ### 1. API 키 보호 ⚠️ **최우선 보안 원칙**
 
-**절대 규칙: Frontend에서 외부 API 직접 호출 금지**
+**⚠️ 중요: 상세한 API 키 보호 원칙은 [루트 CLAUDE.md의 보안 섹션](/CLAUDE.md#1-보안-우선-원칙-security-first)을 참조하세요.**
 
-❌ **절대 금지 - 클라이언트 노출:**
+**핵심 규칙:**
+- ❌ Frontend에서 외부 API 직접 호출 **절대 금지**
+- ✅ 모든 Gemini API 호출은 Cloud Functions(`functions/src/ai/`)를 통해서만
+- ✅ API 키는 `functions/.env`에만 저장 (`.gitignore` 필수)
+
+**Project Da Vinci 특화 가이드:**
 ```typescript
-// ❌ frontend/src/services/wordPools.ts (잘못된 예)
-import { GoogleGenerativeAI } from '@google/generative-ai'
-const key = import.meta.env.VITE_GEMINI_API_KEY  // 🚨 보안 위험!
-const genAI = new GoogleGenerativeAI(key)        // 🚨 클라이언트 노출!
-```
-
-**문제점:**
-- 브라우저 개발자 도구에서 API 키 확인 가능
-- 빌드된 JS 번들에 키가 포함됨
-- 악의적 사용자가 키를 추출하여 남용 가능
-
-✅ **올바른 방법 - Cloud Functions 사용:**
-```typescript
-// ✅ functions/src/ai/wordGenerator.ts (올바른 예)
-import { GoogleGenerativeAI } from '@google/generative-ai'
-const apiKey = process.env.GEMINI_API_KEY  // ✅ 서버 사이드만 접근
-const genAI = new GoogleGenerativeAI(apiKey)
-
-// ✅ frontend/src/services/wordPools.ts (올바른 예)
-import { httpsCallable } from 'firebase/functions'
-const generateWords = httpsCallable(functions, 'generateWords')
-const result = await generateWords({ theme, count })  // ✅ Functions를 통해 호출
-```
-
-**환경 변수 관리:**
-```bash
-# ✅ functions/.env (서버 사이드 - 절대 커밋하지 말 것)
-GEMINI_API_KEY=AIzaSyC...
-
-# ✅ functions/.env.example (템플릿만 커밋)
-GEMINI_API_KEY=your-gemini-api-key-here
-
-# ✅ 프로덕션 배포 (Firebase Functions Config)
-firebase functions:config:set gemini.api_key="AIzaSyC..."
-```
-
-**검증 체크리스트:**
-```
-[ ] API 키가 frontend/ 디렉토리에 없는가?
-[ ] .env 파일이 .gitignore에 포함되어 있는가?
-[ ] 외부 API 호출이 모두 Cloud Functions를 통하는가?
-[ ] 빌드된 JS 번들에 API 키가 포함되지 않는가?
+// ✅ AI 기능 추가 시 참조할 기존 구현
+// functions/src/ai/judge.flow.ts - Gemini API 호출 패턴
+// functions/src/ai/wordGenerator.ts - 단어 생성 예시
 ```
 
 ### 2. Firebase 보안 규칙

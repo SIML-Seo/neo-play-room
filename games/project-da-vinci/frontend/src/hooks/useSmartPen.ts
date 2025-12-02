@@ -1,12 +1,11 @@
 import { useEffect, useRef, useId } from 'react'
-import { useSmartPenStore } from '@/store/smartPenStore'
-import type { ScreenDot } from 'web_pen_sdk/dist/Util/type'
+import { useSmartPenStore, type ExtendedScreenDot } from '@/store/smartPenStore'
 
 interface UseSmartPenOptions {
-  onStrokeStart?: (dot: ScreenDot) => void
-  onStrokeMove?: (dot: ScreenDot) => void
-  onStrokeEnd?: (dot: ScreenDot) => void
-  onHover?: (dot: ScreenDot) => void
+  onStrokeStart?: (dot: ExtendedScreenDot) => void
+  onStrokeMove?: (dot: ExtendedScreenDot) => void
+  onStrokeEnd?: (dot: ExtendedScreenDot) => void
+  onHover?: (dot: ExtendedScreenDot) => void
   onConnect?: () => void
   onDisconnect?: () => void
   canvasSize?: { width: number; height: number }
